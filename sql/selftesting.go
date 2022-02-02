@@ -9,11 +9,24 @@ type Testing struct {
 	Result    string
 }
 
-func (db *sqlImpl) GetTestingResults(date string) ([]Testing, error) {
+func (db *sqlImpl) GetTestingResults(date string, classId int) ([]Testing, error) {
 	var message []Testing
 
-	err := db.db.Select(&message, "SELECT * FROM testing WHERE date=$1", date)
+	err := db.db.Select(&message, "SELECT * FROM testing WHERE date=$1 AND class_id=$2", date, classId)
 	return message, err
+}
+
+func (db *sqlImpl) GetLastTestingID() int {
+	var id int
+	err := db.db.Get(&id, "SELECT id FROM testing WHERE id = (SELECT MAX(id) FROM testing)")
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return 0
+		}
+		db.logger.Info(err)
+		return -1
+	}
+	return id + 1
 }
 
 func (db *sqlImpl) GetTestingResult(date string, id int) (Testing, error) {

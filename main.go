@@ -39,16 +39,17 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/user/new", httphandler.NewUser).Methods("POST")
+	r.HandleFunc("/user/login", httphandler.Login).Methods("POST")
 
-	r.HandleFunc("/class/selftesting", httphandler.GetSelfTestingTeacher).Methods("GET")
-	r.HandleFunc("/user/selftesting/{id}", httphandler.PatchSelfTesting).Methods("PATCH")
+	r.HandleFunc("/class/{class_id}/self_testing", httphandler.GetSelfTestingTeacher).Methods("GET")
+	r.HandleFunc("/user/self_testing/{student_id}", httphandler.PatchSelfTesting).Methods("PATCH")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins
 		AllowedMethods: []string{"POST", "GET", "DELETE", "PATCH", "PUT"},
 	})
 
-	err = http.ListenAndServe(serve, c.Handler(r))
+	err = http.ListenAndServe("127.0.0.1:8080", c.Handler(r))
 	if err != nil {
 		sugared.Fatal(err.Error())
 	}

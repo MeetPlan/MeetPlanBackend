@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS testing (
 CREATE TABLE IF NOT EXISTS users (
     id           INTEGER       PRIMARY KEY,
     email        VARCHAR(250)  NOT NULL,
-    pass         VARCHAR(250)  NOT NULL
+    pass         VARCHAR(250)  NOT NULL,
+	role         VARCHAR(50)   NOT NULL
 );
 `

@@ -12,7 +12,9 @@ type httpImpl struct {
 }
 
 type HTTP interface {
+	Login(w http.ResponseWriter, r *http.Request)
 	NewUser(w http.ResponseWriter, r *http.Request)
+
 	GetSelfTestingTeacher(w http.ResponseWriter, r *http.Request)
 	PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 }

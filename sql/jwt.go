@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt"
+	"strings"
 	"time"
 )
 
@@ -19,6 +20,25 @@ func GetJWTFromUserPass(email string) (string, error) {
 	})
 
 	return token.SignedString(JwtSigningKey)
+}
+
+func GetJWTForTestingResult(userId int, result string, testId int, date string) (string, error, string) {
+	expirationTime, err := time.Parse("02-01-2006", date)
+	if err != nil {
+		return "", err, ""
+	}
+	expirationTime = expirationTime.Add(48 * time.Hour)
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userId,
+		"result":  result,
+		"test_id": testId,
+		"iss":     "MeetPlanCA",
+		"exp":     expirationTime.Unix(),
+	})
+
+	sgnd, err := token.SignedString(JwtSigningKey)
+	return sgnd, err, strings.Split(expirationTime.Format("02-01-2006"), " ")[0]
 }
 
 func CheckJWT(tokenString string) (jwt.MapClaims, error) {

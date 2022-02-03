@@ -1,5 +1,9 @@
 package sql
 
+import (
+	"encoding/json"
+)
+
 type Testing struct {
 	ID        int
 	UserID    int `db:"user_id"`
@@ -9,11 +13,56 @@ type Testing struct {
 	Result    string
 }
 
-func (db *sqlImpl) GetTestingResults(date string, classId int) ([]Testing, error) {
-	var message []Testing
+type TestingJSON struct {
+	ID        int
+	UserID    int `db:"user_id"`
+	Date      string
+	TeacherID int `db:"teacher_id"`
+	ClassID   int `db:"class_id"`
+	Result    string
+	IsDone    bool
+	UserName  string
+}
 
-	err := db.db.Select(&message, "SELECT * FROM testing WHERE date=$1 AND class_id=$2", date, classId)
-	return message, err
+func (db *sqlImpl) GetTestingResults(date string, classId int) ([]TestingJSON, error) {
+	var testing = make([]TestingJSON, 0)
+
+	class, err := db.GetClass(classId)
+	if err != nil {
+		db.logger.Debug(err)
+		return nil, err
+	}
+	var students []int
+	err = json.Unmarshal([]byte(class.Students), &students)
+	if err != nil {
+		db.logger.Debug(err)
+		return nil, err
+	}
+
+	for i := 0; i < len(students); i++ {
+		student := students[i]
+		var test Testing
+		var tjson TestingJSON
+		user, err := db.GetUser(student)
+		if err != nil {
+			db.logger.Debug(err)
+			return nil, err
+		}
+		err = db.db.Get(&test, "SELECT * FROM testing WHERE date=$1 AND class_id=$2 AND user_id=$3", date, classId, student)
+		if err != nil || test.Result == "" {
+			if (err != nil && err.Error() == "sql: no rows in result set") || (test.Result == "") {
+				db.logger.Debug(err)
+				tjson = TestingJSON{IsDone: false, UserID: student, ClassID: classId, Date: date, TeacherID: -1, ID: -1, UserName: user.Name}
+			} else {
+				db.logger.Debug(err)
+				return nil, err
+			}
+		} else {
+			tjson = TestingJSON{IsDone: true, ClassID: test.ClassID, Date: test.Date, Result: test.Result, TeacherID: test.TeacherID, ID: test.ID, UserID: test.UserID, UserName: user.Name}
+		}
+		testing = append(testing, tjson)
+	}
+	return testing, nil
 }
 
 func (db *sqlImpl) GetLastTestingID() int {
@@ -32,7 +81,14 @@ func (db *sqlImpl) GetLastTestingID() int {
 func (db *sqlImpl) GetTestingResult(date string, id int) (Testing, error) {
 	var message Testing
 
-	err := db.db.Select(&message, "SELECT * FROM testing WHERE user_id=$1 AND date=$2", id, date)
+	err := db.db.Get(&message, "SELECT * FROM testing WHERE user_id=$1 AND date=$2", id, date)
+	return message, err
+}
+
+func (db *sqlImpl) GetTestingResultByID(id int) (Testing, error) {
+	var message Testing
+
+	err := db.db.Get(&message, "SELECT * FROM testing WHERE id=$1", id)
 	return message, err
 }
 

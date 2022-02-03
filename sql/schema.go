@@ -13,6 +13,13 @@ CREATE TABLE IF NOT EXISTS users (
     id           INTEGER       PRIMARY KEY,
     email        VARCHAR(250)  NOT NULL,
     pass         VARCHAR(250)  NOT NULL,
+	name         VARCHAR(250)  NOT NULL,
 	role         VARCHAR(50)   NOT NULL
+);
+CREATE TABLE IF NOT EXISTS classes (
+	id           INTEGER       PRIMARY KEY,
+	students     JSON          DEFAULT('[]'),
+	name         VARCHAR(100)  NOT NULL,
+	teacher      INTEGER
 );
 `

@@ -17,6 +17,9 @@ type HTTP interface {
 
 	GetSelfTestingTeacher(w http.ResponseWriter, r *http.Request)
 	PatchSelfTesting(w http.ResponseWriter, r *http.Request)
+	GetPDFSelfTestingReportStudent(w http.ResponseWriter, r *http.Request)
+
+	NewClass(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL) HTTP {

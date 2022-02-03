@@ -41,15 +41,18 @@ func main() {
 	r.HandleFunc("/user/new", httphandler.NewUser).Methods("POST")
 	r.HandleFunc("/user/login", httphandler.Login).Methods("POST")
 
-	r.HandleFunc("/class/{class_id}/self_testing", httphandler.GetSelfTestingTeacher).Methods("GET")
-	r.HandleFunc("/user/self_testing/{student_id}", httphandler.PatchSelfTesting).Methods("PATCH")
+	r.HandleFunc("/class/get/{class_id}/self_testing", httphandler.GetSelfTestingTeacher).Methods("GET")
+	r.HandleFunc("/user/self_testing/patch/{student_id}", httphandler.PatchSelfTesting).Methods("PATCH")
+	r.HandleFunc("/user/self_testing/get_results/pdf/{test_id}", httphandler.GetPDFSelfTestingReportStudent).Methods("GET")
+
+	r.HandleFunc("/class/new", httphandler.NewClass).Methods("POST")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins
 		AllowedMethods: []string{"POST", "GET", "DELETE", "PATCH", "PUT"},
 	})
 
-	err = http.ListenAndServe("127.0.0.1:8080", c.Handler(r))
+	err = http.ListenAndServe("127.0.0.1:8000", c.Handler(r))
 	if err != nil {
 		sugared.Fatal(err.Error())
 	}

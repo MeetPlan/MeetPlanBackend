@@ -21,14 +21,20 @@ type SQL interface {
 
 	UpdateTestingResult(testing Testing) error
 	InsertTestingResult(testing Testing) error
-	GetTestingResults(date string, classId int) ([]Testing, error)
+	GetTestingResults(date string, classId int) ([]TestingJSON, error)
 	GetTestingResult(date string, id int) (Testing, error)
+	GetTestingResultByID(id int) (Testing, error)
 	GetLastTestingID() int
 
 	GetUser(id int) (message User, err error)
 	InsertUser(user User) (err error)
 	GetLastUserID() (id int)
 	GetUserByEmail(email string) (message User, err error)
+
+	GetClass(id int) (Class, error)
+	InsertClass(class Class) (err error)
+	GetLastClassID() (id int)
+	UpdateClass(class Class) error
 }
 
 func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, error) {

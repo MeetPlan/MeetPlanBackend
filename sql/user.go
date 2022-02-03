@@ -3,8 +3,9 @@ package sql
 type User struct {
 	ID       int
 	Email    string
-	Password string
+	Password string `db:"pass"`
 	Role     string
+	Name     string
 }
 
 func (db *sqlImpl) GetUser(id int) (message User, err error) {
@@ -19,7 +20,7 @@ func (db *sqlImpl) GetUserByEmail(email string) (message User, err error) {
 
 func (db *sqlImpl) InsertUser(user User) (err error) {
 	_, err = db.db.NamedExec(
-		"INSERT INTO users (id, email, password, role) VALUES (:id, :email, :password, :role)",
+		"INSERT INTO users (id, email, pass, role, name) VALUES (:id, :email, :pass, :role, :name)",
 		user)
 	return err
 }

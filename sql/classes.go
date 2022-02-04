@@ -37,3 +37,8 @@ func (db *sqlImpl) GetLastClassID() (id int) {
 	}
 	return id + 1
 }
+
+func (db *sqlImpl) GetClasses() (classes []Class, err error) {
+	err = db.db.Select(&classes, "SELECT * FROM classes")
+	return classes, err
+}

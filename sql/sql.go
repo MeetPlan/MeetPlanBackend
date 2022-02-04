@@ -35,6 +35,7 @@ type SQL interface {
 	InsertClass(class Class) (err error)
 	GetLastClassID() (id int)
 	UpdateClass(class Class) error
+	GetClasses() ([]Class, error)
 }
 
 func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, error) {

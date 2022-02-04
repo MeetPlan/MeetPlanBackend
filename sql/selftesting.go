@@ -49,10 +49,12 @@ func (db *sqlImpl) GetTestingResults(date string, classId int) ([]TestingJSON, e
 			return nil, err
 		}
 		err = db.db.Get(&test, "SELECT * FROM testing WHERE date=$1 AND class_id=$2 AND user_id=$3", date, classId, student)
-		if err != nil || test.Result == "" {
-			if (err != nil && err.Error() == "sql: no rows in result set") || (test.Result == "") {
-				db.logger.Debug(err)
+		if err != nil || test.Result == "" || test.Result == "SE NE TESTIRA" {
+			db.logger.Debug(err)
+			if err != nil && err.Error() == "sql: no rows in result set" {
 				tjson = TestingJSON{IsDone: false, UserID: student, ClassID: classId, Date: date, TeacherID: -1, ID: -1, UserName: user.Name}
+			} else if test.Result == "" || test.Result == "SE NE TESTIRA" {
+				tjson = TestingJSON{IsDone: false, UserID: student, ClassID: classId, Date: date, TeacherID: -1, ID: -1, UserName: user.Name, Result: test.Result}
 			} else {
 				db.logger.Debug(err)
 				return nil, err

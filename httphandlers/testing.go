@@ -63,12 +63,13 @@ func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
 			return
 		}
-	}
-	newr := r.FormValue("result")
-	if newr == results.Result {
-		results.Result = ""
 	} else {
-		results.Result = newr
+		newr := r.FormValue("result")
+		if newr == results.Result {
+			results.Result = ""
+		} else {
+			results.Result = newr
+		}
 	}
 	err = server.db.UpdateTestingResult(results)
 	if err != nil {
@@ -90,6 +91,10 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 		return
 	}
 
+	if test.Result == "SE NE TESTIRA" {
+		return
+	}
+
 	teacher, err := server.db.GetUser(test.TeacherID)
 	if err != nil {
 		return
@@ -108,6 +113,15 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 	m := pdf.NewMaroto(consts.Portrait, consts.A4)
 
 	m.Row(40, func() {
+		m.Col(3, func() {
+			_ = m.Base64Image(MeetPlanLogoBase64, consts.Png, props.Rect{
+				Center:  true,
+				Percent: 80,
+			})
+		})
+
+		m.ColSpace(1)
+
 		m.Col(5, func() {
 			m.Text("MeetPlan", props.Text{
 				Top:         12,
@@ -125,14 +139,25 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 	m.Line(10)
 
 	m.Row(40, func() {
-		m.Col(4, func() {
+		m.Col(7, func() {
 			m.Text("Rezultat testiranja: ", props.Text{
 				Size: 15,
 				Top:  12,
 			})
 			m.Text(test.Result, props.Text{Size: 20, Top: 20})
+			if test.Result == "POZITIVEN" {
+				m.Text(
+					"Vaš test je bil pozitiven. Samoizolirajte se v cim manjšem možnem casu. To potrdilo vam lahko s podpisom osebe, ki je izvajala testiranje, tudi služi kot dokaz za PCR testiranje.",
+					props.Text{Top: 30},
+				)
+			} else if test.Result == "NEVELJAVEN" {
+				m.Text(
+					"Vaš test je bil neveljaven. Ponovite testiranje.",
+					props.Text{Top: 30},
+				)
+			}
 		})
-		m.ColSpace(4)
+		m.ColSpace(1)
 		m.Col(4, func() {
 			m.QrCode(jwt, props.Rect{
 				Center:  true,
@@ -169,7 +194,7 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 			})
 		})
 		m.Col(6, func() {
-			m.Text("Izdal MeetPlanCA", props.Text{
+			m.Text("Izdal MeetPlan Certificate Authority", props.Text{
 				Top:   25,
 				Size:  15,
 				Align: consts.Center,
@@ -200,6 +225,15 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 				Size: 15,
 			})
 			m.Text("podpis izvajalca testiranja", props.Text{Top: 20, Size: 9})
+		})
+	})
+
+	m.Row(5, func() {
+		m.Col(12, func() {
+			m.Text("S podpisom tega dokumenta, potrjujem, da se je oseba, napisana zgoraj samotestirala in to sem to tudi potrdil(a).", props.Text{
+				Top:  14,
+				Size: 15,
+			})
 		})
 	})
 

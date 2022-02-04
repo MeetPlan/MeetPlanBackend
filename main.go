@@ -46,6 +46,7 @@ func main() {
 	r.HandleFunc("/user/self_testing/get_results/pdf/{test_id}", httphandler.GetPDFSelfTestingReportStudent).Methods("GET")
 
 	r.HandleFunc("/class/new", httphandler.NewClass).Methods("POST")
+	r.HandleFunc("/classes/get", httphandler.GetClasses).Methods("GET")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins

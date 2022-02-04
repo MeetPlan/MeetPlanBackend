@@ -27,3 +27,11 @@ func (server *httpImpl) NewClass(w http.ResponseWriter, r *http.Request) {
 	}
 	WriteJSON(w, Response{Success: true, Data: class.ID}, http.StatusOK)
 }
+
+func (server *httpImpl) GetClasses(w http.ResponseWriter, r *http.Request) {
+	classes, err := server.db.GetClasses()
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Success: true, Data: classes}, http.StatusOK)
+}

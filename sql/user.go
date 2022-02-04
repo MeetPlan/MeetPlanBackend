@@ -36,3 +36,30 @@ func (db *sqlImpl) GetLastUserID() (id int) {
 	}
 	return id + 1
 }
+
+func (db *sqlImpl) CheckIfAdminIsCreated() bool {
+	var users []User
+	err := db.db.Select(&users, "SELECT * FROM users")
+	if err != nil {
+		// Return true, as we don't want all the kids, on some internal error to become administrators
+		return true
+	}
+	return len(users) > 0
+}
+
+func (db *sqlImpl) GetAllUsers() (users []User, err error) {
+	err = db.db.Select(&users, "SELECT * FROM users")
+	return users, err
+}
+
+func (db *sqlImpl) UpdateUser(user User) error {
+	_, err := db.db.NamedExec(
+		"UPDATE users SET pass=:pass, name=:name, role=:role, email=:email WHERE id=:id",
+		user)
+	return err
+}
+
+func (db *sqlImpl) DeleteUser(ID int) error {
+	_, err := db.db.Exec("DELETE FROM users WHERE id=$1", ID)
+	return err
+}

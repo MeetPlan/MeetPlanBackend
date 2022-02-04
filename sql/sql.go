@@ -30,6 +30,10 @@ type SQL interface {
 	InsertUser(user User) (err error)
 	GetLastUserID() (id int)
 	GetUserByEmail(email string) (message User, err error)
+	CheckIfAdminIsCreated() bool
+	GetAllUsers() (users []User, err error)
+	UpdateUser(user User) error
+	DeleteUser(ID int) error
 
 	GetClass(id int) (Class, error)
 	InsertClass(class Class) (err error)

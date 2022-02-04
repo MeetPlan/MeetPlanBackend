@@ -47,9 +47,15 @@ func main() {
 
 	r.HandleFunc("/class/new", httphandler.NewClass).Methods("POST")
 	r.HandleFunc("/classes/get", httphandler.GetClasses).Methods("GET")
+	r.HandleFunc("/class/get/{class_id}/add_user/{user_id}", httphandler.AssignUserToClass).Methods("PATCH")
+
+	r.HandleFunc("/users/get", httphandler.GetAllUsers).Methods("GET")
+	r.HandleFunc("/user/role/update/{id}", httphandler.ChangeRole).Methods("PATCH")
+	r.HandleFunc("/user/delete/{id}", httphandler.DeleteUser).Methods("DELETE")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins
+		AllowedHeaders: []string{"Authorization"},
 		AllowedMethods: []string{"POST", "GET", "DELETE", "PATCH", "PUT"},
 	})
 

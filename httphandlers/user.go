@@ -1,7 +1,6 @@
 package httphandlers
 
 import (
-	"encoding/json"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"net/http"
 )
@@ -18,7 +17,7 @@ func (server *httpImpl) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Extract JWT
-	jwt, err := sql.GetJWTFromUserPass(email)
+	jwt, err := sql.GetJWTFromUserPass(email, user.Role)
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
@@ -57,38 +56,18 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := sql.User{ID: server.db.GetLastUserID(), Email: email, Password: password, Role: "student", Name: name}
+	var role = "student"
+
+	isAdmin := !server.db.CheckIfAdminIsCreated()
+	if isAdmin {
+		role = "admin"
+	}
+
+	user := sql.User{ID: server.db.GetLastUserID(), Email: email, Password: password, Role: role, Name: name}
 
 	err = server.db.InsertUser(user)
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Data: "Failed to commit new user to database", Success: false}, http.StatusInternalServerError)
-		return
-	}
-
-	classId := 0
-	class, err := server.db.GetClass(classId)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	var m []int
-	err = json.Unmarshal([]byte(class.Students), &m)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	m = append(m, user.ID)
-
-	s, err := json.Marshal(m)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	class.Students = string(s)
-
-	err = server.db.UpdateClass(class)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
 

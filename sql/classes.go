@@ -42,3 +42,7 @@ func (db *sqlImpl) GetClasses() (classes []Class, err error) {
 	err = db.db.Select(&classes, "SELECT * FROM classes")
 	return classes, err
 }
+func (db *sqlImpl) DeleteClass(ID int) error {
+	_, err := db.db.Exec("DELETE FROM classes WHERE id=$1", ID)
+	return err
+}

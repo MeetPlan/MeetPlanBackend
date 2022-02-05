@@ -35,49 +35,74 @@ func (server *httpImpl) GetSelfTestingTeacher(w http.ResponseWriter, r *http.Req
 }
 
 func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request) {
-	studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
+		WriteForbiddenJWT(w)
 		return
 	}
-	dt := time.Now()
-	date := dt.Format("02-01-2006")
+	if jwt["role"] == "admin" || jwt["role"] == "teacher" {
+		studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
 
-	results, err := server.db.GetTestingResult(date, studentId)
-	if err != nil {
-		server.logger.Debug(err)
-		if err.Error() == "sql: no rows in result set" {
-			results = sql.Testing{
-				Date:      date,
-				ID:        server.db.GetLastTestingID(),
-				UserID:    studentId,
-				TeacherID: 0,
-				ClassID:   0,
-				Result:    r.FormValue("result"),
-			}
-			err := server.db.InsertTestingResult(results)
-			if err != nil {
+		classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+
+		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+
+		dt := time.Now()
+		date := dt.Format("02-01-2006")
+
+		results, err := server.db.GetTestingResult(date, studentId)
+		if err != nil {
+			server.logger.Debug(err)
+			if err.Error() == "sql: no rows in result set" {
+				results = sql.Testing{
+					Date:      date,
+					ID:        server.db.GetLastTestingID(),
+					UserID:    studentId,
+					TeacherID: teacherId,
+					ClassID:   classId,
+					Result:    r.FormValue("result"),
+				}
+				err := server.db.InsertTestingResult(results)
+				if err != nil {
+					WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+					return
+				}
+				WriteJSON(w, Response{Success: true, Data: results}, http.StatusOK)
+				return
+			} else {
 				WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
 				return
 			}
 		} else {
+			newr := r.FormValue("result")
+			if newr == results.Result {
+				results.Result = ""
+			} else {
+				results.Result = newr
+			}
+		}
+		err = server.db.UpdateTestingResult(results)
+		if err != nil {
 			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
 			return
 		}
-	} else {
-		newr := r.FormValue("result")
-		if newr == results.Result {
-			results.Result = ""
-		} else {
-			results.Result = newr
-		}
-	}
-	err = server.db.UpdateTestingResult(results)
-	if err != nil {
-		WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
-		return
-	}
 
-	WriteJSON(w, Response{Success: true, Data: results}, http.StatusOK)
+		WriteJSON(w, Response{Success: true, Data: results}, http.StatusOK)
+	} else {
+		WriteForbiddenJWT(w)
+	}
 }
 
 func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r *http.Request) {

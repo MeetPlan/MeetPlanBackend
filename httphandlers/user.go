@@ -1,8 +1,11 @@
 package httphandlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"net/http"
+	"strconv"
 )
 
 func (server *httpImpl) Login(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +20,7 @@ func (server *httpImpl) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Extract JWT
-	jwt, err := sql.GetJWTFromUserPass(email, user.Role)
+	jwt, err := sql.GetJWTFromUserPass(email, user.Role, user.ID)
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
@@ -72,4 +75,60 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, Response{Data: "Success", Success: true}, http.StatusCreated)
+}
+
+func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		return
+	}
+
+	var userId int
+	if jwt["role"] == "admin" || jwt["role"] == "teacher" {
+		uid := r.URL.Query().Get("id")
+		if uid == "" {
+			userId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+			if err != nil {
+				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+				return
+			}
+		} else {
+			userId, err = strconv.Atoi(uid)
+			if err != nil {
+				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+				return
+			}
+		}
+	} else {
+		userId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	classes, err := server.db.GetClasses()
+	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+
+	var myclasses = make([]sql.Class, 0)
+
+	for i := 0; i < len(classes); i++ {
+		class := classes[i]
+		var students []int
+		err := json.Unmarshal([]byte(class.Students), &students)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		for n := 0; n < len(students); n++ {
+			if students[n] == userId {
+				myclasses = append(myclasses, class)
+				break
+			}
+		}
+	}
+	WriteJSON(w, Response{Data: myclasses, Success: true}, http.StatusOK)
 }

@@ -18,7 +18,7 @@ func WriteJSON(w http.ResponseWriter, jsonstruct interface{}, statusCode int) {
 }
 
 func WriteForbiddenJWT(w http.ResponseWriter) {
-	w.WriteHeader(403)
+	w.WriteHeader(http.StatusForbidden)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(DumpJSON(Response{Success: false, Data: "Forbidden"}))
 }
@@ -29,4 +29,15 @@ func GetAuthorizationJWT(r *http.Request) string {
 		return ""
 	}
 	return strings.Split(h, " ")[1]
+}
+
+func WriteBadRequest(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusBadRequest)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(DumpJSON(Response{Success: false, Data: "Bad request"}))
+}
+
+func remove(s []int, i int) []int {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
 }

@@ -40,16 +40,23 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/user/new", httphandler.NewUser).Methods("POST")
 	r.HandleFunc("/user/login", httphandler.Login).Methods("POST")
+	// Get all classes for specific user
+	r.HandleFunc("/user/get/classes", httphandler.GetAllClasses).Methods("GET")
 
 	r.HandleFunc("/class/get/{class_id}/self_testing", httphandler.GetSelfTestingTeacher).Methods("GET")
-	r.HandleFunc("/user/self_testing/patch/{student_id}", httphandler.PatchSelfTesting).Methods("PATCH")
+	r.HandleFunc("/user/self_testing/patch/{class_id}/{student_id}", httphandler.PatchSelfTesting).Methods("PATCH")
 	r.HandleFunc("/user/self_testing/get_results/pdf/{test_id}", httphandler.GetPDFSelfTestingReportStudent).Methods("GET")
 
 	r.HandleFunc("/class/new", httphandler.NewClass).Methods("POST")
+	r.HandleFunc("/class/get/{id}", httphandler.GetClass).Methods("GET")
+	r.HandleFunc("/class/get/{id}", httphandler.DeleteClass).Methods("DELETE")
+	// Get all classes in database
 	r.HandleFunc("/classes/get", httphandler.GetClasses).Methods("GET")
 	r.HandleFunc("/class/get/{class_id}/add_user/{user_id}", httphandler.AssignUserToClass).Methods("PATCH")
+	r.HandleFunc("/class/get/{class_id}/remove_user/{user_id}", httphandler.RemoveUserFromClass).Methods("DELETE")
 
 	r.HandleFunc("/users/get", httphandler.GetAllUsers).Methods("GET")
+	r.HandleFunc("/teachers/get", httphandler.GetTeachers).Methods("GET")
 	r.HandleFunc("/user/role/update/{id}", httphandler.ChangeRole).Methods("PATCH")
 	r.HandleFunc("/user/delete/{id}", httphandler.DeleteUser).Methods("DELETE")
 

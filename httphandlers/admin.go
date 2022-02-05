@@ -68,6 +68,30 @@ func (server *httpImpl) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (server *httpImpl) GetTeachers(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if jwt["role"] != "admin" {
+		WriteForbiddenJWT(w)
+		return
+	}
+	users, err := server.db.GetTeachers()
+	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+	var usersjson = make([]UserJSON, 0)
+	for i := 0; i < len(users); i++ {
+		user := users[i]
+		m := UserJSON{ID: user.ID, Email: user.Email, Role: user.Role, Name: user.Name}
+		usersjson = append(usersjson, m)
+	}
+	WriteJSON(w, Response{Data: usersjson, Success: true}, http.StatusOK)
+}
+
 func (server *httpImpl) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {

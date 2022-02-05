@@ -34,12 +34,14 @@ type SQL interface {
 	GetAllUsers() (users []User, err error)
 	UpdateUser(user User) error
 	DeleteUser(ID int) error
+	GetTeachers() ([]User, error)
 
 	GetClass(id int) (Class, error)
 	InsertClass(class Class) (err error)
 	GetLastClassID() (id int)
 	UpdateClass(class Class) error
 	GetClasses() ([]Class, error)
+	DeleteClass(ID int) error
 }
 
 func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, error) {

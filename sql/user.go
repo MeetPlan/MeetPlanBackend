@@ -13,6 +13,11 @@ func (db *sqlImpl) GetUser(id int) (message User, err error) {
 	return message, err
 }
 
+func (db *sqlImpl) GetTeachers() (message []User, err error) {
+	err = db.db.Select(&message, "SELECT * FROM users WHERE role='teacher'")
+	return message, err
+}
+
 func (db *sqlImpl) GetUserByEmail(email string) (message User, err error) {
 	err = db.db.Get(&message, "SELECT * FROM users WHERE email=$1", email)
 	return message, err

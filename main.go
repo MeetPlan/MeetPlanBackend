@@ -45,6 +45,7 @@ func main() {
 
 	r.HandleFunc("/class/get/{class_id}/self_testing", httphandler.GetSelfTestingTeacher).Methods("GET")
 	r.HandleFunc("/user/self_testing/patch/{class_id}/{student_id}", httphandler.PatchSelfTesting).Methods("PATCH")
+	r.HandleFunc("/user/self_testing/get_results", httphandler.GetTestingResults).Methods("GET")
 	r.HandleFunc("/user/self_testing/get_results/pdf/{test_id}", httphandler.GetPDFSelfTestingReportStudent).Methods("GET")
 
 	r.HandleFunc("/class/new", httphandler.NewClass).Methods("POST")

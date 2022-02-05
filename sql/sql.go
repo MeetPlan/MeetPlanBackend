@@ -22,6 +22,7 @@ type SQL interface {
 	UpdateTestingResult(testing Testing) error
 	InsertTestingResult(testing Testing) error
 	GetTestingResults(date string, classId int) ([]TestingJSON, error)
+	GetAllTestingsForUser(id int) (testing []Testing, err error)
 	GetTestingResult(date string, id int) (Testing, error)
 	GetTestingResultByID(id int) (Testing, error)
 	GetLastTestingID() int

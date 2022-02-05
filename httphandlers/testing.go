@@ -9,6 +9,7 @@ import (
 	"github.com/johnfercher/maroto/pkg/props"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -19,19 +20,29 @@ type Response struct {
 }
 
 func (server *httpImpl) GetSelfTestingTeacher(w http.ResponseWriter, r *http.Request) {
-	classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
-		WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+		WriteForbiddenJWT(w)
 		return
 	}
-	dt := time.Now()
-	date := dt.Format("02-01-2006")
-	results, err := server.db.GetTestingResults(date, classId)
-	if err != nil {
-		WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+	if jwt["role"] == "teacher" || jwt["role"] == "admin" {
+		classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
+		if err != nil {
+			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+			return
+		}
+		dt := time.Now()
+		date := dt.Format("02-01-2006")
+		results, err := server.db.GetTestingResults(date, classId)
+		if err != nil {
+			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+			return
+		}
+		WriteJSON(w, Response{Success: true, Data: results}, http.StatusOK)
+	} else {
+		WriteForbiddenJWT(w)
 		return
 	}
-	WriteJSON(w, Response{Success: true, Data: results}, http.StatusOK)
 }
 
 func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request) {
@@ -106,13 +117,31 @@ func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 }
 
 func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r *http.Request) {
+	jwtData, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	userId, err := strconv.Atoi(fmt.Sprint(jwtData["user_id"]))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+
 	id, err := strconv.Atoi(mux.Vars(r)["test_id"])
 	if err != nil {
+		WriteBadRequest(w)
 		return
 	}
 
 	test, err := server.db.GetTestingResultByID(id)
 	if err != nil {
+		return
+	}
+
+	if test.UserID != userId {
+		WriteForbiddenJWT(w)
 		return
 	}
 
@@ -268,4 +297,40 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 		return
 	}
 	w.Write(output.Bytes())
+}
+
+func (server *httpImpl) GetTestingResults(w http.ResponseWriter, r *http.Request) {
+	jwtData, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	userId, err := strconv.Atoi(fmt.Sprint(jwtData["user_id"]))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	results, err := server.db.GetAllTestingsForUser(userId)
+	if err != nil {
+		return
+	}
+
+	var res = make([]sql.TestingJSON, 0)
+
+	for i := 0; i < len(results); i++ {
+		r := results[i]
+		teacher, err := server.db.GetUser(r.TeacherID)
+		if err != nil {
+			return
+		}
+		expirationTime, err := time.Parse("02-01-2006", r.Date)
+		if err != nil {
+			return
+		}
+		expirationTime = expirationTime.Add(48 * time.Hour)
+		etime := strings.Split(expirationTime.Format("02-01-2006"), " ")[0]
+		j := sql.TestingJSON{IsDone: true, ID: r.ID, ClassID: r.ClassID, TeacherID: r.TeacherID, TeacherName: teacher.Name, UserID: r.UserID, Date: r.Date, Result: r.Result, ValidUntil: etime}
+		res = append(res, j)
+	}
+	WriteJSON(w, Response{Data: res, Success: true}, http.StatusOK)
 }

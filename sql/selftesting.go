@@ -14,14 +14,16 @@ type Testing struct {
 }
 
 type TestingJSON struct {
-	ID        int
-	UserID    int `db:"user_id"`
-	Date      string
-	TeacherID int `db:"teacher_id"`
-	ClassID   int `db:"class_id"`
-	Result    string
-	IsDone    bool
-	UserName  string
+	ID          int
+	UserID      int `db:"user_id"`
+	Date        string
+	TeacherID   int `db:"teacher_id"`
+	TeacherName string
+	ClassID     int `db:"class_id"`
+	ValidUntil  string
+	Result      string
+	IsDone      bool
+	UserName    string
 }
 
 func (db *sqlImpl) GetTestingResults(date string, classId int) ([]TestingJSON, error) {
@@ -85,6 +87,11 @@ func (db *sqlImpl) GetTestingResult(date string, id int) (Testing, error) {
 
 	err := db.db.Get(&message, "SELECT * FROM testing WHERE user_id=$1 AND date=$2", id, date)
 	return message, err
+}
+
+func (db *sqlImpl) GetAllTestingsForUser(id int) (testing []Testing, err error) {
+	err = db.db.Select(&testing, "SELECT * FROM testing WHERE user_id=$1", id)
+	return testing, err
 }
 
 func (db *sqlImpl) GetTestingResultByID(id int) (Testing, error) {

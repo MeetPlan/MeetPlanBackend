@@ -21,6 +21,7 @@ type HTTP interface {
 	GetSelfTestingTeacher(w http.ResponseWriter, r *http.Request)
 	PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 	GetPDFSelfTestingReportStudent(w http.ResponseWriter, r *http.Request)
+	GetTestingResults(w http.ResponseWriter, r *http.Request)
 
 	// class.go
 	NewClass(w http.ResponseWriter, r *http.Request)

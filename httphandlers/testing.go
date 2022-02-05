@@ -284,7 +284,7 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 
 	m.Row(5, func() {
 		m.Col(12, func() {
-			m.Text("S podpisom tega dokumenta, potrjujem, da se je oseba, napisana zgoraj samotestirala in to sem to tudi potrdil(a).", props.Text{
+			m.Text("S podpisom tega dokumenta, potrjujem, da se je oseba, navedena zgoraj samotestirala in to sem to tudi potrdil(a).", props.Text{
 				Top:  14,
 				Size: 15,
 			})

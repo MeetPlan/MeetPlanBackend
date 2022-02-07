@@ -89,7 +89,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 	var meetingsJson = make([]TimetableDate, 0)
 	for i := 0; i < len(dates); i++ {
 		date := dates[i]
-		meetings, err := server.db.GetMeetingsOnSpecificDate(date)
+		meetings, err := server.db.GetMeetingsOnSpecificDateAndClass(date, classId)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return

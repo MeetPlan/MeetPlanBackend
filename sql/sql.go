@@ -46,6 +46,7 @@ type SQL interface {
 
 	GetMeeting(id int) (meeting Meeting, err error)
 	GetMeetingsOnSpecificTime(date string, hour int) (meetings []Meeting, err error)
+	GetMeetingsOnSpecificDateAndClass(date string, classId int) (meetings []Meeting, err error)
 	InsertMeeting(meeting Meeting) (err error)
 	UpdateMeeting(meeting Meeting) error
 	GetLastMeetingID() (id int)

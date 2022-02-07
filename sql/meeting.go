@@ -32,6 +32,11 @@ func (db *sqlImpl) GetMeetingsOnSpecificDate(date string) (meetings []Meeting, e
 	return meetings, err
 }
 
+func (db *sqlImpl) GetMeetingsOnSpecificDateAndClass(date string, classId int) (meetings []Meeting, err error) {
+	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE date=$1 AND class_id=$2", date, classId)
+	return meetings, err
+}
+
 func (db *sqlImpl) InsertMeeting(meeting Meeting) (err error) {
 	i := `
 	INSERT INTO meetings (id, meeting_name, teacher_id, class_id, hour, date, is_mandatory, url, details, is_grading, is_written_assessment, is_test)

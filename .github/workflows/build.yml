@@ -1,0 +1,69 @@
+name: Server
+on:
+  - push
+
+jobs:
+  build-linux:
+    name: Linux build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.15'
+      - name: Get current Go version
+        run: go version
+      - name: Get Go dependencies
+        run: go mod download
+      - name: Set env
+        run: go env -w GOFLAGS=-mod=mod
+      - name: Go get
+        run: go get .
+      - name: Build app
+        run: go build -v -o MeetPlanBackend main.go
+      - uses: actions/upload-artifact@v2
+        with:
+          name: MeetPlanBackend-linux
+          path: MeetPlanBackend
+  build-windows:
+    name: Windows build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.15'
+      - name: Get current Go version
+        run: go version
+      - name: Get Go dependencies
+        run: go mod download
+      - name: Set env
+        run: go env -w GOFLAGS=-mod=mod
+      - name: Go get
+        run: go get .
+      - name: Build app
+        run: go build -v -o MeetPlanBackend.exe main.go
+      - uses: actions/upload-artifact@v2
+        with:
+          name: MeetPlanBackend-windows
+          path: MeetPlanBackend.exe
+  docker:
+    name: Docker build
+    needs: build-linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get Docker version
+        run: docker --version
+      - name: Docker Login
+        uses: docker/login-action@v1
+        with:
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+          registry: "ghcr.io"
+      - name: Build Docker image
+        uses: docker/build-push-action@v2
+        with:
+          file: "./Dockerfile"
+          tags: ghcr.io/meetplan/backend:latest
+          push: true

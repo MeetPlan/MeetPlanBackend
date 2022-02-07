@@ -43,6 +43,15 @@ type SQL interface {
 	UpdateClass(class Class) error
 	GetClasses() ([]Class, error)
 	DeleteClass(ID int) error
+
+	GetMeeting(id int) (meeting Meeting, err error)
+	GetMeetingsOnSpecificTime(date string, hour int) (meetings []Meeting, err error)
+	InsertMeeting(meeting Meeting) (err error)
+	UpdateMeeting(meeting Meeting) error
+	GetLastMeetingID() (id int)
+	GetMeetings() (meetings []Meeting, err error)
+	DeleteMeeting(ID int) error
+	GetMeetingsOnSpecificDate(date string) (meetings []Meeting, err error)
 }
 
 func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, error) {

@@ -140,9 +140,11 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 		return
 	}
 
-	if test.UserID != userId {
-		WriteForbiddenJWT(w)
-		return
+	if jwtData["role"] == "student" {
+		if test.UserID != userId {
+			WriteForbiddenJWT(w)
+			return
+		}
 	}
 
 	if test.Result == "SE NE TESTIRA" {
@@ -331,6 +333,10 @@ func (server *httpImpl) GetTestingResults(w http.ResponseWriter, r *http.Request
 		etime := strings.Split(expirationTime.Format("02-01-2006"), " ")[0]
 		j := sql.TestingJSON{IsDone: true, ID: r.ID, ClassID: r.ClassID, TeacherID: r.TeacherID, TeacherName: teacher.Name, UserID: r.UserID, Date: r.Date, Result: r.Result, ValidUntil: etime}
 		res = append(res, j)
+	}
+	// Magic to reverse slice
+	for i, j := 0, len(res)-1; i < j; i, j = i+1, j-1 {
+		res[i], res[j] = res[j], res[i]
 	}
 	WriteJSON(w, Response{Data: res, Success: true}, http.StatusOK)
 }

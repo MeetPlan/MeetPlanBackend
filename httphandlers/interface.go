@@ -36,6 +36,13 @@ type HTTP interface {
 	ChangeRole(w http.ResponseWriter, r *http.Request)
 	DeleteUser(w http.ResponseWriter, r *http.Request)
 	GetTeachers(w http.ResponseWriter, r *http.Request)
+
+	// meetings.go
+	GetTimetable(w http.ResponseWriter, r *http.Request)
+	NewMeeting(w http.ResponseWriter, r *http.Request)
+	PatchMeeting(w http.ResponseWriter, r *http.Request)
+	DeleteMeeting(w http.ResponseWriter, r *http.Request)
+	GetMeeting(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL) HTTP {

@@ -61,6 +61,13 @@ func main() {
 	r.HandleFunc("/user/role/update/{id}", httphandler.ChangeRole).Methods("PATCH")
 	r.HandleFunc("/user/delete/{id}", httphandler.DeleteUser).Methods("DELETE")
 
+	r.HandleFunc("/timetable/get", httphandler.GetTimetable).Methods("GET")
+
+	r.HandleFunc("/meetings/new", httphandler.NewMeeting).Methods("POST")
+	r.HandleFunc("/meetings/new/{id}", httphandler.PatchMeeting).Methods("PATCH")
+	r.HandleFunc("/meetings/new/{id}", httphandler.DeleteMeeting).Methods("DELETE")
+	r.HandleFunc("/meeting/get/{meeting_id}", httphandler.GetMeeting).Methods("GET")
+
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins
 		AllowedHeaders: []string{"Authorization"},

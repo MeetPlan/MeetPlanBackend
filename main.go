@@ -8,6 +8,7 @@ import (
 	"github.com/rs/cors"
 	"go.uber.org/zap"
 	"net/http"
+	"os"
 )
 
 func main() {

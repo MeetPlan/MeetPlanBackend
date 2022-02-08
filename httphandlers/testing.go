@@ -161,6 +161,9 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 		return
 	}
 
+	// Normalize Slovenian characters
+	student.Name = strings.Replace(student.Name, "č", "c", -1)
+
 	jwt, err, expiration := sql.GetJWTForTestingResult(test.UserID, test.Result, test.ID, test.Date)
 	if err != nil {
 		return

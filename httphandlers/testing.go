@@ -104,6 +104,12 @@ func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 				results.Result = newr
 			}
 		}
+		ntid, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		results.TeacherID = ntid
 		err = server.db.UpdateTestingResult(results)
 		if err != nil {
 			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)

@@ -8,6 +8,7 @@ import (
 	"github.com/rs/cors"
 	"go.uber.org/zap"
 	"net/http"
+	"os"
 )
 
 func main() {
@@ -25,7 +26,7 @@ func main() {
 
 	sugared := logger.Sugar()
 
-	db, err := sql.NewSQL("sqlite3", "meetplan.db", sugared)
+	db, err := sql.NewSQL("sqlite3", "MeetPlanDB/meetplan.db", sugared)
 	db.Init()
 
 	if err != nil {
@@ -74,7 +75,12 @@ func main() {
 		AllowedMethods: []string{"POST", "GET", "DELETE", "PATCH", "PUT"},
 	})
 
-	err = http.ListenAndServe("127.0.0.1:8000", c.Handler(r))
+	host := os.Getenv("MP_HOST")
+	if host == "" {
+		host = "127.0.0.1:8000"
+	}
+
+	err = http.ListenAndServe(host, c.Handler(r))
 	if err != nil {
 		sugared.Fatal(err.Error())
 	}

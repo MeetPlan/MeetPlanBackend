@@ -3,12 +3,23 @@ package sql
 import (
 	"errors"
 	"fmt"
+	"github.com/dchest/uniuri"
 	"github.com/golang-jwt/jwt"
+	"os"
 	"strings"
 	"time"
 )
 
-var JwtSigningKey = []byte("46ad2cb520028e1f5e2eab8d860a547353ddbabdb6affb923c075c92518c7e02")
+func GetSigningKey() []byte {
+	if os.Getenv("MP_HOST") != "" {
+		return []byte(uniuri.NewLen(100))
+	}
+	return []byte("46ad2cb520028e1f5e2eab8d860a547353ddbabdb6affb923c075c92518c7e02")
+}
+
+var JwtSigningKey = GetSigningKey()
+
+const JWTIssuer = "MeetPlanCA"
 
 func GetJWTFromUserPass(email string, role string, uid int) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
@@ -17,7 +28,7 @@ func GetJWTFromUserPass(email string, role string, uid int) (string, error) {
 		"user_id": uid,
 		"email":   email,
 		"role":    role,
-		"iss":     "MeetPlanCA",
+		"iss":     JWTIssuer,
 		"exp":     expirationTime.Unix(),
 	})
 
@@ -35,7 +46,7 @@ func GetJWTForTestingResult(userId int, result string, testId int, date string) 
 		"user_id": userId,
 		"result":  result,
 		"test_id": testId,
-		"iss":     "MeetPlanCA",
+		"iss":     JWTIssuer,
 		"exp":     expirationTime.Unix(),
 	})
 
@@ -55,7 +66,7 @@ func CheckJWT(tokenString string) (jwt.MapClaims, error) {
 	})
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		if claims["iss"] == "MeetPlanCA" {
+		if claims["iss"] == JWTIssuer {
 			return claims, nil
 		}
 		return nil, errors.New("JWT issuer isn't correct")

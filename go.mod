@@ -3,6 +3,7 @@ module github.com/MeetPlan/MeetPlanBackend
 go 1.16
 
 require (
+	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/gorilla/mux v1.8.0
 	github.com/jmoiron/sqlx v1.3.4

@@ -36,4 +36,25 @@ CREATE TABLE IF NOT EXISTS meetings (
 	is_written_assessment   BOOLEAN,
 	is_test                 BOOLEAN       NOT NULL
 );
+CREATE TABLE IF NOT EXISTS absence (
+	id                      INTEGER       PRIMARY KEY,
+	user_id                 INTEGER,
+	meeting_id              INTEGER,
+	teacher_id              INTEGER,
+	absence_type            VARCHAR(200)
+);
+CREATE TABLE IF NOT EXISTS grades (
+	id                      INTEGER       PRIMARY KEY,
+	user_id                 INTEGER,
+	teacher_id              INTEGER,
+	date                    VARCHAR(200),
+	is_written              BOOLEAN,
+	grade                   INTEGER
+);
+CREATE TABLE IF NOT EXISTS subject (
+	id                      INTEGER,
+	teacher_id              INTEGER,
+	class_id                INTEGER,
+	name                    VARCHAR(200)
+);
 `

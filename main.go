@@ -26,6 +26,10 @@ func main() {
 
 	sugared := logger.Sugar()
 
+	if _, err := os.Stat("MeetPlanDB"); os.IsNotExist(err) {
+		os.Mkdir("MeetPlanDB", os.ModePerm)
+	}
+
 	db, err := sql.NewSQL("sqlite3", "MeetPlanDB/meetplan.db", sugared)
 	db.Init()
 
@@ -68,6 +72,8 @@ func main() {
 	r.HandleFunc("/meetings/new/{id}", httphandler.PatchMeeting).Methods("PATCH")
 	r.HandleFunc("/meetings/new/{id}", httphandler.DeleteMeeting).Methods("DELETE")
 	r.HandleFunc("/meeting/get/{meeting_id}", httphandler.GetMeeting).Methods("GET")
+	r.HandleFunc("/meeting/get/{meeting_id}/absences", httphandler.GetAbsencesTeacher).Methods("GET")
+	r.HandleFunc("/meeting/absence/{absence_id}", httphandler.PatchAbsence).Methods("PATCH")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins

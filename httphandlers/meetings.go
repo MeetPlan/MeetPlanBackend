@@ -21,6 +21,12 @@ type TimetableDate struct {
 	Date     string          `json:"date"`
 }
 
+type Absence struct {
+	sql.Absence
+	TeacherName string
+	UserName    string
+}
+
 func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
@@ -369,4 +375,120 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 	m := Meeting{meeting, teacher.Name}
 	WriteJSON(w, Response{Data: m, Success: true}, http.StatusOK)
+}
+
+func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if jwt["role"] == "teacher" || jwt["role"] == "admin" {
+		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		meeting, err := server.db.GetMeeting(meetingId)
+		if err != nil {
+			return
+		}
+		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" && meeting.TeacherID != teacherId {
+			WriteForbiddenJWT(w)
+			return
+		}
+		teacher, err := server.db.GetUser(teacherId)
+		if err != nil {
+			return
+		}
+		class, err := server.db.GetClass(meeting.ClassID)
+		if err != nil {
+			return
+		}
+		var users []int
+		err = json.Unmarshal([]byte(class.Students), &users)
+		if err != nil {
+			return
+		}
+		var absences = make([]Absence, 0)
+		for i := 0; i < len(users); i++ {
+			userId := users[i]
+			user, err := server.db.GetUser(userId)
+			if err != nil {
+				return
+			}
+			absence, err := server.db.GetAbsenceForUserMeeting(meetingId, userId)
+			if err != nil {
+				if err.Error() == "sql: no rows in result set" {
+					absence := sql.Absence{
+						ID:          server.db.GetLastAbsenceID(),
+						UserID:      userId,
+						TeacherID:   teacherId,
+						MeetingID:   meetingId,
+						AbsenceType: "UNMANAGED",
+					}
+					err := server.db.InsertAbsence(absence)
+					if err != nil {
+						return
+					}
+					absences = append(absences, Absence{
+						Absence:     absence,
+						TeacherName: teacher.Name,
+						UserName:    user.Name,
+					})
+				} else {
+					return
+				}
+			} else {
+				absences = append(absences, Absence{
+					Absence:     absence,
+					TeacherName: teacher.Name,
+					UserName:    user.Name,
+				})
+			}
+		}
+		WriteJSON(w, Response{Success: true, Data: absences}, http.StatusOK)
+	} else {
+		WriteForbiddenJWT(w)
+	}
+}
+
+func (server *httpImpl) PatchAbsence(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if jwt["role"] == "teacher" || jwt["role"] == "admin" {
+		absenceId, err := strconv.Atoi(mux.Vars(r)["absence_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		absence, err := server.db.GetAbsence(absenceId)
+		if err != nil {
+			return
+		}
+		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" && absence.TeacherID != teacherId {
+			WriteForbiddenJWT(w)
+			return
+		}
+		absence.TeacherID = teacherId
+		absence.AbsenceType = r.FormValue("absence_type")
+		err = server.db.UpdateAbsence(absence)
+		if err != nil {
+			return
+		}
+		WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusOK)
+	} else {
+		WriteForbiddenJWT(w)
+	}
 }

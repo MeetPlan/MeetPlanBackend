@@ -43,6 +43,8 @@ type HTTP interface {
 	PatchMeeting(w http.ResponseWriter, r *http.Request)
 	DeleteMeeting(w http.ResponseWriter, r *http.Request)
 	GetMeeting(w http.ResponseWriter, r *http.Request)
+	GetAbsencesTeacher(w http.ResponseWriter, r *http.Request)
+	PatchAbsence(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL) HTTP {

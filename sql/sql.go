@@ -53,6 +53,13 @@ type SQL interface {
 	GetMeetings() (meetings []Meeting, err error)
 	DeleteMeeting(ID int) error
 	GetMeetingsOnSpecificDate(date string) (meetings []Meeting, err error)
+
+	GetLastAbsenceID() int
+	GetAbsence(id int) (absence Absence, err error)
+	GetAllAbsences(id int) (absences []Absence, err error)
+	InsertAbsence(absence Absence) error
+	UpdateAbsence(absence Absence) error
+	GetAbsenceForUserMeeting(meeting_id int, user_id int) (absence Absence, err error)
 }
 
 func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, error) {

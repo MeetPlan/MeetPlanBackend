@@ -63,6 +63,7 @@ func main() {
 
 	r.HandleFunc("/users/get", httphandler.GetAllUsers).Methods("GET")
 	r.HandleFunc("/teachers/get", httphandler.GetTeachers).Methods("GET")
+	r.HandleFunc("/students/get", httphandler.GetStudents).Methods("GET")
 	r.HandleFunc("/user/role/update/{id}", httphandler.ChangeRole).Methods("PATCH")
 	r.HandleFunc("/user/delete/{id}", httphandler.DeleteUser).Methods("DELETE")
 
@@ -74,6 +75,13 @@ func main() {
 	r.HandleFunc("/meeting/get/{meeting_id}", httphandler.GetMeeting).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/absences", httphandler.GetAbsencesTeacher).Methods("GET")
 	r.HandleFunc("/meeting/absence/{absence_id}", httphandler.PatchAbsence).Methods("PATCH")
+
+	r.HandleFunc("/subjects/get", httphandler.GetSubjects).Methods("GET")
+	r.HandleFunc("/subject/get/{subject_id}", httphandler.GetSubject).Methods("GET")
+	r.HandleFunc("/subject/get/{subject_id}", httphandler.DeleteSubject).Methods("DELETE")
+	r.HandleFunc("/subjects/new", httphandler.NewSubject).Methods("POST")
+	r.HandleFunc("/subject/get/{subject_id}/add_user/{user_id}", httphandler.AssignUserToSubject).Methods("PATCH")
+	r.HandleFunc("/subject/get/{subject_id}/remove_user/{user_id}", httphandler.RemoveUserFromSubject).Methods("DELETE")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins

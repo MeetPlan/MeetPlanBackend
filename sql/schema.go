@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS grades (
 	id                      INTEGER       PRIMARY KEY,
 	user_id                 INTEGER,
 	teacher_id              INTEGER,
+	subject_id              INTEGER,
 	date                    VARCHAR(200),
 	is_written              BOOLEAN,
 	grade                   INTEGER
@@ -54,7 +55,9 @@ CREATE TABLE IF NOT EXISTS grades (
 CREATE TABLE IF NOT EXISTS subject (
 	id                      INTEGER,
 	teacher_id              INTEGER,
-	class_id                INTEGER,
-	name                    VARCHAR(200)
+	name                    VARCHAR(200),
+	inherits_class          BOOLEAN,
+	class_id                INTEGER         DEFAULT(-1),
+	students                JSON            DEFAULT('[]')
 );
 `

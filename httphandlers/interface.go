@@ -16,6 +16,7 @@ type HTTP interface {
 	Login(w http.ResponseWriter, r *http.Request)
 	NewUser(w http.ResponseWriter, r *http.Request)
 	GetAllClasses(w http.ResponseWriter, r *http.Request)
+	GetStudents(w http.ResponseWriter, r *http.Request)
 
 	// testing.go
 	GetSelfTestingTeacher(w http.ResponseWriter, r *http.Request)
@@ -45,6 +46,14 @@ type HTTP interface {
 	GetMeeting(w http.ResponseWriter, r *http.Request)
 	GetAbsencesTeacher(w http.ResponseWriter, r *http.Request)
 	PatchAbsence(w http.ResponseWriter, r *http.Request)
+
+	// subjects.go
+	GetSubjects(w http.ResponseWriter, r *http.Request)
+	NewSubject(w http.ResponseWriter, r *http.Request)
+	GetSubject(w http.ResponseWriter, r *http.Request)
+	AssignUserToSubject(w http.ResponseWriter, r *http.Request)
+	RemoveUserFromSubject(w http.ResponseWriter, r *http.Request)
+	DeleteSubject(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL) HTTP {

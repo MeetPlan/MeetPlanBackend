@@ -132,3 +132,20 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 	}
 	WriteJSON(w, Response{Data: myclasses, Success: true}, http.StatusOK)
 }
+
+func (server *httpImpl) GetStudents(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if jwt["role"] == "admin" {
+		students, err := server.db.GetStudents()
+		if err != nil {
+			return
+		}
+		WriteJSON(w, Response{Data: students, Success: true}, http.StatusOK)
+	} else {
+		WriteForbiddenJWT(w)
+	}
+}

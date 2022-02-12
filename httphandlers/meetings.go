@@ -27,6 +27,15 @@ type Absence struct {
 	UserName    string
 }
 
+func contains(s []int, e int) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
 func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
@@ -38,38 +47,33 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 		WriteBadRequest(w)
 		return
 	}
+	class, err := server.db.GetClass(classId)
+	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+	var users []int
+	err = json.Unmarshal([]byte(class.Students), &users)
+	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+	uid, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
 	if jwt["role"] == "student" {
-		uid, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
+		var isIn = false
+		for n := 0; n < len(users); n++ {
+			if users[n] == uid {
+				isIn = true
+				break
+			}
+		}
+		if !isIn {
 			WriteForbiddenJWT(w)
 			return
-		}
-		classes, err := server.db.GetClasses()
-		if err != nil {
-			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-			return
-		}
-		for i := 0; i < len(classes); i++ {
-			class := classes[i]
-			if class.ID == classId {
-				var users []int
-				err := json.Unmarshal([]byte(class.Students), &users)
-				if err != nil {
-					WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-					return
-				}
-				var isIn = false
-				for n := 0; n < len(users); n++ {
-					if users[n] == uid {
-						isIn = true
-						break
-					}
-				}
-				if !isIn {
-					WriteForbiddenJWT(w)
-					return
-				}
-			}
 		}
 	}
 	startDate := r.URL.Query().Get("start")
@@ -95,16 +99,57 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 	var meetingsJson = make([]TimetableDate, 0)
 	for i := 0; i < len(dates); i++ {
 		date := dates[i]
-		meetings, err := server.db.GetMeetingsOnSpecificDateAndClass(date, classId)
+		meetings, err := server.db.GetMeetingsOnSpecificDate(date)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
+		var m = make([]sql.Meeting, 0)
+		for n := 0; n < len(meetings); n++ {
+			meeting := meetings[n]
+			subject, err := server.db.GetSubject(meeting.SubjectID)
+			if err != nil {
+				return
+			}
+			var u []int
+			if subject.InheritsClass {
+				class, err := server.db.GetClass(subject.ClassID)
+				if err != nil {
+					return
+				}
+				err = json.Unmarshal([]byte(class.Students), &u)
+				if err != nil {
+					return
+				}
+			} else {
+				err = json.Unmarshal([]byte(subject.Students), &u)
+				if err != nil {
+					return
+				}
+			}
+			var cont = false
+			// Check if at least one user belongs to class
+			for x := 0; x < len(u); x++ {
+				if contains(users, u[x]) {
+					cont = true
+					break
+				}
+			}
+			if cont {
+				if jwt["role"] == "student" {
+					if contains(u, uid) {
+						m = append(m, meeting)
+					}
+				} else {
+					m = append(m, meeting)
+				}
+			}
+		}
 		dateMeetingsJson := make([][]sql.Meeting, 0)
 		for n := 0; n < 9; n++ {
 			hour := make([]sql.Meeting, 0)
-			for c := 0; c < len(meetings); c++ {
-				meeting := meetings[c]
+			for c := 0; c < len(m); c++ {
+				meeting := m[c]
 				if meeting.Hour == n {
 					hour = append(hour, meeting)
 				}
@@ -130,7 +175,7 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 			WriteBadRequest(w)
 			return
 		}
-		classId, err := strconv.Atoi(r.FormValue("classId"))
+		subjectId, err := strconv.Atoi(r.FormValue("subjectId"))
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -173,7 +218,7 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 			ID:                  server.db.GetLastMeetingID(),
 			MeetingName:         name,
 			TeacherID:           teacherId,
-			ClassID:             classId,
+			SubjectID:           subjectId,
 			Hour:                hour,
 			Date:                date,
 			IsMandatory:         isMandatory,
@@ -213,7 +258,7 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 			WriteBadRequest(w)
 			return
 		}
-		classId, err := strconv.Atoi(r.FormValue("classId"))
+		subjectId, err := strconv.Atoi(r.FormValue("subjectId"))
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -262,7 +307,7 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 			ID:                  id,
 			MeetingName:         name,
 			TeacherID:           teacherId,
-			ClassID:             classId,
+			SubjectID:           subjectId,
 			Hour:                hour,
 			Date:                date,
 			IsMandatory:         isMandatory,
@@ -341,19 +386,32 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 			WriteForbiddenJWT(w)
 			return
 		}
-		classes, err := server.db.GetClasses()
+		subjects, err := server.db.GetAllSubjects()
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
-		for i := 0; i < len(classes); i++ {
-			class := classes[i]
-			if class.ID == meeting.ClassID {
+		for i := 0; i < len(subjects); i++ {
+			subject := subjects[i]
+			if subject.ID == meeting.SubjectID {
 				var users []int
-				err := json.Unmarshal([]byte(class.Students), &users)
-				if err != nil {
-					WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-					return
+				if subject.InheritsClass {
+					class, err := server.db.GetClass(subject.ClassID)
+					if err != nil {
+						WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+						return
+					}
+					err = json.Unmarshal([]byte(class.Students), &users)
+					if err != nil {
+						WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+						return
+					}
+				} else {
+					err := json.Unmarshal([]byte(subject.Students), &users)
+					if err != nil {
+						WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+						return
+					}
 				}
 				var isIn = false
 				for n := 0; n < len(users); n++ {
@@ -405,14 +463,25 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 		if err != nil {
 			return
 		}
-		class, err := server.db.GetClass(meeting.ClassID)
+		subject, err := server.db.GetSubject(meeting.SubjectID)
 		if err != nil {
 			return
 		}
 		var users []int
-		err = json.Unmarshal([]byte(class.Students), &users)
-		if err != nil {
-			return
+		if subject.InheritsClass {
+			class, err := server.db.GetClass(subject.ClassID)
+			if err != nil {
+				return
+			}
+			err = json.Unmarshal([]byte(class.Students), &users)
+			if err != nil {
+				return
+			}
+		} else {
+			err = json.Unmarshal([]byte(subject.Students), &users)
+			if err != nil {
+				return
+			}
 		}
 		var absences = make([]Absence, 0)
 		for i := 0; i < len(users); i++ {

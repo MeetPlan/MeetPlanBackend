@@ -74,7 +74,12 @@ func main() {
 	r.HandleFunc("/meetings/new/{id}", httphandler.DeleteMeeting).Methods("DELETE")
 	r.HandleFunc("/meeting/get/{meeting_id}", httphandler.GetMeeting).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/absences", httphandler.GetAbsencesTeacher).Methods("GET")
+	r.HandleFunc("/meeting/get/{meeting_id}/grades", httphandler.GetGradesForMeeting).Methods("GET")
 	r.HandleFunc("/meeting/absence/{absence_id}", httphandler.PatchAbsence).Methods("PATCH")
+
+	r.HandleFunc("/grades/new/{meeting_id}", httphandler.NewGrade).Methods("POST")
+	r.HandleFunc("/grade/get/{grade_id}", httphandler.PatchGrade).Methods("PATCH")
+	r.HandleFunc("/grade/get/{grade_id}", httphandler.DeleteGrade).Methods("DELETE")
 
 	r.HandleFunc("/subjects/get", httphandler.GetSubjects).Methods("GET")
 	r.HandleFunc("/subject/get/{subject_id}", httphandler.GetSubject).Methods("GET")

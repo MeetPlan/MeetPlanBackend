@@ -53,6 +53,7 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 		inheritsClass = true
 		classIdInt, err = strconv.Atoi(classId)
 		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
 	}
@@ -68,6 +69,7 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 	}
 	err = server.db.InsertSubject(nSubject)
 	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
 	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusCreated)

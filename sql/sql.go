@@ -70,6 +70,13 @@ type SQL interface {
 	GetAllSubjects() (subject []Subject, err error)
 	GetStudents() (message []User, err error)
 	DeleteSubject(subject Subject) error
+
+	GetLastGradeID() int
+	GetGrade(id int) (grade Grade, err error)
+	GetGradesForUser(userId int) (grades []Grade, err error)
+	InsertGrade(grade Grade) error
+	UpdateGrade(grade Grade) error
+	DeleteGrade(ID int) error
 }
 
 func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, error) {

@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS meetings (
 	url                     VARCHAR(300)  NOT NULL,
 	details                 VARCHAR(1000) NOT NULL,
 	teacher_id              INTEGER       NOT NULL,
-	class_id                INTEGER       NOT NULL,
+	subject_id              INTEGER       NOT NULL,
 	hour                    INTEGER       NOT NULL,
 	date                    INTEGER       NOT NULL,
 	is_mandatory            BOOLEAN       NOT NULL,
@@ -50,7 +50,9 @@ CREATE TABLE IF NOT EXISTS grades (
 	subject_id              INTEGER,
 	date                    VARCHAR(200),
 	is_written              BOOLEAN,
-	grade                   INTEGER
+	grade                   INTEGER,
+	period                  INTEGER,
+	description             VARCHAR(200)
 );
 CREATE TABLE IF NOT EXISTS subject (
 	id                      INTEGER,

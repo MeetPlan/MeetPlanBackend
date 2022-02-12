@@ -54,6 +54,12 @@ type HTTP interface {
 	AssignUserToSubject(w http.ResponseWriter, r *http.Request)
 	RemoveUserFromSubject(w http.ResponseWriter, r *http.Request)
 	DeleteSubject(w http.ResponseWriter, r *http.Request)
+
+	// grades.go
+	GetGradesForMeeting(w http.ResponseWriter, r *http.Request)
+	NewGrade(w http.ResponseWriter, r *http.Request)
+	PatchGrade(w http.ResponseWriter, r *http.Request)
+	DeleteGrade(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL) HTTP {

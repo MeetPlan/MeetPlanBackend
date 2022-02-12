@@ -4,7 +4,7 @@ type Meeting struct {
 	ID          int    `db:"id"`
 	MeetingName string `db:"meeting_name"`
 	TeacherID   int    `db:"teacher_id"`
-	ClassID     int    `db:"class_id"`
+	SubjectID   int    `db:"subject_id"`
 	Hour        int    `db:"hour"`
 	Date        string `db:"date"`
 	IsMandatory bool   `db:"is_mandatory"`
@@ -32,6 +32,7 @@ func (db *sqlImpl) GetMeetingsOnSpecificDate(date string) (meetings []Meeting, e
 	return meetings, err
 }
 
+// GetMeetingsOnSpecificDateAndClass is deprecated and will be removed
 func (db *sqlImpl) GetMeetingsOnSpecificDateAndClass(date string, classId int) (meetings []Meeting, err error) {
 	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE date=$1 AND class_id=$2", date, classId)
 	return meetings, err
@@ -39,8 +40,8 @@ func (db *sqlImpl) GetMeetingsOnSpecificDateAndClass(date string, classId int) (
 
 func (db *sqlImpl) InsertMeeting(meeting Meeting) (err error) {
 	i := `
-	INSERT INTO meetings (id, meeting_name, teacher_id, class_id, hour, date, is_mandatory, url, details, is_grading, is_written_assessment, is_test)
-		VALUES (:id, :meeting_name, :teacher_id, :class_id, :hour, :date, :is_mandatory, :url, :details, :is_grading, :is_written_assessment, :is_test)
+	INSERT INTO meetings (id, meeting_name, teacher_id, subject_id, hour, date, is_mandatory, url, details, is_grading, is_written_assessment, is_test)
+		VALUES (:id, :meeting_name, :teacher_id, :subject_id, :hour, :date, :is_mandatory, :url, :details, :is_grading, :is_written_assessment, :is_test)
 	`
 	_, err = db.db.NamedExec(
 		i,
@@ -51,7 +52,7 @@ func (db *sqlImpl) InsertMeeting(meeting Meeting) (err error) {
 func (db *sqlImpl) UpdateMeeting(meeting Meeting) error {
 	i := `
 	UPDATE meetings SET meeting_name=:meeting_name, teacher_id=:teacher_id,
-	                    class_id=:class_id, hour=:hour, date=:date,
+	                    subject_id=:subject_id, hour=:hour, date=:date,
 	                    is_mandatory=:is_mandatory, url=:url, details=:details,
 	                    is_grading=:is_grading, is_written_assessment=:is_written_assessment,
 	                    is_test=:is_test WHERE id=:id

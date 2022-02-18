@@ -62,4 +62,19 @@ CREATE TABLE IF NOT EXISTS subject (
 	class_id                INTEGER         DEFAULT(-1),
 	students                JSON            DEFAULT('[]')
 );
+CREATE TABLE IF NOT EXISTS student_homework (
+	id                      INTEGER,
+	user_id                 INTEGER,
+	homework_id             INTEGER,
+	status                  VARCHAR(200)
+);
+CREATE TABLE IF NOT EXISTS homework (
+	id                      INTEGER,
+	teacher_id              INTEGER,
+	subject_id              INTEGER,
+	name                    VARCHAR(200),
+	description             VARCHAR(1000),
+	from_date               VARCHAR(200),
+	to_date                 VARCHAR(200)
+);
 `

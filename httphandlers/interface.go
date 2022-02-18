@@ -60,6 +60,10 @@ type HTTP interface {
 	NewGrade(w http.ResponseWriter, r *http.Request)
 	PatchGrade(w http.ResponseWriter, r *http.Request)
 	DeleteGrade(w http.ResponseWriter, r *http.Request)
+
+	// homework.go
+	NewHomework(w http.ResponseWriter, r *http.Request)
+	GetAllHomeworksForSpecificSubject(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL) HTTP {

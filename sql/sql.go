@@ -77,6 +77,22 @@ type SQL interface {
 	InsertGrade(grade Grade) error
 	UpdateGrade(grade Grade) error
 	DeleteGrade(ID int) error
+
+	GetLastHomeworkID() int
+	GetHomework(id int) (homework Homework, err error)
+	GetHomeworkForSubject(id int) (homework []Homework, err error)
+	InsertHomework(homework Homework) error
+	UpdateHomework(homework Homework) error
+	DeleteHomework(ID int) error
+
+	GetLastStudentHomeworkID() int
+	GetStudentHomework(id int) (homework StudentHomework, err error)
+	GetStudentHomeworkForUser(homeworkId int, userId int) (homework StudentHomework, err error)
+	GetStudentsHomeworkByHomeworkID(id int, meetingId int) (homework []StudentHomeworkJSON, err error)
+	GetStudentsHomework(id int) (homework []StudentHomework, err error)
+	InsertStudentHomework(homework StudentHomework) error
+	UpdateStudentHomework(homework StudentHomework) error
+	DeleteStudentHomework(ID int) error
 }
 
 func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, error) {

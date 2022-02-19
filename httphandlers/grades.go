@@ -11,8 +11,10 @@ import (
 )
 
 type PeriodGrades struct {
-	Period int
-	Grades []sql.Grade
+	Period  int
+	Grades  []sql.Grade
+	Total   int
+	Average float64
 }
 
 type UserGradeTable struct {
@@ -106,14 +108,39 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
+
+		var firstPeriodTotal = 0
+		for n := 0; n < len(period1); n++ {
+			firstPeriodTotal += period1[n].Grade
+		}
+
+		var secondPeriodTotal = 0
+		for n := 0; n < len(period2); n++ {
+			secondPeriodTotal += period2[n].Grade
+		}
+
+		var firstAverage = 0.0
+		if len(period1) != 0 {
+			firstAverage = float64(firstPeriodTotal) / float64(len(period1))
+		}
+
+		var secondAverage = 0.0
+		if len(period2) != 0 {
+			secondAverage = float64(secondPeriodTotal) / float64(len(period2))
+		}
+
 		var periods = make([]PeriodGrades, 0)
 		periods = append(periods, PeriodGrades{
-			Period: 1,
-			Grades: period1,
+			Period:  1,
+			Grades:  period1,
+			Total:   firstPeriodTotal,
+			Average: firstAverage,
 		})
 		periods = append(periods, PeriodGrades{
-			Period: 2,
-			Grades: period2,
+			Period:  2,
+			Grades:  period2,
+			Total:   secondPeriodTotal,
+			Average: secondAverage,
 		})
 		usergrades = append(usergrades, UserGradeTable{
 			ID:      user.ID,

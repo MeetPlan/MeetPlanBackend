@@ -72,21 +72,29 @@ func main() {
 	r.HandleFunc("/meetings/new", httphandler.NewMeeting).Methods("POST")
 	r.HandleFunc("/meetings/new/{id}", httphandler.PatchMeeting).Methods("PATCH")
 	r.HandleFunc("/meetings/new/{id}", httphandler.DeleteMeeting).Methods("DELETE")
+
 	r.HandleFunc("/meeting/get/{meeting_id}", httphandler.GetMeeting).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/absences", httphandler.GetAbsencesTeacher).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/grades", httphandler.GetGradesForMeeting).Methods("GET")
+	r.HandleFunc("/meeting/get/{meeting_id}/homework/{homework_id}/{student_id}", httphandler.PatchHomeworkForStudent).Methods("PATCH")
+
 	r.HandleFunc("/meeting/absence/{absence_id}", httphandler.PatchAbsence).Methods("PATCH")
 
 	r.HandleFunc("/grades/new/{meeting_id}", httphandler.NewGrade).Methods("POST")
+
 	r.HandleFunc("/grade/get/{grade_id}", httphandler.PatchGrade).Methods("PATCH")
 	r.HandleFunc("/grade/get/{grade_id}", httphandler.DeleteGrade).Methods("DELETE")
 
 	r.HandleFunc("/subjects/get", httphandler.GetSubjects).Methods("GET")
+	r.HandleFunc("/subjects/new", httphandler.NewSubject).Methods("POST")
+
 	r.HandleFunc("/subject/get/{subject_id}", httphandler.GetSubject).Methods("GET")
 	r.HandleFunc("/subject/get/{subject_id}", httphandler.DeleteSubject).Methods("DELETE")
-	r.HandleFunc("/subjects/new", httphandler.NewSubject).Methods("POST")
 	r.HandleFunc("/subject/get/{subject_id}/add_user/{user_id}", httphandler.AssignUserToSubject).Methods("PATCH")
 	r.HandleFunc("/subject/get/{subject_id}/remove_user/{user_id}", httphandler.RemoveUserFromSubject).Methods("DELETE")
+
+	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.NewHomework).Methods("POST")
+	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.GetAllHomeworksForSpecificSubject).Methods("GET")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins

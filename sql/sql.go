@@ -87,6 +87,8 @@ type SQL interface {
 
 	GetLastStudentHomeworkID() int
 	GetStudentHomework(id int) (homework StudentHomework, err error)
+	GetStudentHomeworkForUser(homeworkId int, userId int) (homework StudentHomework, err error)
+	GetStudentsHomeworkByHomeworkID(id int, meetingId int) (homework []StudentHomeworkJSON, err error)
 	GetStudentsHomework(id int) (homework []StudentHomework, err error)
 	InsertStudentHomework(homework StudentHomework) error
 	UpdateStudentHomework(homework StudentHomework) error

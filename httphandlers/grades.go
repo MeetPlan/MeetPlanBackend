@@ -20,7 +20,13 @@ type PeriodGrades struct {
 type UserGradeTable struct {
 	ID      int
 	Name    string
+	Average float64
+	Final   int
 	Periods []PeriodGrades
+}
+
+type SubjectGradesResponse struct {
+	Subjects []UserGradeTable
 }
 
 type GradeTableResponse struct {
@@ -90,6 +96,7 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 	for i := 0; i < len(users); i++ {
 		var period1 = make([]sql.Grade, 0)
 		var period2 = make([]sql.Grade, 0)
+		var final = 0
 		grades, err := server.db.GetGradesForUser(users[i])
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -97,7 +104,9 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 		}
 		for n := 0; n < len(grades); n++ {
 			grade := grades[n]
-			if grade.Period == 1 {
+			if grade.IsFinal {
+				final = grade.Grade
+			} else if grade.Period == 1 {
 				period1 = append(period1, grade)
 			} else if grade.Period == 2 {
 				period2 = append(period2, grade)
@@ -129,6 +138,11 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 			secondAverage = float64(secondPeriodTotal) / float64(len(period2))
 		}
 
+		var avg = 0.0
+		if !(len(period1) == 0 && len(period2) == 0) {
+			avg = float64(secondPeriodTotal+firstPeriodTotal) / float64(len(period1)+len(period2))
+		}
+
 		var periods = make([]PeriodGrades, 0)
 		periods = append(periods, PeriodGrades{
 			Period:  1,
@@ -146,6 +160,8 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 			ID:      user.ID,
 			Name:    user.Name,
 			Periods: periods,
+			Average: avg,
+			Final:   final,
 		})
 	}
 	WriteJSON(w, Response{
@@ -198,6 +214,20 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
+	var hasFinal = true
+	_, err = server.db.CheckIfFinal(userId, meeting.SubjectID)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			hasFinal = false
+		} else {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+	}
+	if hasFinal {
+		WriteForbiddenJWT(w)
+		return
+	}
 	grade, err := strconv.Atoi(r.FormValue("grade"))
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -214,6 +244,26 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 		isWrittenBool = true
 	}
 
+	isFinal := r.FormValue("is_final")
+	isFinalBool := false
+	if isFinal == "true" {
+		isFinalBool = true
+	}
+
+	if isFinalBool {
+		grades, err := server.db.GetGradesForUserInSubject(userId, meeting.SubjectID)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		for i := 0; i < len(grades); i++ {
+			if grades[i].IsFinal {
+				WriteForbiddenJWT(w)
+				return
+			}
+		}
+	}
+
 	g := sql.Grade{
 		ID:          server.db.GetLastGradeID(),
 		UserID:      userId,
@@ -224,6 +274,7 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 		IsWritten:   isWrittenBool,
 		Period:      period,
 		Description: "",
+		IsFinal:     isFinalBool,
 	}
 
 	err = server.db.InsertGrade(g)
@@ -261,7 +312,25 @@ func (server *httpImpl) PatchGrade(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
+	var hasFinal = true
+	_, err = server.db.CheckIfFinal(grade.UserID, grade.SubjectID)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			hasFinal = false
+		} else {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+	}
+	if hasFinal {
+		WriteForbiddenJWT(w)
+		return
+	}
 	if jwt["role"] == "teacher" && grade.TeacherID != teacherId {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if grade.IsFinal {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -321,6 +390,20 @@ func (server *httpImpl) DeleteGrade(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
+	var hasFinal = true
+	_, err = server.db.CheckIfFinal(grade.UserID, grade.SubjectID)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			hasFinal = false
+		} else {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+	}
+	if hasFinal {
+		WriteForbiddenJWT(w)
+		return
+	}
 	if jwt["role"] == "teacher" && grade.TeacherID != teacherId {
 		WriteForbiddenJWT(w)
 		return
@@ -332,4 +415,84 @@ func (server *httpImpl) DeleteGrade(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusCreated)
+}
+
+// GetMyGrades is exclusive to student (and class teacher once I implement them)
+func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if jwt["role"] != "student" {
+		WriteForbiddenJWT(w)
+		return
+	}
+	studentId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	userGrades, err := server.db.GetGradesForUser(studentId)
+	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+	subjects, err := server.db.GetAllSubjectsForUser(studentId)
+	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+	var subjectsResponse = make([]UserGradeTable, 0)
+	for i := 0; i < len(subjects); i++ {
+		subject := subjects[i]
+		var periods = make([]PeriodGrades, 0)
+		var total = 0
+		var gradesCount = 0
+		var final = 0
+		for n := 1; n <= 2; n++ {
+			var gradesPeriod = make([]sql.Grade, 0)
+			var iGradeCount = 0
+			var iTotal = 0
+			for x := 0; x < len(userGrades); x++ {
+				grade := userGrades[x]
+				if grade.SubjectID == subject.ID && grade.IsFinal {
+					final = grade.Grade
+				} else if grade.SubjectID == subject.ID && grade.Period == n {
+					gradesPeriod = append(gradesPeriod, grade)
+					gradesCount++
+					total += grade.Grade
+					// No, I don't mean you - Apple. i => internal
+					iGradeCount++
+					iTotal += grade.Grade
+				}
+			}
+			var avg = 0.0
+			if iTotal != 0 && iGradeCount != 0 {
+				avg = float64(iTotal) / float64(iGradeCount)
+			}
+			period := PeriodGrades{
+				Period:  n,
+				Grades:  gradesPeriod,
+				Total:   iTotal,
+				Average: avg,
+			}
+			periods = append(periods, period)
+		}
+		var avg = 0.0
+		if total != 0 && gradesCount != 0 {
+			avg = float64(total) / float64(gradesCount)
+		}
+		grades := UserGradeTable{
+			ID:      subject.ID,
+			Name:    subject.Name,
+			Average: avg,
+			Periods: periods,
+			Final:   final,
+		}
+		subjectsResponse = append(subjectsResponse, grades)
+	}
+	WriteJSON(w, Response{Data: SubjectGradesResponse{
+		Subjects: subjectsResponse,
+	}, Success: true}, http.StatusOK)
 }

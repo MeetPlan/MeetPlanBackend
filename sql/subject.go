@@ -1,5 +1,7 @@
 package sql
 
+import "encoding/json"
+
 type Subject struct {
 	ID            int
 	TeacherID     int `db:"teacher_id"`
@@ -7,6 +9,15 @@ type Subject struct {
 	InheritsClass bool `db:"inherits_class"`
 	ClassID       int  `db:"class_id"`
 	Students      string
+}
+
+func contains(s []int, e int) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
 func (db *sqlImpl) GetLastSubjectID() int {
@@ -37,9 +48,35 @@ func (db *sqlImpl) GetAllSubjects() (subject []Subject, err error) {
 	return subject, err
 }
 
-func (db *sqlImpl) GetAllSubjectsForUser(id int) (subject []Subject, err error) {
-	err = db.db.Select(&subject, "SELECT * FROM subject WHERE user_id=$1", id)
-	return subject, err
+func (db *sqlImpl) GetAllSubjectsForUser(id int) (subjects []Subject, err error) {
+	subjectsAll, err := db.GetAllSubjects()
+	if err != nil {
+		return make([]Subject, 0), err
+	}
+	subjects = make([]Subject, 0)
+	for i := 0; i < len(subjectsAll); i++ {
+		subject := subjectsAll[i]
+		var users []int
+		if subject.InheritsClass {
+			class, err := db.GetClass(subject.ClassID)
+			if err != nil {
+				return make([]Subject, 0), err
+			}
+			err = json.Unmarshal([]byte(class.Students), &users)
+			if err != nil {
+				return make([]Subject, 0), err
+			}
+		} else {
+			err := json.Unmarshal([]byte(subject.Students), &users)
+			if err != nil {
+				return make([]Subject, 0), err
+			}
+		}
+		if contains(users, id) {
+			subjects = append(subjects, subject)
+		}
+	}
+	return subjects, nil
 }
 
 func (db *sqlImpl) InsertSubject(subject Subject) error {

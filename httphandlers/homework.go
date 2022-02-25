@@ -76,17 +76,17 @@ func (server *httpImpl) GetAllHomeworksForSpecificSubject(w http.ResponseWriter,
 	if err != nil {
 		return
 	}
+	meeting, err := server.db.GetMeeting(meetingId)
+	if err != nil {
+		return
+	}
 	if jwt["role"] == "teacher" {
-		meeting, err := server.db.GetMeeting(meetingId)
-		if err != nil {
-			return
-		}
 		if meeting.TeacherID != userId {
 			WriteForbiddenJWT(w)
 			return
 		}
 	}
-	homework, err := server.db.GetHomeworkForSubject(meetingId)
+	homework, err := server.db.GetHomeworkForSubject(meeting.SubjectID)
 	if err != nil {
 		return
 	}

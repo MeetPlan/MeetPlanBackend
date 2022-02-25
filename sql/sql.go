@@ -74,6 +74,8 @@ type SQL interface {
 	GetLastGradeID() int
 	GetGrade(id int) (grade Grade, err error)
 	GetGradesForUser(userId int) (grades []Grade, err error)
+	GetGradesForUserInSubject(userId int, subjectId int) (grades []Grade, err error)
+	CheckIfFinal(userId int, subjectId int) (grade Grade, err error)
 	InsertGrade(grade Grade) error
 	UpdateGrade(grade Grade) error
 	DeleteGrade(ID int) error

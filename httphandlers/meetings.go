@@ -42,26 +42,65 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	classId, err := strconv.Atoi(r.URL.Query().Get("classId"))
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	class, err := server.db.GetClass(classId)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	var users []int
-	err = json.Unmarshal([]byte(class.Students), &users)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
 	uid, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
+	}
+
+	var users []int
+	myMeetings := false
+
+	if r.URL.Query().Get("classId") != "" {
+		classId, err := strconv.Atoi(r.URL.Query().Get("classId"))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		class, err := server.db.GetClass(classId)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		err = json.Unmarshal([]byte(class.Students), &users)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+	} else if r.URL.Query().Get("subjectId") != "" {
+		subjectId, err := strconv.Atoi(r.URL.Query().Get("subjectId"))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		subject, err := server.db.GetSubject(subjectId)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		if subject.InheritsClass {
+			class, err := server.db.GetClass(subject.ClassID)
+			if err != nil {
+				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+				return
+			}
+			err = json.Unmarshal([]byte(class.Students), &users)
+			if err != nil {
+				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+				return
+			}
+		} else {
+			err = json.Unmarshal([]byte(subject.Students), &users)
+			if err != nil {
+				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+				return
+			}
+		}
+	} else {
+		// my user
+		users = make([]int, 0)
+		users = append(users, uid)
+		myMeetings = true
 	}
 	if jwt["role"] == "student" {
 		var isIn = false
@@ -130,7 +169,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 			var cont = false
 			// Check if at least one user belongs to class
 			for x := 0; x < len(u); x++ {
-				if contains(users, u[x]) {
+				if (myMeetings && (jwt["role"] == "teacher" || jwt["role"] == "admin")) || contains(users, u[x]) {
 					cont = true
 					break
 				}
@@ -140,7 +179,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 					if contains(u, uid) {
 						m = append(m, meeting)
 					}
-				} else {
+				} else if jwt["role"] == "admin" || (jwt["role"] == "teacher" && meeting.TeacherID == uid) {
 					m = append(m, meeting)
 				}
 			}

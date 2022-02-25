@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS grades (
 	is_written              BOOLEAN,
 	grade                   INTEGER,
 	period                  INTEGER,
+	is_final                BOOLEAN,
 	description             VARCHAR(200)
 );
 CREATE TABLE IF NOT EXISTS subject (

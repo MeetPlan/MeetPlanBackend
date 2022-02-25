@@ -8,6 +8,7 @@ type Grade struct {
 	Grade       int
 	Date        string
 	IsWritten   bool `db:"is_written"`
+	IsFinal     bool `db:"is_final"`
 	Period      int
 	Description string
 }
@@ -35,11 +36,21 @@ func (db *sqlImpl) GetGradesForUser(userId int) (grades []Grade, err error) {
 	return grades, err
 }
 
+func (db *sqlImpl) CheckIfFinal(userId int, subjectId int) (grade Grade, err error) {
+	err = db.db.Get(&grade, "SELECT * FROM grades WHERE user_id=$1 AND subject_id=$2 AND is_final=true", userId, subjectId)
+	return grade, err
+}
+
+func (db *sqlImpl) GetGradesForUserInSubject(userId int, subjectId int) (grades []Grade, err error) {
+	err = db.db.Select(&grades, "SELECT * FROM grades WHERE user_id=$1 AND subject_id=$2", userId, subjectId)
+	return grades, err
+}
+
 func (db *sqlImpl) InsertGrade(grade Grade) error {
 	i := `
 	INSERT INTO grades
-	    (id, user_id, teacher_id, subject_id, date, is_written, grade, period, description) VALUES
-	    (:id, :user_id, :teacher_id, :subject_id, :date, :is_written, :grade, :period, :description)
+	    (id, user_id, teacher_id, subject_id, date, is_written, grade, period, description, is_final) VALUES
+	    (:id, :user_id, :teacher_id, :subject_id, :date, :is_written, :grade, :period, :description, :is_final)
 	`
 	_, err := db.db.NamedExec(
 		i,

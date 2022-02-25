@@ -1,0 +1,1 @@
+ALTER TABLE grades ADD COLUMN is_final BOOLEAN DEFAULT false;

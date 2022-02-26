@@ -1,15 +1,16 @@
 package sql
 
 type Meeting struct {
-	ID          int    `db:"id"`
-	MeetingName string `db:"meeting_name"`
-	TeacherID   int    `db:"teacher_id"`
-	SubjectID   int    `db:"subject_id"`
-	Hour        int    `db:"hour"`
-	Date        string `db:"date"`
-	IsMandatory bool   `db:"is_mandatory"`
-	URL         string `db:"url"`
-	Details     string `db:"details"`
+	ID             int    `db:"id"`
+	MeetingName    string `db:"meeting_name"`
+	TeacherID      int    `db:"teacher_id"`
+	SubjectID      int    `db:"subject_id"`
+	Hour           int    `db:"hour"`
+	Date           string `db:"date"`
+	IsMandatory    bool   `db:"is_mandatory"`
+	URL            string `db:"url"`
+	Details        string `db:"details"`
+	IsSubstitution bool   `db:"is_substitution"`
 	// Ocenjevanje
 	IsGrading           bool `db:"is_grading"`
 	IsWrittenAssessment bool `db:"is_written_assessment"`
@@ -40,8 +41,8 @@ func (db *sqlImpl) GetMeetingsOnSpecificDateAndClass(date string, classId int) (
 
 func (db *sqlImpl) InsertMeeting(meeting Meeting) (err error) {
 	i := `
-	INSERT INTO meetings (id, meeting_name, teacher_id, subject_id, hour, date, is_mandatory, url, details, is_grading, is_written_assessment, is_test)
-		VALUES (:id, :meeting_name, :teacher_id, :subject_id, :hour, :date, :is_mandatory, :url, :details, :is_grading, :is_written_assessment, :is_test)
+	INSERT INTO meetings (id, meeting_name, teacher_id, subject_id, hour, date, is_mandatory, url, details, is_grading, is_written_assessment, is_test, is_substitution)
+		VALUES (:id, :meeting_name, :teacher_id, :subject_id, :hour, :date, :is_mandatory, :url, :details, :is_grading, :is_written_assessment, :is_test, :is_substitution)
 	`
 	_, err = db.db.NamedExec(
 		i,
@@ -55,7 +56,7 @@ func (db *sqlImpl) UpdateMeeting(meeting Meeting) error {
 	                    subject_id=:subject_id, hour=:hour, date=:date,
 	                    is_mandatory=:is_mandatory, url=:url, details=:details,
 	                    is_grading=:is_grading, is_written_assessment=:is_written_assessment,
-	                    is_test=:is_test WHERE id=:id
+	                    is_test=:is_test, is_substitution=:is_substitution WHERE id=:id
 	`
 	_, err := db.db.NamedExec(
 		i,

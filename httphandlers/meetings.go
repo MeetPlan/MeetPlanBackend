@@ -266,6 +266,7 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 			IsGrading:           isGrading,
 			IsWrittenAssessment: isWrittenAssessment,
 			IsTest:              isTest,
+			IsSubstitution:      false,
 		}
 
 		err = server.db.InsertMeeting(meeting)
@@ -330,6 +331,17 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 			isWrittenAssessment = true
 		}
 
+		isSubstitutionString := r.FormValue("is_substitution")
+		var isSubstitution = false
+		if jwt["role"] == "admin" && isSubstitutionString == "true" {
+			isSubstitution = true
+			teacherId, err = strconv.Atoi(r.FormValue("teacherId"))
+			if err != nil {
+				WriteBadRequest(w)
+				return
+			}
+		}
+
 		isTestString := r.FormValue("is_test")
 		var isTest = false
 		if isTestString == "true" {
@@ -355,6 +367,7 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 			IsGrading:           isGrading,
 			IsWrittenAssessment: isWrittenAssessment,
 			IsTest:              isTest,
+			IsSubstitution:      isSubstitution,
 		}
 
 		err = server.db.UpdateMeeting(meeting)

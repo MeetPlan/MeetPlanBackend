@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS meetings (
 	is_mandatory            BOOLEAN       NOT NULL,
 	is_grading              BOOLEAN       NOT NULL,
 	is_written_assessment   BOOLEAN,
-	is_test                 BOOLEAN       NOT NULL
+	is_test                 BOOLEAN       NOT NULL,
+	is_substitution         BOOLEAN       NOT NULL
 );
 CREATE TABLE IF NOT EXISTS absence (
 	id                      INTEGER       PRIMARY KEY,

@@ -25,6 +25,7 @@ type Absence struct {
 	sql.Absence
 	TeacherName string
 	UserName    string
+	MeetingName string
 }
 
 func contains(s []int, e int) bool {

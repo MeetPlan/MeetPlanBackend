@@ -47,6 +47,11 @@ func main() {
 	r.HandleFunc("/user/login", httphandler.Login).Methods("POST")
 	// Get all classes for specific user
 	r.HandleFunc("/user/get/classes", httphandler.GetAllClasses).Methods("GET")
+	r.HandleFunc("/user/check/has/class", httphandler.HasClass).Methods("GET")
+	r.HandleFunc("/user/get/data/{id}", httphandler.GetUserData).Methods("GET")
+	r.HandleFunc("/user/get/absences/{id}", httphandler.GetAbsencesUser).Methods("GET")
+
+	r.HandleFunc("/user/get/absences/{student_id}/excuse/{absence_id}", httphandler.ExcuseAbsence).Methods("PATCH")
 
 	r.HandleFunc("/class/get/{class_id}/self_testing", httphandler.GetSelfTestingTeacher).Methods("GET")
 	r.HandleFunc("/user/self_testing/patch/{class_id}/{student_id}", httphandler.PatchSelfTesting).Methods("PATCH")

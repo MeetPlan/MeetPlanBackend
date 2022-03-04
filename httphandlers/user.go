@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
+	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 )
@@ -77,6 +78,140 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, Response{Data: "Success", Success: true}, http.StatusCreated)
 }
 
+func (server *httpImpl) HasClass(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if jwt["role"] == "student" {
+		WriteForbiddenJWT(w)
+		return
+	}
+	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	classes, err := server.db.GetClasses()
+	if err != nil {
+		return
+	}
+	var hasClass = false
+	for i := 0; i < len(classes); i++ {
+		if classes[i].Teacher == userId {
+			hasClass = true
+			break
+		}
+	}
+	WriteJSON(w, Response{Data: hasClass, Success: true}, http.StatusOK)
+}
+
+func (server *httpImpl) GetUserData(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		return
+	}
+
+	if jwt["role"] == "teacher" || jwt["role"] == "admin" {
+		userId, err := strconv.Atoi(mux.Vars(r)["id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		user, err := server.db.GetUser(userId)
+		if err != nil {
+			return
+		}
+		ujson := UserJSON{
+			Name:  user.Name,
+			ID:    user.ID,
+			Email: user.Email,
+			Role:  user.Role,
+		}
+		WriteJSON(w, Response{Data: ujson, Success: true}, http.StatusOK)
+	} else {
+		WriteForbiddenJWT(w)
+	}
+}
+
+func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		return
+	}
+
+	if jwt["role"] == "teacher" || jwt["role"] == "admin" {
+		studentId, err := strconv.Atoi(mux.Vars(r)["id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		if jwt["role"] == "teacher" {
+			classes, err := server.db.GetClasses()
+			if err != nil {
+				return
+			}
+			var valid = false
+			for i := 0; i < len(classes); i++ {
+				class := classes[i]
+				var users []int
+				err := json.Unmarshal([]byte(class.Students), &users)
+				if err != nil {
+					return
+				}
+				for j := 0; j < len(users); j++ {
+					if users[j] == studentId && class.Teacher == teacherId {
+						valid = true
+						break
+					}
+				}
+				if valid {
+					break
+				}
+			}
+			if !valid {
+				WriteForbiddenJWT(w)
+				return
+			}
+		}
+		absences, err := server.db.GetAbsencesForUser(studentId)
+		if err != nil {
+			return
+		}
+		var absenceJson = make([]Absence, 0)
+		for i := 0; i < len(absences); i++ {
+			absence := absences[i]
+			teacher, err := server.db.GetUser(absence.TeacherID)
+			if err != nil {
+				return
+			}
+			user, err := server.db.GetUser(absence.UserID)
+			if err != nil {
+				return
+			}
+			meeting, err := server.db.GetMeeting(absence.MeetingID)
+			if err != nil {
+				return
+			}
+			if absence.AbsenceType == "ABSENT" || absence.AbsenceType == "LATE" {
+				absenceJson = append(absenceJson, Absence{
+					Absence:     absence,
+					TeacherName: teacher.Name,
+					UserName:    user.Name,
+					MeetingName: meeting.MeetingName,
+				})
+			}
+		}
+		WriteJSON(w, Response{Data: absenceJson, Success: true}, http.StatusOK)
+	}
+}
+
 func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
@@ -84,6 +219,7 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var userId int
+	var isTeacher = false
 	if jwt["role"] == "admin" || jwt["role"] == "teacher" {
 		uid := r.URL.Query().Get("id")
 		if uid == "" {
@@ -92,6 +228,7 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 				return
 			}
+			isTeacher = true
 		} else {
 			userId, err = strconv.Atoi(uid)
 			if err != nil {
@@ -117,16 +254,22 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 
 	for i := 0; i < len(classes); i++ {
 		class := classes[i]
-		var students []int
-		err := json.Unmarshal([]byte(class.Students), &students)
-		if err != nil {
-			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-			return
-		}
-		for n := 0; n < len(students); n++ {
-			if students[n] == userId {
+		if isTeacher {
+			if class.Teacher == userId {
 				myclasses = append(myclasses, class)
-				break
+			}
+		} else {
+			var students []int
+			err := json.Unmarshal([]byte(class.Students), &students)
+			if err != nil {
+				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+				return
+			}
+			for n := 0; n < len(students); n++ {
+				if students[n] == userId {
+					myclasses = append(myclasses, class)
+					break
+				}
 			}
 		}
 	}

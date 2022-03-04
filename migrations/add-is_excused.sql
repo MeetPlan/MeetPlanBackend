@@ -1,0 +1,1 @@
+ALTER TABLE absence ADD COLUMN is_excused BOOLEAN DEFAULT false;

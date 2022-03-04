@@ -424,75 +424,114 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "student" {
-		WriteForbiddenJWT(w)
-		return
-	}
-	studentId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	userGrades, err := server.db.GetGradesForUser(studentId)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	subjects, err := server.db.GetAllSubjectsForUser(studentId)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	var subjectsResponse = make([]UserGradeTable, 0)
-	for i := 0; i < len(subjects); i++ {
-		subject := subjects[i]
-		var periods = make([]PeriodGrades, 0)
-		var total = 0
-		var gradesCount = 0
-		var final = 0
-		for n := 1; n <= 2; n++ {
-			var gradesPeriod = make([]sql.Grade, 0)
-			var iGradeCount = 0
-			var iTotal = 0
-			for x := 0; x < len(userGrades); x++ {
-				grade := userGrades[x]
-				if grade.SubjectID == subject.ID && grade.IsFinal {
-					final = grade.Grade
-				} else if grade.SubjectID == subject.ID && grade.Period == n {
-					gradesPeriod = append(gradesPeriod, grade)
-					gradesCount++
-					total += grade.Grade
-					// No, I don't mean you - Apple. i => internal
-					iGradeCount++
-					iTotal += grade.Grade
+	if jwt["role"] == "student" || jwt["role"] == "teacher" {
+		var studentId int
+		var teacherId int
+		if jwt["role"] == "teacher" {
+			studentId, err = strconv.Atoi(r.URL.Query().Get("studentId"))
+			if err != nil {
+				WriteBadRequest(w)
+				return
+			}
+			teacherId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		} else {
+			studentId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		}
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		if jwt["role"] == "teacher" {
+			classes, err := server.db.GetClasses()
+			if err != nil {
+				return
+			}
+			var valid = false
+			for i := 0; i < len(classes); i++ {
+				class := classes[i]
+				var users []int
+				err := json.Unmarshal([]byte(class.Students), &users)
+				if err != nil {
+					return
+				}
+				for j := 0; j < len(users); j++ {
+					if users[j] == studentId && class.Teacher == teacherId {
+						valid = true
+						break
+					}
+				}
+				if valid {
+					break
 				}
 			}
+			if !valid {
+				WriteForbiddenJWT(w)
+				return
+			}
+		}
+		userGrades, err := server.db.GetGradesForUser(studentId)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		subjects, err := server.db.GetAllSubjectsForUser(studentId)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		var subjectsResponse = make([]UserGradeTable, 0)
+		for i := 0; i < len(subjects); i++ {
+			subject := subjects[i]
+			var periods = make([]PeriodGrades, 0)
+			var total = 0
+			var gradesCount = 0
+			var final = 0
+			for n := 1; n <= 2; n++ {
+				var gradesPeriod = make([]sql.Grade, 0)
+				var iGradeCount = 0
+				var iTotal = 0
+				for x := 0; x < len(userGrades); x++ {
+					grade := userGrades[x]
+					if grade.SubjectID == subject.ID && grade.IsFinal {
+						final = grade.Grade
+					} else if grade.SubjectID == subject.ID && grade.Period == n {
+						gradesPeriod = append(gradesPeriod, grade)
+						gradesCount++
+						total += grade.Grade
+						// No, I don't mean you - Apple. i => internal
+						iGradeCount++
+						iTotal += grade.Grade
+					}
+				}
+				var avg = 0.0
+				if iTotal != 0 && iGradeCount != 0 {
+					avg = float64(iTotal) / float64(iGradeCount)
+				}
+				period := PeriodGrades{
+					Period:  n,
+					Grades:  gradesPeriod,
+					Total:   iTotal,
+					Average: avg,
+				}
+				periods = append(periods, period)
+			}
 			var avg = 0.0
-			if iTotal != 0 && iGradeCount != 0 {
-				avg = float64(iTotal) / float64(iGradeCount)
+			if total != 0 && gradesCount != 0 {
+				avg = float64(total) / float64(gradesCount)
 			}
-			period := PeriodGrades{
-				Period:  n,
-				Grades:  gradesPeriod,
-				Total:   iTotal,
+			grades := UserGradeTable{
+				ID:      subject.ID,
+				Name:    subject.Name,
 				Average: avg,
+				Periods: periods,
+				Final:   final,
 			}
-			periods = append(periods, period)
+			subjectsResponse = append(subjectsResponse, grades)
 		}
-		var avg = 0.0
-		if total != 0 && gradesCount != 0 {
-			avg = float64(total) / float64(gradesCount)
-		}
-		grades := UserGradeTable{
-			ID:      subject.ID,
-			Name:    subject.Name,
-			Average: avg,
-			Periods: periods,
-			Final:   final,
-		}
-		subjectsResponse = append(subjectsResponse, grades)
+		WriteJSON(w, Response{Data: SubjectGradesResponse{
+			Subjects: subjectsResponse,
+		}, Success: true}, http.StatusOK)
+	} else {
+		WriteForbiddenJWT(w)
 	}
-	WriteJSON(w, Response{Data: SubjectGradesResponse{
-		Subjects: subjectsResponse,
-	}, Success: true}, http.StatusOK)
 }

@@ -60,6 +60,7 @@ type SQL interface {
 	InsertAbsence(absence Absence) error
 	UpdateAbsence(absence Absence) error
 	GetAbsenceForUserMeeting(meeting_id int, user_id int) (absence Absence, err error)
+	GetAbsencesForUser(user_id int) (absence []Absence, err error)
 
 	GetLastSubjectID() int
 	GetSubject(id int) (subject Subject, err error)

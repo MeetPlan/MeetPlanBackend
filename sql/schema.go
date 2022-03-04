@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS absence (
 	user_id                 INTEGER,
 	meeting_id              INTEGER,
 	teacher_id              INTEGER,
-	absence_type            VARCHAR(200)
+	absence_type            VARCHAR(200),
+	is_excused              BOOLEAN
 );
 CREATE TABLE IF NOT EXISTS grades (
 	id                      INTEGER       PRIMARY KEY,

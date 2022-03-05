@@ -104,12 +104,14 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 		}
 		for n := 0; n < len(grades); n++ {
 			grade := grades[n]
-			if grade.IsFinal {
-				final = grade.Grade
-			} else if grade.Period == 1 {
-				period1 = append(period1, grade)
-			} else if grade.Period == 2 {
-				period2 = append(period2, grade)
+			if grade.SubjectID == subject.ID {
+				if grade.IsFinal {
+					final = grade.Grade
+				} else if grade.Period == 1 {
+					period1 = append(period1, grade)
+				} else if grade.Period == 2 {
+					period2 = append(period2, grade)
+				}
 			}
 		}
 		user, err := server.db.GetUser(users[i])

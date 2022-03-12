@@ -80,6 +80,9 @@ func main() {
 	r.HandleFunc("/meetings/new/{id}", httphandler.PatchMeeting).Methods("PATCH")
 	r.HandleFunc("/meetings/new/{id}", httphandler.DeleteMeeting).Methods("DELETE")
 
+	r.HandleFunc("/communications/get", httphandler.GetCommunications).Methods("GET")
+	r.HandleFunc("/communication/get/{id}", httphandler.GetCommunication).Methods("GET")
+
 	r.HandleFunc("/meeting/get/{meeting_id}", httphandler.GetMeeting).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/absences", httphandler.GetAbsencesTeacher).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/grades", httphandler.GetGradesForMeeting).Methods("GET")

@@ -72,6 +72,10 @@ type HTTP interface {
 
 	// classteacher.go
 	ExcuseAbsence(w http.ResponseWriter, r *http.Request)
+
+	// communication.go
+	GetCommunications(w http.ResponseWriter, r *http.Request)
+	GetCommunication(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL) HTTP {

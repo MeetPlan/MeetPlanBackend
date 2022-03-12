@@ -96,6 +96,21 @@ type SQL interface {
 	InsertStudentHomework(homework StudentHomework) error
 	UpdateStudentHomework(homework StudentHomework) error
 	DeleteStudentHomework(ID int) error
+
+	GetCommunication(id int) (communication Communication, err error)
+	InsertCommunication(communication Communication) (err error)
+	UpdateCommunication(communication Communication) error
+	GetLastCommunicationID() (id int)
+	GetCommunications() (communication []Communication, err error)
+	DeleteCommunication(ID int) error
+
+	GetMessage(id int) (message Message, err error)
+	GetCommunicationMessages(communicationId int) (messages []Message, err error)
+	InsertMessage(message Message) (err error)
+	UpdateMessage(message Message) error
+	GetLastMessageID() (id int)
+	GetAllMessages() (messages []Message, err error)
+	DeleteMessage(ID int) error
 }
 
 func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, error) {

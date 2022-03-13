@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type MessageJson struct {
@@ -104,4 +105,84 @@ func (server *httpImpl) GetCommunication(w http.ResponseWriter, r *http.Request)
 		Messages:      messagesJson,
 	}
 	WriteJSON(w, Response{Success: true, Data: j}, http.StatusOK)
+}
+
+func (server *httpImpl) NewMessage(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	communicationId, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	communication, err := server.db.GetCommunication(communicationId)
+	if err != nil {
+		return
+	}
+	var people []int
+	err = json.Unmarshal([]byte(communication.People), &people)
+	if err != nil {
+		return
+	}
+	if !contains(people, userId) {
+		WriteForbiddenJWT(w)
+		return
+	}
+	message := sql.Message{
+		ID:              server.db.GetLastMessageID(),
+		CommunicationID: communicationId,
+		UserID:          userId,
+		Body:            r.FormValue("body"),
+		Seen:            fmt.Sprintf("[%s]", fmt.Sprint(userId)),
+		DateCreated:     time.Now().String(),
+	}
+	err = server.db.InsertMessage(message)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)
+}
+
+func (server *httpImpl) NewCommunication(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	var people []int
+	err = json.Unmarshal([]byte(r.FormValue("users")), &people)
+	if err != nil {
+		return
+	}
+	if !contains(people, userId) {
+		people = append(people, userId)
+	}
+	users, err := json.Marshal(people)
+	if err != nil {
+		return
+	}
+	comm := sql.Communication{
+		ID:          server.db.GetLastCommunicationID(),
+		People:      string(users),
+		DateCreated: time.Now().String(),
+		Title:       r.FormValue("title"),
+	}
+	err = server.db.InsertCommunication(comm)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)
 }

@@ -76,6 +76,8 @@ type HTTP interface {
 	// communication.go
 	GetCommunications(w http.ResponseWriter, r *http.Request)
 	GetCommunication(w http.ResponseWriter, r *http.Request)
+	NewMessage(w http.ResponseWriter, r *http.Request)
+	NewCommunication(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL) HTTP {

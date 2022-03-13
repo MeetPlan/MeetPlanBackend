@@ -82,6 +82,8 @@ func main() {
 
 	r.HandleFunc("/communications/get", httphandler.GetCommunications).Methods("GET")
 	r.HandleFunc("/communication/get/{id}", httphandler.GetCommunication).Methods("GET")
+	r.HandleFunc("/communication/get/{id}/message/new", httphandler.NewMessage).Methods("POST")
+	r.HandleFunc("/communication/new", httphandler.NewCommunication).Methods("POST")
 
 	r.HandleFunc("/meeting/get/{meeting_id}", httphandler.GetMeeting).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/absences", httphandler.GetAbsencesTeacher).Methods("GET")

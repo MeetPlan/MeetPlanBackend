@@ -45,12 +45,8 @@ func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	_, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
-		return
-	}
-	if jwt["role"] != "admin" {
-		WriteForbiddenJWT(w)
 		return
 	}
 	users, err := server.db.GetAllUsers()

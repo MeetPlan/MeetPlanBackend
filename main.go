@@ -50,6 +50,7 @@ func main() {
 	r.HandleFunc("/user/check/has/class", httphandler.HasClass).Methods("GET")
 	r.HandleFunc("/user/get/data/{id}", httphandler.GetUserData).Methods("GET")
 	r.HandleFunc("/user/get/absences/{id}", httphandler.GetAbsencesUser).Methods("GET")
+	r.HandleFunc("/user/get/unread_messages", httphandler.GetUnreadMessages).Methods("GET")
 
 	r.HandleFunc("/user/get/absences/{student_id}/excuse/{absence_id}", httphandler.ExcuseAbsence).Methods("PATCH")
 
@@ -79,6 +80,11 @@ func main() {
 	r.HandleFunc("/meetings/new", httphandler.NewMeeting).Methods("POST")
 	r.HandleFunc("/meetings/new/{id}", httphandler.PatchMeeting).Methods("PATCH")
 	r.HandleFunc("/meetings/new/{id}", httphandler.DeleteMeeting).Methods("DELETE")
+
+	r.HandleFunc("/communications/get", httphandler.GetCommunications).Methods("GET")
+	r.HandleFunc("/communication/get/{id}", httphandler.GetCommunication).Methods("GET")
+	r.HandleFunc("/communication/get/{id}/message/new", httphandler.NewMessage).Methods("POST")
+	r.HandleFunc("/communication/new", httphandler.NewCommunication).Methods("POST")
 
 	r.HandleFunc("/meeting/get/{meeting_id}", httphandler.GetMeeting).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/absences", httphandler.GetAbsencesTeacher).Methods("GET")

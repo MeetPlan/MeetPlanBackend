@@ -106,6 +106,7 @@ type SQL interface {
 
 	GetMessage(id int) (message Message, err error)
 	GetCommunicationMessages(communicationId int) (messages []Message, err error)
+	GetAllUnreadMessages(userId int) (messages []Message, err error)
 	InsertMessage(message Message) (err error)
 	UpdateMessage(message Message) error
 	GetLastMessageID() (id int)

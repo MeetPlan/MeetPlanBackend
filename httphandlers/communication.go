@@ -99,6 +99,22 @@ func (server *httpImpl) GetCommunication(w http.ResponseWriter, r *http.Request)
 			Message:  message,
 			UserName: user.Name,
 		})
+		var users []int
+		err = json.Unmarshal([]byte(message.Seen), &users)
+		if err != nil {
+			return
+		}
+		if !contains(users, userId) {
+			users = append(users, userId)
+			marshal, err := json.Marshal(users)
+			if err != nil {
+				return
+			}
+			message.Seen = string(marshal)
+			// Not a fatal error, move on
+			server.db.UpdateMessage(message)
+		}
+
 	}
 	j := CommunicationJson{
 		Communication: communication,
@@ -185,4 +201,22 @@ func (server *httpImpl) NewCommunication(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)
+}
+
+func (server *httpImpl) GetUnreadMessages(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	messages, err := server.db.GetAllUnreadMessages(userId)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Success: true, Data: messages}, http.StatusCreated)
 }

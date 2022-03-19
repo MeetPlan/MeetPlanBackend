@@ -50,6 +50,7 @@ func main() {
 	r.HandleFunc("/user/check/has/class", httphandler.HasClass).Methods("GET")
 	r.HandleFunc("/user/get/data/{id}", httphandler.GetUserData).Methods("GET")
 	r.HandleFunc("/user/get/absences/{id}", httphandler.GetAbsencesUser).Methods("GET")
+	r.HandleFunc("/user/get/unread_messages", httphandler.GetUnreadMessages).Methods("GET")
 
 	r.HandleFunc("/user/get/absences/{student_id}/excuse/{absence_id}", httphandler.ExcuseAbsence).Methods("PATCH")
 

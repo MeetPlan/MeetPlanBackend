@@ -1,5 +1,7 @@
 package sql
 
+import "encoding/json"
+
 type Message struct {
 	ID              int
 	CommunicationID int `db:"communication_id"`
@@ -48,6 +50,32 @@ func (db *sqlImpl) GetLastMessageID() (id int) {
 func (db *sqlImpl) GetAllMessages() (messages []Message, err error) {
 	err = db.db.Select(&messages, "SELECT * FROM message")
 	return messages, err
+}
+
+func (db *sqlImpl) GetAllUnreadMessages(userId int) (messages []Message, err error) {
+	err = db.db.Select(&messages, "SELECT * FROM message")
+	var unread = make([]Message, 0)
+	for i := 0; i < len(messages); i++ {
+		message := messages[i]
+		var users []int
+		err := json.Unmarshal([]byte(message.Seen), &users)
+		if err != nil {
+			return make([]Message, 0), err
+		}
+		var communicationUsers []int
+		communication, err := db.GetCommunication(message.CommunicationID)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal([]byte(communication.People), &communicationUsers)
+		if err != nil {
+			return make([]Message, 0), err
+		}
+		if contains(communicationUsers, userId) && !contains(users, userId) {
+			unread = append(unread, message)
+		}
+	}
+	return unread, err
 }
 
 func (db *sqlImpl) DeleteMessage(ID int) error {

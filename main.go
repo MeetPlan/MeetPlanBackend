@@ -68,10 +68,14 @@ func main() {
 	r.HandleFunc("/class/get/{class_id}/remove_user/{user_id}", httphandler.RemoveUserFromClass).Methods("DELETE")
 
 	r.HandleFunc("/users/get", httphandler.GetAllUsers).Methods("GET")
+	r.HandleFunc("/meals/get", httphandler.GetMeals).Methods("GET")
+	r.HandleFunc("/meals/new", httphandler.NewMeal).Methods("POST")
 	r.HandleFunc("/teachers/get", httphandler.GetTeachers).Methods("GET")
 	r.HandleFunc("/students/get", httphandler.GetStudents).Methods("GET")
 	r.HandleFunc("/user/role/update/{id}", httphandler.ChangeRole).Methods("PATCH")
 	r.HandleFunc("/user/delete/{id}", httphandler.DeleteUser).Methods("DELETE")
+
+	r.HandleFunc("/order/new/{meal_id}", httphandler.NewOrder).Methods("POST")
 
 	r.HandleFunc("/my/grades", httphandler.GetMyGrades).Methods("GET")
 

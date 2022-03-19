@@ -112,6 +112,13 @@ type SQL interface {
 	GetLastMessageID() (id int)
 	GetAllMessages() (messages []Message, err error)
 	DeleteMessage(ID int) error
+
+	GetMeal(id int) (meal Meal, err error)
+	InsertMeal(meal Meal) (err error)
+	UpdateMeal(meal Meal) error
+	GetLastMealID() (id int)
+	GetMeals() (meals []Meal, err error)
+	DeleteMeal(ID int) error
 }
 
 func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, error) {

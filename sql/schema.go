@@ -94,4 +94,17 @@ CREATE TABLE IF NOT EXISTS message (
 	seen                    JSON,
 	date_created            VARCHAR(200)
 );
+CREATE TABLE IF NOT EXISTS meals (
+	id                      INTEGER         PRIMARY KEY,
+	meals                   VARCHAR(3000),
+	date                    VARCHAR(200),
+	meal_title              VARCHAR(3000),
+	price                   FLOAT,
+	orders                  JSON,
+	is_limited              BOOLEAN,
+	order_limit             INTEGER,
+	is_vegan                BOOLEAN,
+	is_vegetarian           BOOLEAN,
+	is_lactose_free         BOOLEAN
+);
 `

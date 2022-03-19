@@ -79,6 +79,11 @@ type HTTP interface {
 	NewMessage(w http.ResponseWriter, r *http.Request)
 	NewCommunication(w http.ResponseWriter, r *http.Request)
 	GetUnreadMessages(w http.ResponseWriter, r *http.Request)
+
+	// meals.go
+	GetMeals(w http.ResponseWriter, r *http.Request)
+	NewMeal(w http.ResponseWriter, r *http.Request)
+	NewOrder(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL) HTTP {

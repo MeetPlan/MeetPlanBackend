@@ -11,8 +11,9 @@ import (
 
 type MealJSON struct {
 	sql.Meal
-	HasOrdered bool
-	MealOrders []UserJSON
+	HasOrdered     bool
+	MealOrders     []UserJSON
+	IsLimitReached bool
 }
 
 type MealDate struct {
@@ -46,6 +47,7 @@ func (server *httpImpl) GetMeals(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var ordered = contains(orders, userId)
+		var isLimitReached = meal.IsLimited && len(orders) >= meal.OrderLimit
 		var hasAppended = false
 		var mealOrders = make([]UserJSON, 0)
 		if jwt["role"] == "admin" {
@@ -65,9 +67,10 @@ func (server *httpImpl) GetMeals(w http.ResponseWriter, r *http.Request) {
 		for n := 0; n < len(mealJson); n++ {
 			if mealJson[n].Date == meal.Date {
 				mealJson[n].Meals = append(mealJson[n].Meals, MealJSON{
-					Meal:       meal,
-					HasOrdered: ordered,
-					MealOrders: mealOrders,
+					Meal:           meal,
+					HasOrdered:     ordered,
+					MealOrders:     mealOrders,
+					IsLimitReached: isLimitReached,
 				})
 				hasAppended = true
 				break
@@ -76,9 +79,10 @@ func (server *httpImpl) GetMeals(w http.ResponseWriter, r *http.Request) {
 		if !hasAppended {
 			meals := make([]MealJSON, 0)
 			meals = append(meals, MealJSON{
-				Meal:       meal,
-				HasOrdered: ordered,
-				MealOrders: mealOrders,
+				Meal:           meal,
+				HasOrdered:     ordered,
+				MealOrders:     mealOrders,
+				IsLimitReached: isLimitReached,
 			})
 			mealJson = append(mealJson, MealDate{
 				Date:  meal.Date,
@@ -104,26 +108,32 @@ func (server *httpImpl) NewMeal(w http.ResponseWriter, r *http.Request) {
 	}
 	price, err := strconv.ParseFloat(r.FormValue("price"), 32)
 	if err != nil {
+		WriteJSON(w, Response{Success: false, Data: "Could not parse price", Error: r.FormValue("price")}, http.StatusBadRequest)
 		return
 	}
 	isLimited, err := strconv.ParseBool(r.FormValue("isLimited"))
 	if err != nil {
+		WriteJSON(w, Response{Success: false, Data: "Could not parse isLimited", Error: r.FormValue("isLimited")}, http.StatusBadRequest)
 		return
 	}
 	isVegan, err := strconv.ParseBool(r.FormValue("isVegan"))
 	if err != nil {
+		WriteJSON(w, Response{Success: false, Data: "Could not parse isVegan", Error: r.FormValue("isVegan")}, http.StatusBadRequest)
 		return
 	}
 	isVegetarian, err := strconv.ParseBool(r.FormValue("isVegetarian"))
 	if err != nil {
+		WriteJSON(w, Response{Success: false, Data: "Could not parse isVegetarian", Error: r.FormValue("isVegetarian")}, http.StatusBadRequest)
 		return
 	}
 	isLactoseFree, err := strconv.ParseBool(r.FormValue("isLactoseFree"))
 	if err != nil {
+		WriteJSON(w, Response{Success: false, Data: "Could not parse isLactoseFree", Error: r.FormValue("isLactoseFree")}, http.StatusBadRequest)
 		return
 	}
 	orderLimit, err := strconv.Atoi(r.FormValue("limit"))
 	if err != nil {
+		WriteJSON(w, Response{Success: false, Data: "Could not parse limit", Error: r.FormValue("limit")}, http.StatusBadRequest)
 		return
 	}
 	meal := sql.Meal{
@@ -142,6 +152,7 @@ func (server *httpImpl) NewMeal(w http.ResponseWriter, r *http.Request) {
 	}
 	err = server.db.InsertMeal(meal)
 	if err != nil {
+		WriteJSON(w, Response{Success: false, Data: "Could not insert meal", Error: err.Error()}, http.StatusInternalServerError)
 		return
 	}
 	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)

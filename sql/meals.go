@@ -12,6 +12,7 @@ type Meal struct {
 	IsVegan       bool `db:"is_vegan"`
 	IsVegetarian  bool `db:"is_vegetarian"`
 	IsLactoseFree bool `db:"is_lactose_free"`
+	BlockOrders   bool `db:"block_orders"`
 }
 
 func (db *sqlImpl) GetMeal(id int) (meal Meal, err error) {
@@ -21,14 +22,14 @@ func (db *sqlImpl) GetMeal(id int) (meal Meal, err error) {
 
 func (db *sqlImpl) InsertMeal(meal Meal) (err error) {
 	_, err = db.db.NamedExec(
-		"INSERT INTO meals (id, meals, date, meal_title, price, is_vegan, is_vegetarian, is_lactose_free, orders, order_limit, is_limited) VALUES (:id, :meals, :date, :meal_title, :price, :is_vegan, :is_vegetarian, :is_lactose_free, :orders, :order_limit, :is_limited)",
+		"INSERT INTO meals (id, meals, date, meal_title, price, is_vegan, is_vegetarian, is_lactose_free, orders, order_limit, is_limited, block_orders) VALUES (:id, :meals, :date, :meal_title, :price, :is_vegan, :is_vegetarian, :is_lactose_free, :orders, :order_limit, :is_limited, :block_orders)",
 		meal)
 	return err
 }
 
 func (db *sqlImpl) UpdateMeal(meal Meal) error {
 	_, err := db.db.NamedExec(
-		"UPDATE meals SET meals=:meals, date=:date, meal_title=:meal_title, price=:price, is_vegan=:is_vegan, is_vegetarian=:is_vegetarian, is_lactose_free=:is_lactose_free, orders=:orders, order_limit=:order_limit, is_limited=:is_limited WHERE id=:id",
+		"UPDATE meals SET meals=:meals, date=:date, meal_title=:meal_title, price=:price, is_vegan=:is_vegan, is_vegetarian=:is_vegetarian, is_lactose_free=:is_lactose_free, orders=:orders, order_limit=:order_limit, is_limited=:is_limited, block_orders=:block_orders WHERE id=:id",
 		meal)
 	return err
 }

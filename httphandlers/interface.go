@@ -84,6 +84,9 @@ type HTTP interface {
 	GetMeals(w http.ResponseWriter, r *http.Request)
 	NewMeal(w http.ResponseWriter, r *http.Request)
 	NewOrder(w http.ResponseWriter, r *http.Request)
+	EditMeal(w http.ResponseWriter, r *http.Request)
+	DeleteMeal(w http.ResponseWriter, r *http.Request)
+	BlockUnblockOrder(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL) HTTP {

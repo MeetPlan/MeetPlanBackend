@@ -1,0 +1,1 @@
+ALTER TABLE meals ADD COLUMN block_orders BOOLEAN DEFAULT false;

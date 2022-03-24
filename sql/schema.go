@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS meals (
 	order_limit             INTEGER,
 	is_vegan                BOOLEAN,
 	is_vegetarian           BOOLEAN,
-	is_lactose_free         BOOLEAN
+	is_lactose_free         BOOLEAN,
+	block_orders            BOOLEAN
 );
 `

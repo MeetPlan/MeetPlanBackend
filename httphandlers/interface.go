@@ -69,6 +69,7 @@ type HTTP interface {
 	NewHomework(w http.ResponseWriter, r *http.Request)
 	GetAllHomeworksForSpecificSubject(w http.ResponseWriter, r *http.Request)
 	PatchHomeworkForStudent(w http.ResponseWriter, r *http.Request)
+	GetUserHomework(w http.ResponseWriter, r *http.Request)
 
 	// classteacher.go
 	ExcuseAbsence(w http.ResponseWriter, r *http.Request)
@@ -87,6 +88,7 @@ type HTTP interface {
 	EditMeal(w http.ResponseWriter, r *http.Request)
 	DeleteMeal(w http.ResponseWriter, r *http.Request)
 	BlockUnblockOrder(w http.ResponseWriter, r *http.Request)
+	RemoveOrder(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL) HTTP {

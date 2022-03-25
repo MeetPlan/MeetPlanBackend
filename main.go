@@ -49,6 +49,7 @@ func main() {
 	r.HandleFunc("/user/get/classes", httphandler.GetAllClasses).Methods("GET")
 	r.HandleFunc("/user/check/has/class", httphandler.HasClass).Methods("GET")
 	r.HandleFunc("/user/get/data/{id}", httphandler.GetUserData).Methods("GET")
+	r.HandleFunc("/user/get/homework/{id}", httphandler.GetUserHomework).Methods("GET")
 	r.HandleFunc("/user/get/absences/{id}", httphandler.GetAbsencesUser).Methods("GET")
 	r.HandleFunc("/user/get/unread_messages", httphandler.GetUnreadMessages).Methods("GET")
 
@@ -79,6 +80,7 @@ func main() {
 
 	r.HandleFunc("/order/new/{meal_id}", httphandler.NewOrder).Methods("POST")
 	r.HandleFunc("/order/get/{meal_id}/block_unblock", httphandler.BlockUnblockOrder).Methods("PATCH")
+	r.HandleFunc("/order/get/{meal_id}", httphandler.RemoveOrder).Methods("DELETE")
 
 	r.HandleFunc("/my/grades", httphandler.GetMyGrades).Methods("GET")
 

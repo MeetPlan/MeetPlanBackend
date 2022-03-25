@@ -112,27 +112,31 @@ func (server *httpImpl) GetUserData(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" {
-		userId, err := strconv.Atoi(mux.Vars(r)["id"])
+	var userId int
+	if jwt["role"] == "student" {
+		userId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		if err != nil {
 			WriteBadRequest(w)
 			return
 		}
-		user, err := server.db.GetUser(userId)
+	} else {
+		userId, err = strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
+			WriteBadRequest(w)
 			return
 		}
-		ujson := UserJSON{
-			Name:  user.Name,
-			ID:    user.ID,
-			Email: user.Email,
-			Role:  user.Role,
-		}
-		WriteJSON(w, Response{Data: ujson, Success: true}, http.StatusOK)
-	} else {
-		WriteForbiddenJWT(w)
 	}
+	user, err := server.db.GetUser(userId)
+	if err != nil {
+		return
+	}
+	ujson := UserJSON{
+		Name:  user.Name,
+		ID:    user.ID,
+		Email: user.Email,
+		Role:  user.Role,
+	}
+	WriteJSON(w, Response{Data: ujson, Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) {
@@ -140,9 +144,15 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return
 	}
-
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" {
-		studentId, err := strconv.Atoi(mux.Vars(r)["id"])
+	var studentId int
+	if jwt["role"] == "student" {
+		studentId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+	} else {
+		studentId, err = strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -180,36 +190,36 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 				return
 			}
 		}
-		absences, err := server.db.GetAbsencesForUser(studentId)
+	}
+	absences, err := server.db.GetAbsencesForUser(studentId)
+	if err != nil {
+		return
+	}
+	var absenceJson = make([]Absence, 0)
+	for i := 0; i < len(absences); i++ {
+		absence := absences[i]
+		teacher, err := server.db.GetUser(absence.TeacherID)
 		if err != nil {
 			return
 		}
-		var absenceJson = make([]Absence, 0)
-		for i := 0; i < len(absences); i++ {
-			absence := absences[i]
-			teacher, err := server.db.GetUser(absence.TeacherID)
-			if err != nil {
-				return
-			}
-			user, err := server.db.GetUser(absence.UserID)
-			if err != nil {
-				return
-			}
-			meeting, err := server.db.GetMeeting(absence.MeetingID)
-			if err != nil {
-				return
-			}
-			if absence.AbsenceType == "ABSENT" || absence.AbsenceType == "LATE" {
-				absenceJson = append(absenceJson, Absence{
-					Absence:     absence,
-					TeacherName: teacher.Name,
-					UserName:    user.Name,
-					MeetingName: meeting.MeetingName,
-				})
-			}
+		user, err := server.db.GetUser(absence.UserID)
+		if err != nil {
+			return
 		}
-		WriteJSON(w, Response{Data: absenceJson, Success: true}, http.StatusOK)
+		meeting, err := server.db.GetMeeting(absence.MeetingID)
+		if err != nil {
+			return
+		}
+		if absence.AbsenceType == "ABSENT" || absence.AbsenceType == "LATE" {
+			absenceJson = append(absenceJson, Absence{
+				Absence:     absence,
+				TeacherName: teacher.Name,
+				UserName:    user.Name,
+				MeetingName: meeting.MeetingName,
+			})
+		}
 	}
+	WriteJSON(w, Response{Data: absenceJson, Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {

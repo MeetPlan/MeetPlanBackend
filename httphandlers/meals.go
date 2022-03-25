@@ -330,3 +330,45 @@ func (server *httpImpl) BlockUnblockOrder(w http.ResponseWriter, r *http.Request
 	}
 	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)
 }
+
+func (server *httpImpl) RemoveOrder(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	meal, err := server.db.GetMeal(mealId)
+	if err != nil {
+		return
+	}
+	var orders []int
+	err = json.Unmarshal([]byte(meal.Orders), &orders)
+	if err != nil {
+		return
+	}
+	for i := 0; i < len(orders); i++ {
+		if orders[i] == userId {
+			orders = remove(orders, i)
+		}
+	}
+	marshal, err := json.Marshal(orders)
+	if err != nil {
+		return
+	}
+	meal.Orders = string(marshal)
+	err = server.db.UpdateMeal(meal)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusOK)
+}

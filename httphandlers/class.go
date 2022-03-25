@@ -19,7 +19,6 @@ type ClassJSON struct {
 func (server *httpImpl) NewClass(w http.ResponseWriter, r *http.Request) {
 	className := r.FormValue("name")
 	teacherIdStr := fmt.Sprint(r.FormValue("teacher_id"))
-	server.logger.Debug(teacherIdStr)
 
 	teacherId, err := strconv.Atoi(teacherIdStr)
 	if err != nil {

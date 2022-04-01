@@ -1,0 +1,1 @@
+ALTER TABLE subject ADD COLUMN long_name VARCHAR(200) DEFAULT "";

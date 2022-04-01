@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS subject (
 	id                      INTEGER         PRIMARY KEY,
 	teacher_id              INTEGER,
 	name                    VARCHAR(200),
+    long_name               VARCHAR(200),
 	inherits_class          BOOLEAN,
 	class_id                INTEGER         DEFAULT(-1),
 	students                JSON            DEFAULT('[]')

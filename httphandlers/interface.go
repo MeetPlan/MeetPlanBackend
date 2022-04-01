@@ -57,6 +57,7 @@ type HTTP interface {
 	AssignUserToSubject(w http.ResponseWriter, r *http.Request)
 	RemoveUserFromSubject(w http.ResponseWriter, r *http.Request)
 	DeleteSubject(w http.ResponseWriter, r *http.Request)
+	PatchSubjectName(w http.ResponseWriter, r *http.Request)
 
 	// grades.go
 	GetGradesForMeeting(w http.ResponseWriter, r *http.Request)
@@ -64,6 +65,7 @@ type HTTP interface {
 	PatchGrade(w http.ResponseWriter, r *http.Request)
 	DeleteGrade(w http.ResponseWriter, r *http.Request)
 	GetMyGrades(w http.ResponseWriter, r *http.Request)
+	PrintCertificateOfEndingClass(w http.ResponseWriter, r *http.Request)
 
 	// homework.go
 	NewHomework(w http.ResponseWriter, r *http.Request)

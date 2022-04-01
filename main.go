@@ -51,6 +51,7 @@ func main() {
 	r.HandleFunc("/user/get/data/{id}", httphandler.GetUserData).Methods("GET")
 	r.HandleFunc("/user/get/homework/{id}", httphandler.GetUserHomework).Methods("GET")
 	r.HandleFunc("/user/get/absences/{id}", httphandler.GetAbsencesUser).Methods("GET")
+	r.HandleFunc("/user/get/ending_certificate/{student_id}", httphandler.PrintCertificateOfEndingClass).Methods("GET")
 	r.HandleFunc("/user/get/unread_messages", httphandler.GetUnreadMessages).Methods("GET")
 
 	r.HandleFunc("/user/get/absences/{student_id}/excuse/{absence_id}", httphandler.ExcuseAbsence).Methods("PATCH")
@@ -112,6 +113,7 @@ func main() {
 
 	r.HandleFunc("/subject/get/{subject_id}", httphandler.GetSubject).Methods("GET")
 	r.HandleFunc("/subject/get/{subject_id}", httphandler.DeleteSubject).Methods("DELETE")
+	r.HandleFunc("/subject/get/{subject_id}/long_name", httphandler.PatchSubjectName).Methods("PATCH")
 	r.HandleFunc("/subject/get/{subject_id}/add_user/{user_id}", httphandler.AssignUserToSubject).Methods("PATCH")
 	r.HandleFunc("/subject/get/{subject_id}/remove_user/{user_id}", httphandler.RemoveUserFromSubject).Methods("DELETE")
 

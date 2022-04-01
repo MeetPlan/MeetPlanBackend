@@ -65,11 +65,15 @@ func CheckJWT(tokenString string) (jwt.MapClaims, error) {
 		return JwtSigningKey, nil
 	})
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		if claims["iss"] == JWTIssuer {
-			return claims, nil
+	if token != nil {
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			if claims["iss"] == JWTIssuer {
+				return claims, nil
+			}
+			return nil, errors.New("JWT issuer isn't correct")
+		} else {
+			return nil, err
 		}
-		return nil, errors.New("JWT issuer isn't correct")
 	} else {
 		return nil, err
 	}

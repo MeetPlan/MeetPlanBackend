@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
+	"github.com/johnfercher/maroto/pkg/consts"
+	"github.com/johnfercher/maroto/pkg/pdf"
+	"github.com/johnfercher/maroto/pkg/props"
 	"net/http"
 	"strconv"
 	"time"
@@ -23,6 +26,12 @@ type UserGradeTable struct {
 	Average float64
 	Final   int
 	Periods []PeriodGrades
+}
+
+type SubjectPosition struct {
+	X    uint
+	Y    float64
+	Name string
 }
 
 type SubjectGradesResponse struct {
@@ -535,5 +544,173 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 		}, Success: true}, http.StatusOK)
 	} else {
 		WriteForbiddenJWT(w)
+	}
+}
+
+func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	const x1 = 6
+	const yb = 5
+	const x2 = 12
+	var subjectsPosition = []SubjectPosition{
+		{
+			X:    x1,
+			Y:    yb,
+			Name: "slovenščina",
+		},
+		{
+			X:    x1,
+			Y:    yb,
+			Name: "matematika",
+		},
+		{
+			X:    x1,
+			Y:    yb * 2,
+			Name: "likovna umetnost",
+		},
+		{
+			X:    x1,
+			Y:    yb,
+			Name: "glasbena umetnost",
+		},
+		{
+			X:    x1,
+			Y:    yb,
+			Name: "družba",
+		},
+		{
+			X:    x1,
+			Y:    yb,
+			Name: "geografija",
+		},
+		{
+			X:    x1,
+			Y:    yb,
+			Name: "zgodovina",
+		},
+		{
+			X:    x1,
+			Y:    yb,
+			Name: "domovinska in državljanska kultura in etika",
+		},
+		{
+			X:    x1,
+			Y:    yb,
+			Name: "spoznavanje okolja",
+		},
+		{
+			X:    x1,
+			Y:    yb,
+			Name: "fizika",
+		},
+
+		{
+			X:    -x1 * 10,
+			Y:    yb,
+			Name: "kemija",
+		},
+		{
+			X:    x2,
+			Y:    yb,
+			Name: "biologija",
+		},
+	}
+	if jwt["role"] == "admin" || jwt["role"] == "teacher" {
+		studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" {
+			classes, err := server.db.GetClasses()
+			if err != nil {
+				return
+			}
+			var valid = false
+			for i := 0; i < len(classes); i++ {
+				class := classes[i]
+				var users []int
+				err := json.Unmarshal([]byte(class.Students), &users)
+				if err != nil {
+					return
+				}
+				for j := 0; j < len(users); j++ {
+					if users[j] == studentId && class.Teacher == teacherId {
+						valid = true
+						break
+					}
+				}
+				if valid {
+					break
+				}
+			}
+			if !valid {
+				WriteForbiddenJWT(w)
+				return
+			}
+		}
+		subjects, err := server.db.GetAllSubjectsForUser(studentId)
+		if err != nil {
+			return
+		}
+
+		m := pdf.NewMaroto(consts.Portrait, consts.A4)
+
+		m.Row(60, func() {
+
+		})
+
+		for i := 0; i < len(subjectsPosition); i++ {
+			var found = -1
+			for n := 0; n < len(subjects); n++ {
+				if subjectsPosition[i].Name == subjects[n].LongName {
+					found = n
+				}
+			}
+			var grade = ""
+			if found != -1 {
+				grades, err := server.db.GetGradesForUserInSubject(studentId, subjects[found].ID)
+				if err != nil {
+					return
+				}
+				final := 0
+				for x := 0; x < len(grades); x++ {
+					if grades[x].IsFinal {
+						final = grades[x].Grade
+					}
+				}
+				if final == 0 {
+					grade = "NEOCENJEN"
+				} else {
+					grade = fmt.Sprint(final)
+				}
+			} else {
+				// Student doesn't have this subject
+				grade = "/"
+			}
+			m.Row(subjectsPosition[i].Y, func() {
+				m.Col(subjectsPosition[i].X, func() {
+					m.Text(grade, props.Text{
+						Top:   3,
+						Style: consts.Bold,
+						Align: consts.Center,
+					})
+				})
+			})
+		}
+		output, err := m.Output()
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		w.Write(output.Bytes())
 	}
 }

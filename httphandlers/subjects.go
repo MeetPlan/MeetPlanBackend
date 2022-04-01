@@ -63,6 +63,7 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 		ID:            server.db.GetLastSubjectID(),
 		TeacherID:     teacherId,
 		Name:          r.FormValue("name"),
+		LongName:      r.FormValue("long_name"),
 		InheritsClass: inheritsClass,
 		ClassID:       classIdInt,
 		Students:      string(studentsJson),
@@ -284,6 +285,32 @@ func (server *httpImpl) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = server.db.DeleteSubject(subject)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+}
+
+func (server *httpImpl) PatchSubjectName(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if jwt["role"] != "admin" {
+		WriteForbiddenJWT(w)
+		return
+	}
+	subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
+	if err != nil {
+		return
+	}
+	subject, err := server.db.GetSubject(subjectId)
+	if err != nil {
+		return
+	}
+	subject.LongName = r.FormValue("long_name")
+	err = server.db.UpdateSubject(subject)
 	if err != nil {
 		return
 	}

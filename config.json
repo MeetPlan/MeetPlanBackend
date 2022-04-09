@@ -1,1 +1,1 @@
-{"database_name":"sqlite3","database_config":"MeetPlanDB/meetplan.db","debug":true,"host":"127.0.0.1:8080"}
+{"database_name":"sqlite3","database_config":"MeetPlanDB/meetplan.db","debug":true,"host":"127.0.0.1:8000"}

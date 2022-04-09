@@ -20,7 +20,7 @@ func GetConfig() (Config, error) {
 			DatabaseName:   "sqlite3",
 			DatabaseConfig: "MeetPlanDB/meetplan.db",
 			Debug:          true,
-			Host:           "127.0.0.1:8080",
+			Host:           "127.0.0.1:8000",
 		})
 		if err != nil {
 			return config, err

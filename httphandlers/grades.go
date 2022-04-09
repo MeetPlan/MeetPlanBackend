@@ -554,9 +554,9 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		WriteForbiddenJWT(w)
 		return
 	}
-	const x1 = 200
+	const x1 = 210
 	const yb = 18
-	const x2 = 450
+	const x2 = 485
 	var subjectsPosition = []SubjectPosition{
 		// Pos 1
 		{
@@ -660,7 +660,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		// Pos 9
 		{
 			X:    x1,
-			Y:    yb * 9,
+			Y:    yb * 9.5,
 			Name: "domovinska in državljanska kultura in etika",
 		},
 		{
@@ -673,7 +673,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		// Pos 10
 		{
 			X:    x1,
-			Y:    yb * 10,
+			Y:    yb * 11,
 			Name: "spoznavanje okolja",
 		},
 		{
@@ -686,12 +686,20 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		// Pos 11
 		{
 			X:    x1,
-			Y:    yb * 11,
+			Y:    yb * 12,
 			Name: "fizika",
 		},
 		{
 			X:                      x2,
 			Y:                      yb * 11,
+			Name:                   "",
+			IsDynamicallyAllocated: true,
+		},
+
+		// Pos 12 (right)
+		{
+			X:                      x2,
+			Y:                      yb * 12,
 			Name:                   "",
 			IsDynamicallyAllocated: true,
 		},
@@ -771,6 +779,14 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
 		pdf.AddPage()
 
+		if server.config.Debug {
+			// Import page 1
+			tpl1 := pdf.ImportPage("officialdocs/spričevalo.pdf", 1, "/MediaBox")
+
+			// Draw pdf onto page
+			pdf.UseImportedTemplate(tpl1, 0, 0, 595, 0)
+		}
+
 		err = pdf.AddTTFFont("opensans", "fonts/opensans.ttf")
 		if err != nil {
 			log.Print(err.Error())
@@ -784,20 +800,21 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		}
 
 		pdf.SetX(50)
-		pdf.SetY(275)
+		pdf.SetY(270)
 		pdf.Cell(nil, user.Name)
 
-		pdf.SetY(295)
+		pdf.SetY(300)
+		pdf.SetX(50)
 		pdf.Cell(nil, user.Birthday)
-		pdf.SetX(200)
+		pdf.SetX(215)
 		pdf.Cell(nil, fmt.Sprintf("%s, %s", user.CityOfBirth, user.CountryOfBirth))
 
 		pdf.SetX(50)
-		pdf.SetY(315)
+		pdf.SetY(332)
 		pdf.Cell(nil, user.BirthCertificateNumber)
-		pdf.SetX(200)
+		pdf.SetX(215)
 		pdf.Cell(nil, class.Name)
-		pdf.SetX(400)
+		pdf.SetX(430)
 		pdf.Cell(nil, class.ClassYear)
 
 		var subjectsAlreadyIn = make([]string, 0)
@@ -807,7 +824,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 			var name = ""
 			for n := 0; n < len(subjects); n++ {
 				if subjectsPosition[i].IsThirdLanguage {
-					if subjects[n].LongName == "nemščina" || subjects[n].LongName == "španščina" {
+					if subjects[n].LongName == "angleščina" || subjects[n].LongName == "madžarščina" || subjects[n].LongName == "italijanščina" {
 						name = subjects[n].LongName
 						found = n
 						break
@@ -857,9 +874,9 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 				grade = fmt.Sprintf("nezadostno %s", grade)
 			}
 			server.logger.Debug(name, grade)
-			pdf.SetY(subjectsPosition[i].Y + 375)
+			pdf.SetY(subjectsPosition[i].Y + 372)
 			if subjectsPosition[i].IsDynamicallyAllocated {
-				pdf.SetX(subjectsPosition[i].X - 150)
+				pdf.SetX(subjectsPosition[i].X - 175)
 				pdf.Cell(nil, name)
 			}
 			pdf.SetX(subjectsPosition[i].X - float64(len(grade)/2)*5)

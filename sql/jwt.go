@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/dchest/uniuri"
 	"github.com/golang-jwt/jwt"
-	"os"
 	"strings"
 	"time"
 )

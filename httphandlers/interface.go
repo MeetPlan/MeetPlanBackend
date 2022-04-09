@@ -94,6 +94,11 @@ type HTTP interface {
 	DeleteMeal(w http.ResponseWriter, r *http.Request)
 	BlockUnblockOrder(w http.ResponseWriter, r *http.Request)
 	RemoveOrder(w http.ResponseWriter, r *http.Request)
+
+	// parent.go
+	AssignUserToParent(w http.ResponseWriter, r *http.Request)
+	GetMyChildren(w http.ResponseWriter, r *http.Request)
+	RemoveUserFromParent(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL, config sql.Config) HTTP {

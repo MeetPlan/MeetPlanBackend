@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS users (
     birth_certificate_number VARCHAR(200),
     birthday                 VARCHAR(200),
     country_of_birth         VARCHAR(200),
-    city_of_birth            VARCHAR(200)
+    city_of_birth            VARCHAR(200),
+    users                    VARCHAR(200)   DEFAULT('[]')
 );
 CREATE TABLE IF NOT EXISTS classes (
 	id           INTEGER                    PRIMARY KEY,

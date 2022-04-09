@@ -91,6 +91,10 @@ func main() {
 	r.HandleFunc("/user/role/update/{id}", httphandler.ChangeRole).Methods("PATCH")
 	r.HandleFunc("/user/delete/{id}", httphandler.DeleteUser).Methods("DELETE")
 
+	r.HandleFunc("/parent/{parent}/assign/student/{student}", httphandler.AssignUserToParent).Methods("PATCH")
+	r.HandleFunc("/parent/{parent}/assign/student/{student}", httphandler.RemoveUserFromParent).Methods("DELETE")
+	r.HandleFunc("/parents/get/students", httphandler.GetMyChildren).Methods("GET")
+
 	r.HandleFunc("/order/new/{meal_id}", httphandler.NewOrder).Methods("POST")
 	r.HandleFunc("/order/get/{meal_id}/block_unblock", httphandler.BlockUnblockOrder).Methods("PATCH")
 	r.HandleFunc("/order/get/{meal_id}", httphandler.RemoveOrder).Methods("DELETE")

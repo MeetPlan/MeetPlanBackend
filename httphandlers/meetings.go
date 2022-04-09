@@ -106,6 +106,16 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+	} else if r.URL.Query().Get("studentId") != "" {
+		if jwt["role"] == "student" {
+			WriteForbiddenJWT(w)
+			return
+		} else if jwt["role"] == "parent" {
+
+		}
+		users = make([]int, 0)
+		users = append(users, uid)
+		myMeetings = true
 	} else {
 		// my user
 		users = make([]int, 0)

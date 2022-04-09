@@ -77,6 +77,7 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 		Birthday:               "",
 		CityOfBirth:            "",
 		CountryOfBirth:         "",
+		Users:                  "[]",
 	}
 
 	err = server.db.InsertUser(user)
@@ -282,30 +283,47 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var userId int
+	var userId = make([]int, 0)
 	var isTeacher = false
 	if jwt["role"] == "admin" || jwt["role"] == "teacher" {
 		uid := r.URL.Query().Get("id")
 		if uid == "" {
-			userId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+			u, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 			if err != nil {
 				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 				return
 			}
+			userId = append(userId, u)
 			isTeacher = true
 		} else {
-			userId, err = strconv.Atoi(uid)
+			u, err := strconv.Atoi(uid)
 			if err != nil {
 				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 				return
 			}
+			userId = append(userId, u)
 		}
-	} else {
-		userId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	} else if jwt["role"] == "parent" {
+		u, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
+		user, err := server.db.GetUser(u)
+		if err != nil {
+			return
+		}
+		err = json.Unmarshal([]byte(user.Users), &userId)
+		if err != nil {
+			return
+		}
+	} else {
+		u, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		userId = append(userId, u)
 	}
 
 	classes, err := server.db.GetClasses()
@@ -319,8 +337,10 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < len(classes); i++ {
 		class := classes[i]
 		if isTeacher {
-			if class.Teacher == userId {
-				myclasses = append(myclasses, class)
+			for n := 0; n < len(userId); n++ {
+				if class.Teacher == userId[n] {
+					myclasses = append(myclasses, class)
+				}
 			}
 		} else {
 			var students []int
@@ -330,9 +350,11 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			for n := 0; n < len(students); n++ {
-				if students[n] == userId {
-					myclasses = append(myclasses, class)
-					break
+				for n := 0; n < len(userId); n++ {
+					if students[n] == userId[n] {
+						myclasses = append(myclasses, class)
+						break
+					}
 				}
 			}
 		}

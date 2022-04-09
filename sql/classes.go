@@ -1,10 +1,11 @@
 package sql
 
 type Class struct {
-	ID       int
-	Name     string
-	Teacher  int
-	Students string
+	ID        int
+	Name      string
+	Teacher   int
+	Students  string
+	ClassYear string `db:"class_year"`
 }
 
 func (db *sqlImpl) GetClass(id int) (class Class, err error) {
@@ -14,14 +15,14 @@ func (db *sqlImpl) GetClass(id int) (class Class, err error) {
 
 func (db *sqlImpl) InsertClass(class Class) (err error) {
 	_, err = db.db.NamedExec(
-		"INSERT INTO classes (id, teacher, name) VALUES (:id, :teacher, :name)",
+		"INSERT INTO classes (id, teacher, name, class_year) VALUES (:id, :teacher, :name, :class_year)",
 		class)
 	return err
 }
 
 func (db *sqlImpl) UpdateClass(class Class) error {
 	_, err := db.db.NamedExec(
-		"UPDATE classes SET teacher=:teacher, students=:students, name=:name WHERE id=:id",
+		"UPDATE classes SET teacher=:teacher, students=:students, name=:name, class_year=:class_year WHERE id=:id",
 		class)
 	return err
 }

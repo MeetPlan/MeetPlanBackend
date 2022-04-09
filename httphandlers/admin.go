@@ -8,10 +8,14 @@ import (
 )
 
 type UserJSON struct {
-	Name  string
-	ID    int
-	Email string
-	Role  string
+	Name                   string
+	ID                     int
+	Email                  string
+	Role                   string
+	BirthCertificateNumber string
+	Birthday               string
+	CityOfBirth            string
+	CountryOfBirth         string
 }
 
 func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {

@@ -17,7 +17,17 @@ func main() {
 	var logger *zap.Logger
 	var err error
 
-	logger, err = zap.NewDevelopment()
+	config, err := sql.GetConfig()
+	if err != nil {
+		panic("Error while retrieving config: " + err.Error())
+		return
+	}
+
+	if config.Debug {
+		logger, err = zap.NewDevelopment()
+	} else {
+		logger, err = zap.NewProduction()
+	}
 
 	if err != nil {
 		panic(err.Error())
@@ -30,7 +40,7 @@ func main() {
 		os.Mkdir("MeetPlanDB", os.ModePerm)
 	}
 
-	db, err := sql.NewSQL("sqlite3", "MeetPlanDB/meetplan.db", sugared)
+	db, err := sql.NewSQL(config.DatabaseName, config.DatabaseConfig, sugared)
 	db.Init()
 
 	if err != nil {
@@ -38,7 +48,7 @@ func main() {
 		return
 	}
 
-	httphandler := httphandlers.NewHTTPInterface(sugared, db)
+	httphandler := httphandlers.NewHTTPInterface(sugared, db, config)
 
 	sugared.Info("Database created successfully")
 
@@ -49,6 +59,7 @@ func main() {
 	r.HandleFunc("/user/get/classes", httphandler.GetAllClasses).Methods("GET")
 	r.HandleFunc("/user/check/has/class", httphandler.HasClass).Methods("GET")
 	r.HandleFunc("/user/get/data/{id}", httphandler.GetUserData).Methods("GET")
+	r.HandleFunc("/user/get/data/{user_id}", httphandler.PatchUser).Methods("PATCH")
 	r.HandleFunc("/user/get/homework/{id}", httphandler.GetUserHomework).Methods("GET")
 	r.HandleFunc("/user/get/absences/{id}", httphandler.GetAbsencesUser).Methods("GET")
 	r.HandleFunc("/user/get/ending_certificate/{student_id}", httphandler.PrintCertificateOfEndingClass).Methods("GET")
@@ -63,6 +74,7 @@ func main() {
 
 	r.HandleFunc("/class/new", httphandler.NewClass).Methods("POST")
 	r.HandleFunc("/class/get/{id}", httphandler.GetClass).Methods("GET")
+	r.HandleFunc("/class/get/{id}", httphandler.PatchClass).Methods("PATCH")
 	r.HandleFunc("/class/get/{id}", httphandler.DeleteClass).Methods("DELETE")
 	// Get all classes in database
 	r.HandleFunc("/classes/get", httphandler.GetClasses).Methods("GET")
@@ -126,12 +138,7 @@ func main() {
 		AllowedMethods: []string{"POST", "GET", "DELETE", "PATCH", "PUT"},
 	})
 
-	host := os.Getenv("MP_HOST")
-	if host == "" {
-		host = "127.0.0.1:8000"
-	}
-
-	err = http.ListenAndServe(host, c.Handler(r))
+	err = http.ListenAndServe(config.Host, c.Handler(r))
 	if err != nil {
 		sugared.Fatal(err.Error())
 	}

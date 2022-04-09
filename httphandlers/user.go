@@ -67,7 +67,17 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 		role = "admin"
 	}
 
-	user := sql.User{ID: server.db.GetLastUserID(), Email: email, Password: password, Role: role, Name: name}
+	user := sql.User{
+		ID:                     server.db.GetLastUserID(),
+		Email:                  email,
+		Password:               password,
+		Role:                   role,
+		Name:                   name,
+		BirthCertificateNumber: "",
+		Birthday:               "",
+		CityOfBirth:            "",
+		CountryOfBirth:         "",
+	}
 
 	err = server.db.InsertUser(user)
 	if err != nil {
@@ -76,6 +86,40 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, Response{Data: "Success", Success: true}, http.StatusCreated)
+}
+
+func (server *httpImpl) PatchUser(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if jwt["role"] != "admin" {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	user, err := server.db.GetUser(userId)
+	if err != nil {
+		return
+	}
+	user.Birthday = r.FormValue("birthday")
+	user.CountryOfBirth = r.FormValue("country_of_birth")
+	user.CityOfBirth = r.FormValue("city_of_birth")
+	user.Email = r.FormValue("email")
+	user.BirthCertificateNumber = r.FormValue("birth_certificate_number")
+	user.Name = r.FormValue("name")
+	err = server.db.UpdateUser(user)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) HasClass(w http.ResponseWriter, r *http.Request) {
@@ -130,11 +174,21 @@ func (server *httpImpl) GetUserData(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+
+	var birthCertNum = ""
+	if jwt["role"] == "admin" {
+		birthCertNum = user.BirthCertificateNumber
+	}
+
 	ujson := UserJSON{
-		Name:  user.Name,
-		ID:    user.ID,
-		Email: user.Email,
-		Role:  user.Role,
+		Name:                   user.Name,
+		ID:                     user.ID,
+		Email:                  user.Email,
+		Role:                   user.Role,
+		BirthCertificateNumber: birthCertNum,
+		Birthday:               user.Birthday,
+		CityOfBirth:            user.CityOfBirth,
+		CountryOfBirth:         user.CountryOfBirth,
 	}
 	WriteJSON(w, Response{Data: ujson, Success: true}, http.StatusOK)
 }

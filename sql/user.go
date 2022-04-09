@@ -1,11 +1,15 @@
 package sql
 
 type User struct {
-	ID       int
-	Email    string
-	Password string `db:"pass"`
-	Role     string
-	Name     string
+	ID                     int
+	Email                  string
+	Password               string `db:"pass"`
+	Role                   string
+	Name                   string
+	BirthCertificateNumber string `db:"birth_certificate_number"`
+	Birthday               string
+	CityOfBirth            string `db:"city_of_birth"`
+	CountryOfBirth         string `db:"country_of_birth"`
 }
 
 func (db *sqlImpl) GetUser(id int) (message User, err error) {
@@ -30,7 +34,7 @@ func (db *sqlImpl) GetUserByEmail(email string) (message User, err error) {
 
 func (db *sqlImpl) InsertUser(user User) (err error) {
 	_, err = db.db.NamedExec(
-		"INSERT INTO users (id, email, pass, role, name) VALUES (:id, :email, :pass, :role, :name)",
+		"INSERT INTO users (id, email, pass, role, name, birth_certificate_number, city_of_birth, country_of_birth, birthday) VALUES (:id, :email, :pass, :role, :name, :birth_certificate_number, :city_of_birth, :country_of_birth, :birthday)",
 		user)
 	return err
 }
@@ -64,7 +68,7 @@ func (db *sqlImpl) GetAllUsers() (users []User, err error) {
 
 func (db *sqlImpl) UpdateUser(user User) error {
 	_, err := db.db.NamedExec(
-		"UPDATE users SET pass=:pass, name=:name, role=:role, email=:email WHERE id=:id",
+		"UPDATE users SET pass=:pass, name=:name, role=:role, email=:email, birth_certificate_number=:birth_certificate_number, city_of_birth=:city_of_birth, country_of_birth=:country_of_birth, birthday=:birthday WHERE id=:id",
 		user)
 	return err
 }

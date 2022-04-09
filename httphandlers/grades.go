@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
-	"github.com/johnfercher/maroto/pkg/consts"
-	"github.com/johnfercher/maroto/pkg/pdf"
-	"github.com/johnfercher/maroto/pkg/props"
+	"github.com/signintech/gopdf"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -29,9 +28,11 @@ type UserGradeTable struct {
 }
 
 type SubjectPosition struct {
-	X    uint
-	Y    float64
-	Name string
+	X                      float64
+	Y                      float64
+	Name                   string
+	IsThirdLanguage        bool
+	IsDynamicallyAllocated bool
 }
 
 type SubjectGradesResponse struct {
@@ -553,70 +554,146 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		WriteForbiddenJWT(w)
 		return
 	}
-	const x1 = 6
-	const yb = 5
-	const x2 = 12
+	const x1 = 200
+	const yb = 18
+	const x2 = 450
 	var subjectsPosition = []SubjectPosition{
+		// Pos 1
 		{
 			X:    x1,
-			Y:    yb,
+			Y:    yb * 1,
 			Name: "slovenščina",
 		},
 		{
-			X:    x1,
-			Y:    yb,
-			Name: "matematika",
+			X:    x2,
+			Y:    yb * 1,
+			Name: "kemija",
 		},
+
+		// Pos 2
 		{
 			X:    x1,
 			Y:    yb * 2,
-			Name: "likovna umetnost",
-		},
-		{
-			X:    x1,
-			Y:    yb,
-			Name: "glasbena umetnost",
-		},
-		{
-			X:    x1,
-			Y:    yb,
-			Name: "družba",
-		},
-		{
-			X:    x1,
-			Y:    yb,
-			Name: "geografija",
-		},
-		{
-			X:    x1,
-			Y:    yb,
-			Name: "zgodovina",
-		},
-		{
-			X:    x1,
-			Y:    yb,
-			Name: "domovinska in državljanska kultura in etika",
-		},
-		{
-			X:    x1,
-			Y:    yb,
-			Name: "spoznavanje okolja",
-		},
-		{
-			X:    x1,
-			Y:    yb,
-			Name: "fizika",
-		},
-
-		{
-			X:    -x1 * 10,
-			Y:    yb,
-			Name: "kemija",
+			Name: "matematika",
 		},
 		{
 			X:    x2,
-			Y:    yb,
+			Y:    yb * 2,
 			Name: "biologija",
+		},
+
+		// Pos 3
+		{
+			X:                      x1,
+			Y:                      yb * 3,
+			Name:                   "tretji jezik",
+			IsThirdLanguage:        true,
+			IsDynamicallyAllocated: true,
+		},
+		{
+			X:    x2,
+			Y:    yb * 3,
+			Name: "naravoslovje",
+		},
+
+		// Pos 4
+		{
+			X:    x1,
+			Y:    yb * 4,
+			Name: "likovna umetnost",
+		},
+		{
+			X:    x2,
+			Y:    yb * 4,
+			Name: "naravoslovje in tehnika",
+		},
+
+		// Pos 5
+		{
+			X:    x1,
+			Y:    yb * 5,
+			Name: "glasbena umetnost",
+		},
+		{
+			X:    x2,
+			Y:    yb * 5,
+			Name: "tehnika in tehnologija",
+		},
+
+		// Pos 6
+		{
+			X:    x1,
+			Y:    yb * 6,
+			Name: "družba",
+		},
+		{
+			X:    x2,
+			Y:    yb * 6,
+			Name: "gospodinjstvo",
+		},
+
+		// Pos 7
+		{
+			X:    x1,
+			Y:    yb * 7,
+			Name: "geografija",
+		},
+		{
+			X:    x2,
+			Y:    yb * 7,
+			Name: "šport",
+		},
+
+		// Pos 8
+		{
+			X:    x1,
+			Y:    yb * 8,
+			Name: "zgodovina",
+		},
+		{
+			X:                      x2,
+			Y:                      yb * 8,
+			Name:                   "",
+			IsDynamicallyAllocated: true,
+		},
+
+		// Pos 9
+		{
+			X:    x1,
+			Y:    yb * 9,
+			Name: "domovinska in državljanska kultura in etika",
+		},
+		{
+			X:                      x2,
+			Y:                      yb * 9,
+			Name:                   "",
+			IsDynamicallyAllocated: true,
+		},
+
+		// Pos 10
+		{
+			X:    x1,
+			Y:    yb * 10,
+			Name: "spoznavanje okolja",
+		},
+		{
+			X:                      x2,
+			Y:                      yb * 10,
+			Name:                   "",
+			IsDynamicallyAllocated: true,
+		},
+
+		// Pos 11
+		{
+			X:    x1,
+			Y:    yb * 11,
+			Name: "fizika",
+		},
+		{
+			X:                      x2,
+			Y:                      yb * 11,
+			Name:                   "",
+			IsDynamicallyAllocated: true,
 		},
 	}
 	if jwt["role"] == "admin" || jwt["role"] == "teacher" {
@@ -627,8 +704,31 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		}
 		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		if err != nil {
+			WriteForbiddenJWT(w)
 			return
 		}
+		classes, err := server.db.GetClasses()
+		if err != nil {
+			return
+		}
+		var class *sql.Class
+		for i := 0; i < len(classes); i++ {
+			if classes[i].Teacher == teacherId {
+				var users []int
+				err := json.Unmarshal([]byte(classes[i].Students), &users)
+				if err != nil {
+					return
+				}
+				if contains(users, studentId) {
+					class = &classes[i]
+				}
+			}
+		}
+
+		if class == nil {
+			return
+		}
+
 		if jwt["role"] == "teacher" {
 			classes, err := server.db.GetClasses()
 			if err != nil {
@@ -657,25 +757,74 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 				return
 			}
 		}
+		user, err := server.db.GetUser(studentId)
+		if err != nil {
+			return
+		}
+
 		subjects, err := server.db.GetAllSubjectsForUser(studentId)
 		if err != nil {
 			return
 		}
 
-		m := pdf.NewMaroto(consts.Portrait, consts.A4)
+		pdf := gopdf.GoPdf{}
+		pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
+		pdf.AddPage()
 
-		m.Row(60, func() {
+		err = pdf.AddTTFFont("opensans", "fonts/opensans.ttf")
+		if err != nil {
+			log.Print(err.Error())
+			return
+		}
 
-		})
+		err = pdf.SetFont("opensans", "", 11)
+		if err != nil {
+			log.Print(err.Error())
+			return
+		}
+
+		pdf.SetX(50)
+		pdf.SetY(275)
+		pdf.Cell(nil, user.Name)
+
+		pdf.SetY(295)
+		pdf.Cell(nil, user.Birthday)
+		pdf.SetX(200)
+		pdf.Cell(nil, fmt.Sprintf("%s, %s", user.CityOfBirth, user.CountryOfBirth))
+
+		pdf.SetX(50)
+		pdf.SetY(315)
+		pdf.Cell(nil, user.BirthCertificateNumber)
+		pdf.SetX(200)
+		pdf.Cell(nil, class.Name)
+		pdf.SetX(400)
+		pdf.Cell(nil, class.ClassYear)
+
+		var subjectsAlreadyIn = make([]string, 0)
 
 		for i := 0; i < len(subjectsPosition); i++ {
 			var found = -1
+			var name = ""
 			for n := 0; n < len(subjects); n++ {
-				if subjectsPosition[i].Name == subjects[n].LongName {
-					found = n
+				if subjectsPosition[i].IsThirdLanguage {
+					if subjects[n].LongName == "nemščina" || subjects[n].LongName == "španščina" {
+						name = subjects[n].LongName
+						found = n
+						break
+					}
+				} else {
+					if subjectsPosition[i].IsDynamicallyAllocated && !containsString(subjectsAlreadyIn, subjects[n].LongName) {
+						name = subjects[n].LongName
+						found = n
+						break
+					} else if subjectsPosition[i].Name == subjects[n].LongName {
+						name = subjectsPosition[i].Name
+						found = n
+						break
+					}
 				}
 			}
-			var grade = ""
+			var grade = "/"
 			if found != -1 {
 				grades, err := server.db.GetGradesForUserInSubject(studentId, subjects[found].ID)
 				if err != nil {
@@ -696,21 +845,28 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 				// Student doesn't have this subject
 				grade = "/"
 			}
-			m.Row(subjectsPosition[i].Y, func() {
-				m.Col(subjectsPosition[i].X, func() {
-					m.Text(grade, props.Text{
-						Top:   3,
-						Style: consts.Bold,
-						Align: consts.Center,
-					})
-				})
-			})
+			if grade == "5" {
+				grade = fmt.Sprintf("odlično %s", grade)
+			} else if grade == "4" {
+				grade = fmt.Sprintf("prav dobro %s", grade)
+			} else if grade == "3" {
+				grade = fmt.Sprintf("dobro %s", grade)
+			} else if grade == "2" {
+				grade = fmt.Sprintf("zadostno %s", grade)
+			} else if grade == "1" {
+				grade = fmt.Sprintf("nezadostno %s", grade)
+			}
+			server.logger.Debug(name, grade)
+			pdf.SetY(subjectsPosition[i].Y + 375)
+			if subjectsPosition[i].IsDynamicallyAllocated {
+				pdf.SetX(subjectsPosition[i].X - 150)
+				pdf.Cell(nil, name)
+			}
+			pdf.SetX(subjectsPosition[i].X - float64(len(grade)/2)*5)
+			pdf.Cell(nil, grade)
+			subjectsAlreadyIn = append(subjectsAlreadyIn, name)
 		}
-		output, err := m.Output()
-		if err != nil {
-			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-			return
-		}
-		w.Write(output.Bytes())
+		output := pdf.GetBytesPdf()
+		w.Write(output)
 	}
 }

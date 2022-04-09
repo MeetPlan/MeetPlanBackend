@@ -1,0 +1,4 @@
+ALTER TABLE users ADD COLUMN birth_certificate_number VARCHAR(200) DEFAULT '';
+ALTER TABLE users ADD COLUMN birthday VARCHAR(200) DEFAULT '';
+ALTER TABLE users ADD COLUMN country_of_birth VARCHAR(200) DEFAULT '';
+ALTER TABLE users ADD COLUMN city_of_birth VARCHAR(200) DEFAULT '';

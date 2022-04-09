@@ -11,6 +11,7 @@ require (
 	github.com/lib/pq v1.10.4
 	github.com/mattn/go-sqlite3 v1.14.6
 	github.com/rs/cors v1.8.0
+	github.com/signintech/gopdf v0.10.8 // indirect
 	go.uber.org/zap v1.19.1
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	gopkg.in/yaml.v2 v2.4.0 // indirect

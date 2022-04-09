@@ -1,0 +1,1 @@
+ALTER TABLE classes ADD COLUMN class_year VARCHAR(20) DEFAULT '';

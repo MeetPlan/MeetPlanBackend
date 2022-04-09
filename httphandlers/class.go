@@ -14,6 +14,7 @@ type ClassJSON struct {
 	ID          int
 	TeacherID   int
 	TeacherName string
+	ClassYear   string
 }
 
 func (server *httpImpl) NewClass(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +27,7 @@ func (server *httpImpl) NewClass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	class := sql.Class{ID: server.db.GetLastClassID(), Name: className, Teacher: teacherId}
+	class := sql.Class{ID: server.db.GetLastClassID(), Name: className, Teacher: teacherId, ClassYear: r.FormValue("class_year")}
 	server.logger.Debug(class)
 	err = server.db.InsertClass(class)
 	if err != nil {
@@ -51,6 +52,33 @@ func (server *httpImpl) GetClasses(w http.ResponseWriter, r *http.Request) {
 		classes = make([]sql.Class, 0)
 	}
 	WriteJSON(w, Response{Success: true, Data: classes}, http.StatusOK)
+}
+
+func (server *httpImpl) PatchClass(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if jwt["role"] != "admin" {
+		WriteForbiddenJWT(w)
+		return
+	}
+	classId, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	class, err := server.db.GetClass(classId)
+	if err != nil {
+		return
+	}
+	class.ClassYear = r.FormValue("class_year")
+	err = server.db.UpdateClass(class)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) GetClass(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +121,7 @@ func (server *httpImpl) GetClass(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		c := ClassJSON{ID: class.ID, Students: studentsJson, TeacherID: class.Teacher, TeacherName: teacher.Name}
+		c := ClassJSON{ID: class.ID, Students: studentsJson, TeacherID: class.Teacher, TeacherName: teacher.Name, ClassYear: class.ClassYear}
 
 		WriteJSON(w, Response{Success: true, Data: c}, http.StatusOK)
 	} else {

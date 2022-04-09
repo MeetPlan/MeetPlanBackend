@@ -9,6 +9,7 @@ import (
 type httpImpl struct {
 	logger *zap.SugaredLogger
 	db     sql.SQL
+	config sql.Config
 }
 
 type HTTP interface {
@@ -16,6 +17,7 @@ type HTTP interface {
 	Login(w http.ResponseWriter, r *http.Request)
 	NewUser(w http.ResponseWriter, r *http.Request)
 	GetAllClasses(w http.ResponseWriter, r *http.Request)
+	PatchUser(w http.ResponseWriter, r *http.Request)
 	GetStudents(w http.ResponseWriter, r *http.Request)
 	HasClass(w http.ResponseWriter, r *http.Request)
 	GetUserData(w http.ResponseWriter, r *http.Request)
@@ -30,6 +32,7 @@ type HTTP interface {
 	// class.go
 	NewClass(w http.ResponseWriter, r *http.Request)
 	GetClasses(w http.ResponseWriter, r *http.Request)
+	PatchClass(w http.ResponseWriter, r *http.Request)
 	AssignUserToClass(w http.ResponseWriter, r *http.Request)
 	RemoveUserFromClass(w http.ResponseWriter, r *http.Request)
 	GetClass(w http.ResponseWriter, r *http.Request)
@@ -93,9 +96,10 @@ type HTTP interface {
 	RemoveOrder(w http.ResponseWriter, r *http.Request)
 }
 
-func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL) HTTP {
+func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL, config sql.Config) HTTP {
 	return &httpImpl{
 		logger: logger,
 		db:     db,
+		config: config,
 	}
 }

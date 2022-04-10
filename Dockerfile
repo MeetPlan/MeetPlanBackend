@@ -17,5 +17,10 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/MeetPlanBackend ./MeetPlanBackend
 
+# Copy fonts, school icons and offical documents
+COPY ./fonts /app/fonts
+COPY ./icons /app/icons
+COPY ./officialdocs /app/officialdocs
+
 EXPOSE 80
 CMD [ "./MeetPlanBackend", "--useenv" ]

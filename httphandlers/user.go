@@ -389,7 +389,7 @@ func (server *httpImpl) GetStudents(w http.ResponseWriter, r *http.Request) {
 				CountryOfBirth: student.CountryOfBirth,
 			})
 		}
-		WriteJSON(w, Response{Data: students, Success: true}, http.StatusOK)
+		WriteJSON(w, Response{Data: studentsJson, Success: true}, http.StatusOK)
 	} else {
 		WriteForbiddenJWT(w)
 	}

@@ -108,6 +108,7 @@ func (server *httpImpl) PatchUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := server.db.GetUser(userId)
 	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Data: "Failed to retrieve used from database", Success: false}, http.StatusInternalServerError)
 		return
 	}
 	user.Birthday = r.FormValue("birthday")
@@ -118,6 +119,7 @@ func (server *httpImpl) PatchUser(w http.ResponseWriter, r *http.Request) {
 	user.Name = r.FormValue("name")
 	err = server.db.UpdateUser(user)
 	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Data: "Failed to update user", Success: false}, http.StatusInternalServerError)
 		return
 	}
 	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
@@ -387,7 +389,21 @@ func (server *httpImpl) GetStudents(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		WriteJSON(w, Response{Data: students, Success: true}, http.StatusOK)
+		var studentsJson = make([]UserJSON, 0)
+		for i := 0; i < len(students); i++ {
+			student := students[i]
+			studentsJson = append(studentsJson, UserJSON{
+				Name: student.Name,
+				ID: student.ID,
+				Email: student.Email,
+				Role: student.Role,
+				BirthCertificateNumber: student.BirthCertificateNumber,
+				Birthday: student.Birthday,
+				CityOfBirth: student.CityOfBirth,
+				CountryOfBirth: student.CountryOfBirth,
+			})
+		}
+		WriteJSON(w, Response{Data: studentsJson, Success: true}, http.StatusOK)
 	} else {
 		WriteForbiddenJWT(w)
 	}

@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/dchest/uniuri"
 	"github.com/golang-jwt/jwt"
-	"os"
 	"strings"
 	"time"
 )
 
 func GetSigningKey() []byte {
-	if os.Getenv("MP_HOST") != "" {
+	config, err := GetConfig()
+	if err != nil || !config.Debug {
 		return []byte(uniuri.NewLen(100))
 	}
 	return []byte("46ad2cb520028e1f5e2eab8d860a547353ddbabdb6affb923c075c92518c7e02")

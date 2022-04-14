@@ -436,10 +436,10 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "student" || jwt["role"] == "teacher" {
+	if jwt["role"] == "student" || jwt["role"] == "teacher" || jwt["role"] == "parent" {
 		var studentId int
 		var teacherId int
-		if jwt["role"] == "teacher" {
+		if jwt["role"] == "teacher" || jwt["role"] == "parent" {
 			studentId, err = strconv.Atoi(r.URL.Query().Get("studentId"))
 			if err != nil {
 				WriteBadRequest(w)
@@ -477,6 +477,17 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			if !valid {
+				WriteForbiddenJWT(w)
+				return
+			}
+		} else if jwt["role"] == "parent" {
+			parent, err := server.db.GetUser(teacherId)
+			if err != nil {
+				return
+			}
+			var children []int
+			json.Unmarshal([]byte(parent.Users), &children)
+			if !contains(children, studentId) {
 				WriteForbiddenJWT(w)
 				return
 			}

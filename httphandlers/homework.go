@@ -1,6 +1,7 @@
 package httphandlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
@@ -236,6 +237,22 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 		studentId, err = strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+			return
+		}
+	}
+	if jwt["role"] == "parent" {
+		parentId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			return
+		}
+		parent, err := server.db.GetUser(parentId)
+		if err != nil {
+			return
+		}
+		var children []int
+		json.Unmarshal([]byte(parent.Users), &children)
+		if !contains(children, studentId) {
+			WriteForbiddenJWT(w)
 			return
 		}
 	}

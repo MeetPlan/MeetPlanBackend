@@ -110,8 +110,6 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 		if jwt["role"] == "student" {
 			WriteForbiddenJWT(w)
 			return
-		} else if jwt["role"] == "parent" {
-
 		}
 		users = make([]int, 0)
 		users = append(users, uid)
@@ -187,9 +185,26 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			var cont = false
+			currentUser, err := server.db.GetUser(uid)
+			if err != nil {
+				return
+			}
+			var studentsParent []int
+			err = json.Unmarshal([]byte(currentUser.Users), &studentsParent)
+			if err != nil {
+				return
+			}
+
+			server.logger.Debug(studentsParent, u, users)
+
 			// Check if at least one user belongs to class
 			for x := 0; x < len(u); x++ {
 				if (myMeetings && (jwt["role"] == "teacher" || jwt["role"] == "admin")) || contains(users, u[x]) {
+					if jwt["role"] == "parent" {
+						if !contains(studentsParent, u[x]) {
+							continue
+						}
+					}
 					cont = true
 					break
 				}
@@ -199,7 +214,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 					if contains(u, uid) {
 						m = append(m, meeting)
 					}
-				} else if jwt["role"] == "admin" || (jwt["role"] == "teacher" && meeting.TeacherID == uid) {
+				} else if jwt["role"] == "admin" || (jwt["role"] == "teacher" && meeting.TeacherID == uid) || jwt["role"] == "parent" {
 					m = append(m, meeting)
 				}
 			}

@@ -333,6 +333,7 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var myclasses = make([]sql.Class, 0)
+	var myClassesInt = make([]int, 0)
 
 	for i := 0; i < len(classes); i++ {
 		class := classes[i]
@@ -349,10 +350,23 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 				return
 			}
+			server.logger.Debug(students, userId)
 			for n := 0; n < len(students); n++ {
 				for n := 0; n < len(userId); n++ {
-					if students[n] == userId[n] {
+					if students[n] == userId[n] && !contains(myClassesInt, students[n]) {
+						user, err := server.db.GetUser(students[n])
+						if err != nil {
+							return
+						}
+						var className = class.Name
+						if jwt["role"] == "parent" {
+							class.Name = fmt.Sprintf("%s - %s", class.Name, user.Name)
+						}
 						myclasses = append(myclasses, class)
+						myClassesInt = append(myClassesInt, students[n])
+						if jwt["role"] == "parent" {
+							class.Name = className
+						}
 						break
 					}
 				}

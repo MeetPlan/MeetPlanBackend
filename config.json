@@ -1,1 +1,1 @@
-{"database_name":"sqlite3","database_config":"MeetPlanDB/meetplan.db","debug":true,"host":"127.0.0.1:8000"}
+{"database_name":"sqlite3","database_config":"MeetPlanDB/meetplan.db","debug":true,"host":"127.0.0.1:8000","school_name":"Testna šola","school_address":"Testna ulica 1","school_city":"Ljubljana","school_country":"Slovenija","school_post_code":1000,"parent_view_grades":false,"parent_view_absences":false,"parent_view_homework":true}

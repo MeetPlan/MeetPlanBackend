@@ -440,6 +440,12 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 		var studentId int
 		var teacherId int
 		if jwt["role"] == "teacher" || jwt["role"] == "parent" {
+			if jwt["role"] == "parent" {
+				if !server.config.ParentViewGrades {
+					WriteForbiddenJWT(w)
+					return
+				}
+			}
 			studentId, err = strconv.Atoi(r.URL.Query().Get("studentId"))
 			if err != nil {
 				WriteBadRequest(w)
@@ -810,6 +816,15 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 			return
 		}
 
+		// School info
+		pdf.SetX(50)
+		pdf.SetY(132)
+		pdf.Cell(nil, server.config.SchoolName)
+		pdf.SetX(50)
+		pdf.SetY(157)
+		pdf.Cell(nil, fmt.Sprintf("%s, %s %s, %s", server.config.SchoolAddress, fmt.Sprint(server.config.SchoolPostCode), server.config.SchoolCity, server.config.SchoolCountry))
+
+		// Student info
 		pdf.SetX(50)
 		pdf.SetY(270)
 		pdf.Cell(nil, user.Name)
@@ -894,6 +909,29 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 			pdf.Cell(nil, grade)
 			subjectsAlreadyIn = append(subjectsAlreadyIn, name)
 		}
+
+		pdf.SetX(70)
+		pdf.SetY(669)
+		pdf.Cell(nil, fmt.Sprint(class.SOK))
+
+		pdf.SetX(150)
+		pdf.Cell(nil, fmt.Sprint(class.EOK))
+
+		lastDate := time.UnixMilli(int64(class.LastSchoolDate * 1000))
+		year, month, day := lastDate.Date()
+		pdf.SetX(50)
+		pdf.SetY(725)
+		pdf.Cell(nil, fmt.Sprintf("%s.%s.%s", fmt.Sprint(day), fmt.Sprint(int(month)), fmt.Sprint(year)))
+
+		teacher, err := server.db.GetUser(teacherId)
+		if err != nil {
+			return
+		}
+
+		pdf.SetX(50)
+		pdf.SetY(770)
+		pdf.Cell(nil, teacher.Name)
+
 		output := pdf.GetBytesPdf()
 		w.Write(output)
 	}

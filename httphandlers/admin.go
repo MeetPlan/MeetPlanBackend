@@ -21,6 +21,7 @@ type UserJSON struct {
 func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
+		WriteForbiddenJWT(w)
 		return
 	}
 	if jwt["role"] != "admin" {

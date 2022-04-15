@@ -10,11 +10,14 @@ import (
 )
 
 type ClassJSON struct {
-	Students    []UserJSON
-	ID          int
-	TeacherID   int
-	TeacherName string
-	ClassYear   string
+	Students       []UserJSON
+	ID             int
+	TeacherID      int
+	TeacherName    string
+	ClassYear      string
+	SOK            int
+	EOK            int
+	LastSchoolDate int
 }
 
 func (server *httpImpl) NewClass(w http.ResponseWriter, r *http.Request) {
@@ -69,11 +72,29 @@ func (server *httpImpl) PatchClass(w http.ResponseWriter, r *http.Request) {
 		WriteBadRequest(w)
 		return
 	}
+	sok, err := strconv.Atoi(r.FormValue("sok"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	eok, err := strconv.Atoi(r.FormValue("eok"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	lastDate, err := strconv.Atoi(r.FormValue("last_date"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
 	class, err := server.db.GetClass(classId)
 	if err != nil {
 		return
 	}
 	class.ClassYear = r.FormValue("class_year")
+	class.SOK = sok
+	class.EOK = eok
+	class.LastSchoolDate = lastDate
 	err = server.db.UpdateClass(class)
 	if err != nil {
 		return
@@ -121,7 +142,16 @@ func (server *httpImpl) GetClass(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		c := ClassJSON{ID: class.ID, Students: studentsJson, TeacherID: class.Teacher, TeacherName: teacher.Name, ClassYear: class.ClassYear}
+		c := ClassJSON{
+			ID:             class.ID,
+			Students:       studentsJson,
+			TeacherID:      class.Teacher,
+			TeacherName:    teacher.Name,
+			ClassYear:      class.ClassYear,
+			SOK:            class.SOK,
+			EOK:            class.EOK,
+			LastSchoolDate: class.LastSchoolDate,
+		}
 
 		WriteJSON(w, Response{Success: true, Data: c}, http.StatusOK)
 	} else {

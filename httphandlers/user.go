@@ -246,6 +246,24 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 				WriteForbiddenJWT(w)
 				return
 			}
+		} else if jwt["role"] == "parent" {
+			if !server.config.ParentViewAbsences {
+				WriteForbiddenJWT(w)
+				return
+			}
+			parent, err := server.db.GetUser(teacherId)
+			if err != nil {
+				return
+			}
+			var students []int
+			err = json.Unmarshal([]byte(parent.Users), &students)
+			if err != nil {
+				return
+			}
+			if !contains(students, studentId) {
+				WriteForbiddenJWT(w)
+				return
+			}
 		}
 	}
 	absences, err := server.db.GetAbsencesForUser(studentId)
@@ -393,14 +411,14 @@ func (server *httpImpl) GetStudents(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < len(students); i++ {
 			student := students[i]
 			studentsJson = append(studentsJson, UserJSON{
-				Name: student.Name,
-				ID: student.ID,
-				Email: student.Email,
-				Role: student.Role,
+				Name:                   student.Name,
+				ID:                     student.ID,
+				Email:                  student.Email,
+				Role:                   student.Role,
 				BirthCertificateNumber: student.BirthCertificateNumber,
-				Birthday: student.Birthday,
-				CityOfBirth: student.CityOfBirth,
-				CountryOfBirth: student.CountryOfBirth,
+				Birthday:               student.Birthday,
+				CityOfBirth:            student.CityOfBirth,
+				CountryOfBirth:         student.CountryOfBirth,
 			})
 		}
 		WriteJSON(w, Response{Data: studentsJson, Success: true}, http.StatusOK)

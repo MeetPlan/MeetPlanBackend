@@ -22,11 +22,14 @@ CREATE TABLE IF NOT EXISTS users (
     users                    VARCHAR(200)   DEFAULT('[]')
 );
 CREATE TABLE IF NOT EXISTS classes (
-	id           INTEGER                    PRIMARY KEY,
-	students     JSON                       DEFAULT('[]'),
-	name         VARCHAR(100)               NOT NULL,
-    class_year   VARCHAR(20)                DEFAULT(''),
-	teacher      INTEGER
+	id                       INTEGER        PRIMARY KEY,
+	students                 JSON           DEFAULT('[]'),
+	name                     VARCHAR(100)   NOT NULL,
+    class_year               VARCHAR(20)    DEFAULT(''),
+	last_school_date         INTEGER,
+	teacher                  INTEGER,
+    sok                      INTEGER,
+    eok                      INTEGER
 );
 CREATE TABLE IF NOT EXISTS meetings (
 	id                      INTEGER         PRIMARY KEY,

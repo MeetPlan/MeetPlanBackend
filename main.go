@@ -94,6 +94,7 @@ func main() {
 	r.HandleFunc("/parent/{parent}/assign/student/{student}", httphandler.AssignUserToParent).Methods("PATCH")
 	r.HandleFunc("/parent/{parent}/assign/student/{student}", httphandler.RemoveUserFromParent).Methods("DELETE")
 	r.HandleFunc("/parents/get/students", httphandler.GetMyChildren).Methods("GET")
+	r.HandleFunc("/parents/get/config", httphandler.ParentConfig).Methods("GET")
 
 	r.HandleFunc("/order/new/{meal_id}", httphandler.NewOrder).Methods("POST")
 	r.HandleFunc("/order/get/{meal_id}/block_unblock", httphandler.BlockUnblockOrder).Methods("PATCH")
@@ -135,6 +136,9 @@ func main() {
 
 	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.NewHomework).Methods("POST")
 	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.GetAllHomeworksForSpecificSubject).Methods("GET")
+
+	r.HandleFunc("/admin/config/get", httphandler.GetConfig).Methods("GET")
+	r.HandleFunc("/admin/config/get", httphandler.UpdateConfiguration).Methods("PATCH")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins

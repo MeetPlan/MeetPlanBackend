@@ -99,6 +99,11 @@ type HTTP interface {
 	AssignUserToParent(w http.ResponseWriter, r *http.Request)
 	GetMyChildren(w http.ResponseWriter, r *http.Request)
 	RemoveUserFromParent(w http.ResponseWriter, r *http.Request)
+
+	// config.go
+	GetConfig(w http.ResponseWriter, r *http.Request)
+	UpdateConfiguration(w http.ResponseWriter, r *http.Request)
+	ParentConfig(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL, config sql.Config) HTTP {

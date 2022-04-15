@@ -241,6 +241,10 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	if jwt["role"] == "parent" {
+		if !server.config.ParentViewHomework {
+			WriteForbiddenJWT(w)
+			return
+		}
 		parentId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		if err != nil {
 			return

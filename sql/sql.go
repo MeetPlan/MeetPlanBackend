@@ -119,6 +119,13 @@ type SQL interface {
 	GetLastMealID() (id int)
 	GetMeals() (meals []Meal, err error)
 	DeleteMeal(ID int) error
+
+	GetNotification(id int) (notification NotificationSQL, err error)
+	GetAllNotifications() (notifications []NotificationSQL, err error)
+	InsertNotification(notification NotificationSQL) (err error)
+	UpdateNotification(notification NotificationSQL) error
+	GetLastNotificationID() (id int)
+	DeleteNotification(ID int) error
 }
 
 func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, error) {

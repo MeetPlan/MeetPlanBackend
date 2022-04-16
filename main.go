@@ -143,6 +143,10 @@ func main() {
 	r.HandleFunc("/admin/config/get", httphandler.GetConfig).Methods("GET")
 	r.HandleFunc("/admin/config/get", httphandler.UpdateConfiguration).Methods("PATCH")
 
+	r.HandleFunc("/system/notifications", httphandler.GetSystemNotifications).Methods("GET")
+	r.HandleFunc("/system/notifications/new", httphandler.NewNotification).Methods("POST")
+	r.HandleFunc("/notification/{notification_id}", httphandler.DeleteNotification).Methods("DELETE")
+
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins
 		AllowedHeaders: []string{"Authorization"},

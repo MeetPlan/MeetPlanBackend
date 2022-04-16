@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 func (server *httpImpl) Login(w http.ResponseWriter, r *http.Request) {
@@ -425,4 +426,34 @@ func (server *httpImpl) GetStudents(w http.ResponseWriter, r *http.Request) {
 	} else {
 		WriteForbiddenJWT(w)
 	}
+}
+
+func (server *httpImpl) HasBirthday(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	user, err := server.db.GetUser(userId)
+	if err != nil {
+		return
+	}
+	currentTime := time.Now()
+	birthday, err := time.Parse("2006-01-02", user.Birthday)
+	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Data: "Failed to parse date", Success: false}, http.StatusInternalServerError)
+		return
+	}
+	if currentTime.Before(birthday) {
+		WriteJSON(w, Response{Data: "Invalid birthday", Success: false}, http.StatusConflict)
+		return
+	}
+	_, tm, td := currentTime.Date()
+	_, bm, bd := birthday.Date()
+	WriteJSON(w, Response{Data: tm-bm == 0 && td-bd == 0, Success: true}, http.StatusOK)
 }

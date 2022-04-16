@@ -106,6 +106,11 @@ type HTTP interface {
 	GetConfig(w http.ResponseWriter, r *http.Request)
 	UpdateConfiguration(w http.ResponseWriter, r *http.Request)
 	ParentConfig(w http.ResponseWriter, r *http.Request)
+
+	// system.go
+	GetSystemNotifications(w http.ResponseWriter, r *http.Request)
+	NewNotification(w http.ResponseWriter, r *http.Request)
+	DeleteNotification(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL, config sql.Config) HTTP {

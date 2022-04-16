@@ -118,4 +118,8 @@ CREATE TABLE IF NOT EXISTS meals (
 	is_lactose_free         BOOLEAN,
 	block_orders            BOOLEAN
 );
+CREATE TABLE IF NOT EXISTS notifications (
+	id                      INTEGER         PRIMARY KEY,
+	notification            VARCHAR(3000)
+);
 `

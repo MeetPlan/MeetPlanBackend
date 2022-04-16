@@ -220,3 +220,66 @@ func (server *httpImpl) GetUnreadMessages(w http.ResponseWriter, r *http.Request
 	}
 	WriteJSON(w, Response{Success: true, Data: messages}, http.StatusCreated)
 }
+
+func (server *httpImpl) DeleteMessage(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	messageId, err := strconv.Atoi(mux.Vars(r)["message_id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	message, err := server.db.GetMessage(messageId)
+	if err != nil {
+		return
+	}
+	if message.UserID != userId {
+		WriteForbiddenJWT(w)
+		return
+	}
+	err = server.db.DeleteMessage(messageId)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+}
+
+func (server *httpImpl) EditMessage(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	messageId, err := strconv.Atoi(mux.Vars(r)["message_id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	message, err := server.db.GetMessage(messageId)
+	if err != nil {
+		return
+	}
+	if message.UserID != userId {
+		WriteForbiddenJWT(w)
+		return
+	}
+	message.Body = r.FormValue("body")
+	err = server.db.UpdateMessage(message)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+}

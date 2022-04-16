@@ -17,7 +17,7 @@ func (db *sqlImpl) GetMessage(id int) (message Message, err error) {
 }
 
 func (db *sqlImpl) GetCommunicationMessages(communicationId int) (messages []Message, err error) {
-	err = db.db.Select(&messages, "SELECT * FROM message WHERE communication_id=$1", communicationId)
+	err = db.db.Select(&messages, "SELECT * FROM message WHERE communication_id=$1 ORDER BY id ASC", communicationId)
 	return messages, err
 }
 

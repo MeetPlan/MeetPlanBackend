@@ -21,23 +21,35 @@ type ClassJSON struct {
 }
 
 func (server *httpImpl) NewClass(w http.ResponseWriter, r *http.Request) {
-	className := r.FormValue("name")
-	teacherIdStr := fmt.Sprint(r.FormValue("teacher_id"))
-
-	teacherId, err := strconv.Atoi(teacherIdStr)
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
-		WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+		WriteForbiddenJWT(w)
 		return
 	}
 
-	class := sql.Class{ID: server.db.GetLastClassID(), Name: className, Teacher: teacherId, ClassYear: r.FormValue("class_year")}
-	server.logger.Debug(class)
-	err = server.db.InsertClass(class)
-	if err != nil {
-		WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+
+		className := r.FormValue("name")
+		teacherIdStr := fmt.Sprint(r.FormValue("teacher_id"))
+
+		teacherId, err := strconv.Atoi(teacherIdStr)
+		if err != nil {
+			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+			return
+		}
+
+		class := sql.Class{ID: server.db.GetLastClassID(), Name: className, Teacher: teacherId, ClassYear: r.FormValue("class_year")}
+		server.logger.Debug(class)
+		err = server.db.InsertClass(class)
+		if err != nil {
+			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+			return
+		}
+		WriteJSON(w, Response{Success: true, Data: class.ID}, http.StatusOK)
+	} else {
+		WriteForbiddenJWT(w)
 		return
 	}
-	WriteJSON(w, Response{Success: true, Data: class.ID}, http.StatusOK)
 }
 
 func (server *httpImpl) GetClasses(w http.ResponseWriter, r *http.Request) {
@@ -63,43 +75,44 @@ func (server *httpImpl) PatchClass(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		classId, err := strconv.Atoi(mux.Vars(r)["id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		sok, err := strconv.Atoi(r.FormValue("sok"))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		eok, err := strconv.Atoi(r.FormValue("eok"))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		lastDate, err := strconv.Atoi(r.FormValue("last_date"))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		class, err := server.db.GetClass(classId)
+		if err != nil {
+			return
+		}
+		class.ClassYear = r.FormValue("class_year")
+		class.SOK = sok
+		class.EOK = eok
+		class.LastSchoolDate = lastDate
+		err = server.db.UpdateClass(class)
+		if err != nil {
+			return
+		}
+		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-	classId, err := strconv.Atoi(mux.Vars(r)["id"])
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	sok, err := strconv.Atoi(r.FormValue("sok"))
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	eok, err := strconv.Atoi(r.FormValue("eok"))
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	lastDate, err := strconv.Atoi(r.FormValue("last_date"))
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	class, err := server.db.GetClass(classId)
-	if err != nil {
-		return
-	}
-	class.ClassYear = r.FormValue("class_year")
-	class.SOK = sok
-	class.EOK = eok
-	class.LastSchoolDate = lastDate
-	err = server.db.UpdateClass(class)
-	if err != nil {
-		return
-	}
-	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) GetClass(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +121,7 @@ func (server *httpImpl) GetClass(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" {
+	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
 		classId, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -165,53 +178,53 @@ func (server *httpImpl) AssignUserToClass(w http.ResponseWriter, r *http.Request
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		class, err := server.db.GetClass(classId)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		var m []int
+		err = json.Unmarshal([]byte(class.Students), &m)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		for i := 0; i < len(m); i++ {
+			if m[i] == userId {
+				WriteJSON(w, Response{Data: "User is already in this class", Success: false}, http.StatusConflict)
+				return
+			}
+		}
+		m = append(m, userId)
+
+		s, err := json.Marshal(m)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		class.Students = string(s)
+
+		err = server.db.UpdateClass(class)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-
-	classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	class, err := server.db.GetClass(classId)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	var m []int
-	err = json.Unmarshal([]byte(class.Students), &m)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	for i := 0; i < len(m); i++ {
-		if m[i] == userId {
-			WriteJSON(w, Response{Data: "User is already in this class", Success: false}, http.StatusConflict)
-			return
-		}
-	}
-	m = append(m, userId)
-
-	s, err := json.Marshal(m)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	class.Students = string(s)
-
-	err = server.db.UpdateClass(class)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) RemoveUserFromClass(w http.ResponseWriter, r *http.Request) {
@@ -220,52 +233,52 @@ func (server *httpImpl) RemoveUserFromClass(w http.ResponseWriter, r *http.Reque
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		class, err := server.db.GetClass(classId)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		var m []int
+		err = json.Unmarshal([]byte(class.Students), &m)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		for i := 0; i < len(m); i++ {
+			if m[i] == userId {
+				m = remove(m, i)
+				break
+			}
+		}
+
+		s, err := json.Marshal(m)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		class.Students = string(s)
+
+		err = server.db.UpdateClass(class)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-
-	classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	class, err := server.db.GetClass(classId)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	var m []int
-	err = json.Unmarshal([]byte(class.Students), &m)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	for i := 0; i < len(m); i++ {
-		if m[i] == userId {
-			m = remove(m, i)
-			break
-		}
-	}
-
-	s, err := json.Marshal(m)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	class.Students = string(s)
-
-	err = server.db.UpdateClass(class)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) DeleteClass(w http.ResponseWriter, r *http.Request) {
@@ -274,19 +287,20 @@ func (server *httpImpl) DeleteClass(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		classId, err := strconv.Atoi(mux.Vars(r)["id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		err = server.db.DeleteClass(classId)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-	classId, err := strconv.Atoi(mux.Vars(r)["id"])
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	err = server.db.DeleteClass(classId)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }

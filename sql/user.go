@@ -23,6 +23,11 @@ func (db *sqlImpl) GetTeachers() (message []User, err error) {
 	return message, err
 }
 
+func (db *sqlImpl) GetPrincipal() (principal User, err error) {
+	err = db.db.Get(&principal, "SELECT * FROM users WHERE role='principal'")
+	return principal, err
+}
+
 func (db *sqlImpl) GetStudents() (message []User, err error) {
 	err = db.db.Select(&message, "SELECT * FROM users WHERE role='student'")
 	return message, err

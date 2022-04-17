@@ -59,19 +59,21 @@ func (server *httpImpl) NewNotification(w http.ResponseWriter, r *http.Request) 
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+
+		notification := sql.NotificationSQL{
+			ID:           server.db.GetLastNotificationID(),
+			Notification: r.FormValue("body"),
+		}
+		err = server.db.InsertNotification(notification)
+		if err != nil {
+			return
+		}
+		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-	notification := sql.NotificationSQL{
-		ID:           server.db.GetLastNotificationID(),
-		Notification: r.FormValue("body"),
-	}
-	err = server.db.InsertNotification(notification)
-	if err != nil {
-		return
-	}
-	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) DeleteNotification(w http.ResponseWriter, r *http.Request) {
@@ -80,17 +82,18 @@ func (server *httpImpl) DeleteNotification(w http.ResponseWriter, r *http.Reques
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		atoi, err := strconv.Atoi(mux.Vars(r)["notification_id"])
+		if err != nil {
+			return
+		}
+		err = server.db.DeleteNotification(atoi)
+		if err != nil {
+			return
+		}
+		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-	atoi, err := strconv.Atoi(mux.Vars(r)["notification_id"])
-	if err != nil {
-		return
-	}
-	err = server.db.DeleteNotification(atoi)
-	if err != nil {
-		return
-	}
-	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }

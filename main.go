@@ -121,6 +121,8 @@ func main() {
 	r.HandleFunc("/meeting/get/{meeting_id}/absences", httphandler.GetAbsencesTeacher).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/grades", httphandler.GetGradesForMeeting).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/homework/{homework_id}/{student_id}", httphandler.PatchHomeworkForStudent).Methods("PATCH")
+	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.NewHomework).Methods("POST")
+	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.GetAllHomeworksForSpecificSubject).Methods("GET")
 
 	r.HandleFunc("/meeting/absence/{absence_id}", httphandler.PatchAbsence).Methods("PATCH")
 
@@ -137,9 +139,6 @@ func main() {
 	r.HandleFunc("/subject/get/{subject_id}/long_name", httphandler.PatchSubjectName).Methods("PATCH")
 	r.HandleFunc("/subject/get/{subject_id}/add_user/{user_id}", httphandler.AssignUserToSubject).Methods("PATCH")
 	r.HandleFunc("/subject/get/{subject_id}/remove_user/{user_id}", httphandler.RemoveUserFromSubject).Methods("DELETE")
-
-	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.NewHomework).Methods("POST")
-	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.GetAllHomeworksForSpecificSubject).Methods("GET")
 
 	r.HandleFunc("/admin/config/get", httphandler.GetConfig).Methods("GET")
 	r.HandleFunc("/admin/config/get", httphandler.UpdateConfiguration).Methods("PATCH")

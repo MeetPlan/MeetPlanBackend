@@ -50,7 +50,7 @@ func (server *httpImpl) GetMeals(w http.ResponseWriter, r *http.Request) {
 		var isLimitReached = meal.IsLimited && len(orders) >= meal.OrderLimit
 		var hasAppended = false
 		var mealOrders = make([]UserJSON, 0)
-		if jwt["role"] == "admin" {
+		if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "food organizer" {
 			for n := 0; n < len(orders); n++ {
 				user, err := server.db.GetUser(orders[n])
 				if err != nil {
@@ -102,60 +102,61 @@ func (server *httpImpl) NewMeal(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal assistant" || jwt["role"] == "principal" {
+		price, err := strconv.ParseFloat(r.FormValue("price"), 32)
+		if err != nil {
+			WriteJSON(w, Response{Success: false, Data: "Could not parse price", Error: r.FormValue("price")}, http.StatusBadRequest)
+			return
+		}
+		isLimited, err := strconv.ParseBool(r.FormValue("isLimited"))
+		if err != nil {
+			WriteJSON(w, Response{Success: false, Data: "Could not parse isLimited", Error: r.FormValue("isLimited")}, http.StatusBadRequest)
+			return
+		}
+		isVegan, err := strconv.ParseBool(r.FormValue("isVegan"))
+		if err != nil {
+			WriteJSON(w, Response{Success: false, Data: "Could not parse isVegan", Error: r.FormValue("isVegan")}, http.StatusBadRequest)
+			return
+		}
+		isVegetarian, err := strconv.ParseBool(r.FormValue("isVegetarian"))
+		if err != nil {
+			WriteJSON(w, Response{Success: false, Data: "Could not parse isVegetarian", Error: r.FormValue("isVegetarian")}, http.StatusBadRequest)
+			return
+		}
+		isLactoseFree, err := strconv.ParseBool(r.FormValue("isLactoseFree"))
+		if err != nil {
+			WriteJSON(w, Response{Success: false, Data: "Could not parse isLactoseFree", Error: r.FormValue("isLactoseFree")}, http.StatusBadRequest)
+			return
+		}
+		orderLimit, err := strconv.Atoi(r.FormValue("limit"))
+		if err != nil {
+			WriteJSON(w, Response{Success: false, Data: "Could not parse limit", Error: r.FormValue("limit")}, http.StatusBadRequest)
+			return
+		}
+		meal := sql.Meal{
+			ID:            server.db.GetLastMealID(),
+			Meals:         r.FormValue("description"),
+			Date:          r.FormValue("date"),
+			MealTitle:     r.FormValue("title"),
+			Price:         float32(price),
+			Orders:        "[]",
+			IsLimited:     isLimited,
+			OrderLimit:    orderLimit,
+			IsVegan:       isVegan,
+			IsVegetarian:  isVegetarian,
+			IsLactoseFree: isLactoseFree,
+			BlockOrders:   false,
+		}
+		err = server.db.InsertMeal(meal)
+		if err != nil {
+			WriteJSON(w, Response{Success: false, Data: "Could not insert meal", Error: err.Error()}, http.StatusInternalServerError)
+			return
+		}
+		WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-	price, err := strconv.ParseFloat(r.FormValue("price"), 32)
-	if err != nil {
-		WriteJSON(w, Response{Success: false, Data: "Could not parse price", Error: r.FormValue("price")}, http.StatusBadRequest)
-		return
-	}
-	isLimited, err := strconv.ParseBool(r.FormValue("isLimited"))
-	if err != nil {
-		WriteJSON(w, Response{Success: false, Data: "Could not parse isLimited", Error: r.FormValue("isLimited")}, http.StatusBadRequest)
-		return
-	}
-	isVegan, err := strconv.ParseBool(r.FormValue("isVegan"))
-	if err != nil {
-		WriteJSON(w, Response{Success: false, Data: "Could not parse isVegan", Error: r.FormValue("isVegan")}, http.StatusBadRequest)
-		return
-	}
-	isVegetarian, err := strconv.ParseBool(r.FormValue("isVegetarian"))
-	if err != nil {
-		WriteJSON(w, Response{Success: false, Data: "Could not parse isVegetarian", Error: r.FormValue("isVegetarian")}, http.StatusBadRequest)
-		return
-	}
-	isLactoseFree, err := strconv.ParseBool(r.FormValue("isLactoseFree"))
-	if err != nil {
-		WriteJSON(w, Response{Success: false, Data: "Could not parse isLactoseFree", Error: r.FormValue("isLactoseFree")}, http.StatusBadRequest)
-		return
-	}
-	orderLimit, err := strconv.Atoi(r.FormValue("limit"))
-	if err != nil {
-		WriteJSON(w, Response{Success: false, Data: "Could not parse limit", Error: r.FormValue("limit")}, http.StatusBadRequest)
-		return
-	}
-	meal := sql.Meal{
-		ID:            server.db.GetLastMealID(),
-		Meals:         r.FormValue("description"),
-		Date:          r.FormValue("date"),
-		MealTitle:     r.FormValue("title"),
-		Price:         float32(price),
-		Orders:        "[]",
-		IsLimited:     isLimited,
-		OrderLimit:    orderLimit,
-		IsVegan:       isVegan,
-		IsVegetarian:  isVegetarian,
-		IsLactoseFree: isLactoseFree,
-		BlockOrders:   false,
-	}
-	err = server.db.InsertMeal(meal)
-	if err != nil {
-		WriteJSON(w, Response{Success: false, Data: "Could not insert meal", Error: err.Error()}, http.StatusInternalServerError)
-		return
-	}
-	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)
 }
 
 func (server *httpImpl) NewOrder(w http.ResponseWriter, r *http.Request) {
@@ -214,62 +215,63 @@ func (server *httpImpl) EditMeal(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "food organizer" {
+		//userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		//if err != nil {
+		//	WriteBadRequest(w)
+		//	return
+		//}
+		mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		meal, err := server.db.GetMeal(mealId)
+		if err != nil {
+			return
+		}
+		price, err := strconv.ParseFloat(r.FormValue("price"), 32)
+		if err != nil {
+			return
+		}
+		isLimited, err := strconv.ParseBool(r.FormValue("isLimited"))
+		if err != nil {
+			return
+		}
+		isVegan, err := strconv.ParseBool(r.FormValue("isVegan"))
+		if err != nil {
+			return
+		}
+		isVegetarian, err := strconv.ParseBool(r.FormValue("isVegetarian"))
+		if err != nil {
+			return
+		}
+		isLactoseFree, err := strconv.ParseBool(r.FormValue("isLactoseFree"))
+		if err != nil {
+			return
+		}
+		orderLimit, err := strconv.Atoi(r.FormValue("limit"))
+		if err != nil {
+			return
+		}
+		meal.Price = float32(price)
+		meal.IsLimited = isLimited
+		meal.IsVegan = isVegan
+		meal.IsVegetarian = isVegetarian
+		meal.IsLactoseFree = isLactoseFree
+		meal.OrderLimit = orderLimit
+		meal.Meals = r.FormValue("description")
+		meal.Date = r.FormValue("date")
+		meal.MealTitle = r.FormValue("title")
+		err = server.db.UpdateMeal(meal)
+		if err != nil {
+			return
+		}
+		WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-	//userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	//if err != nil {
-	//	WriteBadRequest(w)
-	//	return
-	//}
-	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	meal, err := server.db.GetMeal(mealId)
-	if err != nil {
-		return
-	}
-	price, err := strconv.ParseFloat(r.FormValue("price"), 32)
-	if err != nil {
-		return
-	}
-	isLimited, err := strconv.ParseBool(r.FormValue("isLimited"))
-	if err != nil {
-		return
-	}
-	isVegan, err := strconv.ParseBool(r.FormValue("isVegan"))
-	if err != nil {
-		return
-	}
-	isVegetarian, err := strconv.ParseBool(r.FormValue("isVegetarian"))
-	if err != nil {
-		return
-	}
-	isLactoseFree, err := strconv.ParseBool(r.FormValue("isLactoseFree"))
-	if err != nil {
-		return
-	}
-	orderLimit, err := strconv.Atoi(r.FormValue("limit"))
-	if err != nil {
-		return
-	}
-	meal.Price = float32(price)
-	meal.IsLimited = isLimited
-	meal.IsVegan = isVegan
-	meal.IsVegetarian = isVegetarian
-	meal.IsLactoseFree = isLactoseFree
-	meal.OrderLimit = orderLimit
-	meal.Meals = r.FormValue("description")
-	meal.Date = r.FormValue("date")
-	meal.MealTitle = r.FormValue("title")
-	err = server.db.UpdateMeal(meal)
-	if err != nil {
-		return
-	}
-	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)
 }
 
 func (server *httpImpl) DeleteMeal(w http.ResponseWriter, r *http.Request) {
@@ -278,25 +280,26 @@ func (server *httpImpl) DeleteMeal(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "food organizer" {
+		//userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		//if err != nil {
+		//	WriteBadRequest(w)
+		//	return
+		//}
+		mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		err = server.db.DeleteMeal(mealId)
+		if err != nil {
+			return
+		}
+		WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-	//userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	//if err != nil {
-	//	WriteBadRequest(w)
-	//	return
-	//}
-	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	err = server.db.DeleteMeal(mealId)
-	if err != nil {
-		return
-	}
-	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)
 }
 
 func (server *httpImpl) BlockUnblockOrder(w http.ResponseWriter, r *http.Request) {
@@ -305,30 +308,31 @@ func (server *httpImpl) BlockUnblockOrder(w http.ResponseWriter, r *http.Request
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal assistant" || jwt["role"] == "principal" || jwt["role"] == "food organizer" {
+		//userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		//if err != nil {
+		//	WriteBadRequest(w)
+		//	return
+		//}
+		mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		meal, err := server.db.GetMeal(mealId)
+		if err != nil {
+			return
+		}
+		meal.BlockOrders = !meal.BlockOrders
+		err = server.db.UpdateMeal(meal)
+		if err != nil {
+			return
+		}
+		WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-	//userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	//if err != nil {
-	//	WriteBadRequest(w)
-	//	return
-	//}
-	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	meal, err := server.db.GetMeal(mealId)
-	if err != nil {
-		return
-	}
-	meal.BlockOrders = !meal.BlockOrders
-	err = server.db.UpdateMeal(meal)
-	if err != nil {
-		return
-	}
-	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusCreated)
 }
 
 func (server *httpImpl) RemoveOrder(w http.ResponseWriter, r *http.Request) {

@@ -33,41 +33,42 @@ func (server *httpImpl) NewHomework(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "student" {
+	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			return
+		}
+		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+		if err != nil {
+			return
+		}
+		meeting, err := server.db.GetMeeting(meetingId)
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" && meeting.TeacherID != userId {
+			WriteForbiddenJWT(w)
+			return
+		}
+		currentTime := time.Now()
+		homework := sql.Homework{
+			ID:          server.db.GetLastHomeworkID(),
+			TeacherID:   userId,
+			SubjectID:   meeting.SubjectID,
+			Name:        r.FormValue("name"),
+			Description: r.FormValue("description"),
+			ToDate:      r.FormValue("to_date"),
+			FromDate:    currentTime.Format("2006-01-02"),
+		}
+		err = server.db.InsertHomework(homework)
+		if err != nil {
+			return
+		}
+		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusCreated)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		return
-	}
-	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
-	if err != nil {
-		return
-	}
-	meeting, err := server.db.GetMeeting(meetingId)
-	if err != nil {
-		return
-	}
-	if jwt["role"] == "teacher" && meeting.TeacherID != userId {
-		WriteForbiddenJWT(w)
-		return
-	}
-	currentTime := time.Now()
-	homework := sql.Homework{
-		ID:          server.db.GetLastHomeworkID(),
-		TeacherID:   userId,
-		SubjectID:   meeting.SubjectID,
-		Name:        r.FormValue("name"),
-		Description: r.FormValue("description"),
-		ToDate:      r.FormValue("to_date"),
-		FromDate:    currentTime.Format("2006-01-02"),
-	}
-	err = server.db.InsertHomework(homework)
-	if err != nil {
-		return
-	}
-	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusCreated)
 }
 
 func (server *httpImpl) GetAllHomeworksForSpecificSubject(w http.ResponseWriter, r *http.Request) {
@@ -76,47 +77,48 @@ func (server *httpImpl) GetAllHomeworksForSpecificSubject(w http.ResponseWriter,
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "student" {
-		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		return
-	}
-	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
-	if err != nil {
-		return
-	}
-	meeting, err := server.db.GetMeeting(meetingId)
-	if err != nil {
-		return
-	}
-	if jwt["role"] == "teacher" {
-		if meeting.TeacherID != userId {
-			WriteForbiddenJWT(w)
-			return
-		}
-	}
-	homework, err := server.db.GetHomeworkForSubject(meeting.SubjectID)
-	if err != nil {
-		return
-	}
-	var homeworkJson = make([]Homework, 0)
-	for i := 0; i < len(homework); i++ {
-		h, err := server.db.GetStudentsHomeworkByHomeworkID(homework[i].ID, meetingId)
+	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		if err != nil {
 			return
 		}
-		homeworkJson = append(homeworkJson, Homework{
-			Homework: homework[i],
-			Students: h,
-		})
+		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+		if err != nil {
+			return
+		}
+		meeting, err := server.db.GetMeeting(meetingId)
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" {
+			if meeting.TeacherID != userId {
+				WriteForbiddenJWT(w)
+				return
+			}
+		}
+		homework, err := server.db.GetHomeworkForSubject(meeting.SubjectID)
+		if err != nil {
+			return
+		}
+		var homeworkJson = make([]Homework, 0)
+		for i := 0; i < len(homework); i++ {
+			h, err := server.db.GetStudentsHomeworkByHomeworkID(homework[i].ID, meetingId)
+			if err != nil {
+				return
+			}
+			homeworkJson = append(homeworkJson, Homework{
+				Homework: homework[i],
+				Students: h,
+			})
+		}
+		for i, j := 0, len(homeworkJson)-1; i < j; i, j = i+1, j-1 {
+			homeworkJson[i], homeworkJson[j] = homeworkJson[j], homeworkJson[i]
+		}
+		WriteJSON(w, Response{Data: homeworkJson, Success: true}, http.StatusOK)
+	} else {
+		WriteForbiddenJWT(w)
+		return
 	}
-	for i, j := 0, len(homeworkJson)-1; i < j; i, j = i+1, j-1 {
-		homeworkJson[i], homeworkJson[j] = homeworkJson[j], homeworkJson[i]
-	}
-	WriteJSON(w, Response{Data: homeworkJson, Success: true}, http.StatusOK)
 }
 
 // GetHomeworkData TODO: Not used yet
@@ -126,36 +128,37 @@ func (server *httpImpl) GetHomeworkData(w http.ResponseWriter, r *http.Request) 
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "student" {
+	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			return
+		}
+		homeworkId, err := strconv.Atoi(mux.Vars(r)["homework_id"])
+		if err != nil {
+			return
+		}
+		homework, err := server.db.GetHomework(homeworkId)
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" {
+			if homework.TeacherID != userId {
+				WriteForbiddenJWT(w)
+				return
+			}
+		}
+		h, err := server.db.GetStudentsHomeworkByHomeworkID(homeworkId, -1)
+		if err != nil {
+			return
+		}
+		WriteJSON(w, Response{Data: Homework{
+			Homework: homework,
+			Students: h,
+		}, Success: true}, http.StatusOK)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		return
-	}
-	homeworkId, err := strconv.Atoi(mux.Vars(r)["homework_id"])
-	if err != nil {
-		return
-	}
-	homework, err := server.db.GetHomework(homeworkId)
-	if err != nil {
-		return
-	}
-	if jwt["role"] == "teacher" {
-		if homework.TeacherID != userId {
-			WriteForbiddenJWT(w)
-			return
-		}
-	}
-	h, err := server.db.GetStudentsHomeworkByHomeworkID(homeworkId, -1)
-	if err != nil {
-		return
-	}
-	WriteJSON(w, Response{Data: Homework{
-		Homework: homework,
-		Students: h,
-	}, Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) PatchHomeworkForStudent(w http.ResponseWriter, r *http.Request) {
@@ -164,60 +167,62 @@ func (server *httpImpl) PatchHomeworkForStudent(w http.ResponseWriter, r *http.R
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "student" {
+	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			return
+		}
+		// Maybe we will use it sometime, you never know
+		_, err = strconv.Atoi(mux.Vars(r)["meeting_id"])
+		if err != nil {
+			return
+		}
+		homeworkId, err := strconv.Atoi(mux.Vars(r)["homework_id"])
+		if err != nil {
+			return
+		}
+		userId, err := strconv.Atoi(mux.Vars(r)["student_id"])
+		if err != nil {
+			return
+		}
+		homework, err := server.db.GetHomework(homeworkId)
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" {
+			if homework.TeacherID != teacherId {
+				WriteForbiddenJWT(w)
+				return
+			}
+		}
+		h, err := server.db.GetStudentHomeworkForUser(homeworkId, userId)
+		if err != nil {
+			if err.Error() == "sql: no rows in result set" {
+				h = sql.StudentHomework{
+					ID:         server.db.GetLastStudentHomeworkID(),
+					UserID:     userId,
+					HomeworkID: homeworkId,
+					Status:     r.FormValue("status"),
+				}
+				err := server.db.InsertStudentHomework(h)
+				if err == nil {
+					WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+				}
+				return
+			} else {
+				return
+			}
+		}
+		h.Status = r.FormValue("status")
+		err = server.db.UpdateStudentHomework(h)
+		if err != nil {
+			return
+		}
+		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-	teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		return
-	}
-	// Maybe we will use it sometime, you never know
-	_, err = strconv.Atoi(mux.Vars(r)["meeting_id"])
-	if err != nil {
-		return
-	}
-	homeworkId, err := strconv.Atoi(mux.Vars(r)["homework_id"])
-	if err != nil {
-		return
-	}
-	userId, err := strconv.Atoi(mux.Vars(r)["student_id"])
-	if err != nil {
-		return
-	}
-	homework, err := server.db.GetHomework(homeworkId)
-	if err != nil {
-		return
-	}
-	if jwt["role"] == "teacher" {
-		if homework.TeacherID != teacherId {
-			WriteForbiddenJWT(w)
-			return
-		}
-	}
-	h, err := server.db.GetStudentHomeworkForUser(homeworkId, userId)
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			h = sql.StudentHomework{
-				ID:         server.db.GetLastStudentHomeworkID(),
-				UserID:     userId,
-				HomeworkID: homeworkId,
-				Status:     "",
-			}
-			err = server.db.InsertStudentHomework(h)
-			if err != nil {
-				return
-			}
-		} else {
-			return
-		}
-	}
-	h.Status = r.FormValue("status")
-	err = server.db.UpdateStudentHomework(h)
-	if err != nil {
-		return
-	}
-	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) {

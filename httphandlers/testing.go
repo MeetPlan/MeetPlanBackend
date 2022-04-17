@@ -26,7 +26,7 @@ func (server *httpImpl) GetSelfTestingTeacher(w http.ResponseWriter, r *http.Req
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" {
+	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
 		classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
 		if err != nil {
 			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
@@ -52,7 +52,7 @@ func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" {
+	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
 		studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
 		if err != nil {
 			WriteBadRequest(w)

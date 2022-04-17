@@ -34,7 +34,7 @@ func (db *sqlImpl) GetStudentHomework(id int) (homework StudentHomework, err err
 }
 
 func (db *sqlImpl) GetStudentHomeworkForUser(homeworkId int, userId int) (homework StudentHomework, err error) {
-	err = db.db.Get(&homework, "SELECT * FROM student_homework WHERE id=$1 AND user_id=$2", homeworkId, userId)
+	err = db.db.Get(&homework, "SELECT * FROM student_homework WHERE homework_id=$1 AND user_id=$2", homeworkId, userId)
 	return homework, err
 }
 

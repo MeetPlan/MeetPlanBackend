@@ -36,6 +36,7 @@ type SQL interface {
 	UpdateUser(user User) error
 	DeleteUser(ID int) error
 	GetTeachers() ([]User, error)
+	GetPrincipal() (principal User, err error)
 
 	GetClass(id int) (Class, error)
 	InsertClass(class Class) (err error)

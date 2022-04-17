@@ -99,34 +99,34 @@ func (server *httpImpl) PatchUser(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+		if err != nil {
+			WriteForbiddenJWT(w)
+			return
+		}
+
+		user, err := server.db.GetUser(userId)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Data: "Failed to retrieve used from database", Success: false}, http.StatusInternalServerError)
+			return
+		}
+		user.Birthday = r.FormValue("birthday")
+		user.CountryOfBirth = r.FormValue("country_of_birth")
+		user.CityOfBirth = r.FormValue("city_of_birth")
+		user.Email = r.FormValue("email")
+		user.BirthCertificateNumber = r.FormValue("birth_certificate_number")
+		user.Name = r.FormValue("name")
+		err = server.db.UpdateUser(user)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Data: "Failed to update user", Success: false}, http.StatusInternalServerError)
+			return
+		}
+		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-
-	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-
-	user, err := server.db.GetUser(userId)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Data: "Failed to retrieve used from database", Success: false}, http.StatusInternalServerError)
-		return
-	}
-	user.Birthday = r.FormValue("birthday")
-	user.CountryOfBirth = r.FormValue("country_of_birth")
-	user.CityOfBirth = r.FormValue("city_of_birth")
-	user.Email = r.FormValue("email")
-	user.BirthCertificateNumber = r.FormValue("birth_certificate_number")
-	user.Name = r.FormValue("name")
-	err = server.db.UpdateUser(user)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Data: "Failed to update user", Success: false}, http.StatusInternalServerError)
-		return
-	}
-	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) HasClass(w http.ResponseWriter, r *http.Request) {
@@ -135,27 +135,28 @@ func (server *httpImpl) HasClass(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "student" {
-		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	classes, err := server.db.GetClasses()
-	if err != nil {
-		return
-	}
-	var hasClass = false
-	for i := 0; i < len(classes); i++ {
-		if classes[i].Teacher == userId {
-			hasClass = true
-			break
+	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+		if err != nil {
+			WriteForbiddenJWT(w)
+			return
 		}
+		classes, err := server.db.GetClasses()
+		if err != nil {
+			return
+		}
+		var hasClass = false
+		for i := 0; i < len(classes); i++ {
+			if classes[i].Teacher == userId {
+				hasClass = true
+				break
+			}
+		}
+		WriteJSON(w, Response{Data: hasClass, Success: true}, http.StatusOK)
+	} else {
+		WriteForbiddenJWT(w)
+		return
 	}
-	WriteJSON(w, Response{Data: hasClass, Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) GetUserData(w http.ResponseWriter, r *http.Request) {
@@ -309,7 +310,7 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 
 	var userId = make([]int, 0)
 	var isTeacher = false
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" {
+	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
 		uid := r.URL.Query().Get("id")
 		if uid == "" {
 			u, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
@@ -406,7 +407,7 @@ func (server *httpImpl) GetStudents(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
 		students, err := server.db.GetStudents()
 		if err != nil {
 			return
@@ -468,150 +469,155 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if jwt["role"] != "admin" {
-		WriteForbiddenJWT(w)
-		return
-	}
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist" {
+		userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
 
-	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-
-	student, err := server.db.GetUser(userId)
-	if err != nil {
-		return
-	}
-	if student.Role != "student" {
-		WriteForbiddenJWT(w)
-		return
-	}
-
-	classes, err := server.db.GetClasses()
-	if err != nil {
-		return
-	}
-
-	var classId = -1
-
-	for i := 0; i < len(classes); i++ {
-		class := classes[i]
-		var students []int
-		err := json.Unmarshal([]byte(class.Students), &students)
+		student, err := server.db.GetUser(userId)
 		if err != nil {
 			return
 		}
-		if contains(students, userId) {
-			classId = class.ID
-			break
+		if student.Role != "student" {
+			WriteForbiddenJWT(w)
+			return
 		}
-	}
 
-	if classId == -1 {
-		return
-	}
+		classes, err := server.db.GetClasses()
+		if err != nil {
+			return
+		}
 
-	class, err := server.db.GetClass(classId)
-	if err != nil {
-		return
-	}
+		var classId = -1
 
-	var students []int
-	err = json.Unmarshal([]byte(class.Students), &students)
-	if err != nil {
-		return
-	}
-	if !contains(students, userId) {
+		for i := 0; i < len(classes); i++ {
+			class := classes[i]
+			var students []int
+			err := json.Unmarshal([]byte(class.Students), &students)
+			if err != nil {
+				return
+			}
+			if contains(students, userId) {
+				classId = class.ID
+				break
+			}
+		}
+
+		if classId == -1 {
+			return
+		}
+
+		class, err := server.db.GetClass(classId)
+		if err != nil {
+			return
+		}
+
+		var students []int
+		err = json.Unmarshal([]byte(class.Students), &students)
+		if err != nil {
+			return
+		}
+		if !contains(students, userId) {
+			WriteForbiddenJWT(w)
+			return
+		}
+
+		m := pdf.NewMaroto(consts.Portrait, consts.A4)
+
+		m.AddUTF8Font("OpenSans", consts.Normal, "fonts/opensans.ttf")
+		m.SetDefaultFontFamily("OpenSans")
+
+		m.Row(40, func() {
+
+			m.Col(3, func() {
+				_ = m.FileImage("icons/school_logo.png", props.Rect{
+					Center:  true,
+					Percent: 80,
+				})
+			})
+
+			m.ColSpace(1)
+
+			m.Col(4, func() {
+				m.Text("Potrdilo o šolanju", props.Text{
+					Top:         12,
+					Size:        25,
+					Extrapolate: true,
+				})
+				m.Text("MeetPlan sistem", props.Text{
+					Top:         23,
+					Size:        13,
+					Extrapolate: true,
+				})
+			})
+			m.ColSpace(1)
+
+			m.Col(3, func() {
+				_ = m.FileImage("icons/country_coat_of_arms_black.png", props.Rect{
+					Center:  true,
+					Percent: 80,
+				})
+			})
+		})
+
+		m.Line(10)
+
+		m.Row(40, func() {
+			m.Text(fmt.Sprintf(
+				"Učenec %s, rojen %s, %s, %s, v šolskem letu %s",
+				student.Name, student.Birthday, student.CityOfBirth,
+				student.CountryOfBirth, class.ClassYear,
+			), props.Text{
+				Top:         12,
+				Size:        11,
+				Extrapolate: true,
+			})
+			m.Text(fmt.Sprintf("obiskuje %s razred šole %s.",
+				class.Name, server.config.SchoolName,
+			), props.Text{
+				Top:         16,
+				Size:        11,
+				Extrapolate: true,
+			})
+		})
+
+		principal, err := server.db.GetPrincipal()
+		if err != nil {
+			return
+		}
+
+		m.Row(40, func() {
+			m.ColSpace(1)
+			m.Col(6, func() {
+				m.Text("_________________________", props.Text{
+					Top:  14,
+					Size: 15,
+				})
+				m.Text(principal.Name, props.Text{
+					Top:  14,
+					Size: 15,
+				})
+				m.Text("digitalni podpis ravnatelja", props.Text{Top: 20, Size: 9})
+			})
+			m.Col(3, func() {
+				m.Text("_________________________", props.Text{
+					Top:  14,
+					Size: 15,
+				})
+				m.Text("podpis ravnatelja", props.Text{Top: 20, Size: 9})
+			})
+		})
+
+		output, err := m.Output()
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		w.Write(output.Bytes())
+	} else {
 		WriteForbiddenJWT(w)
 		return
 	}
-
-	m := pdf.NewMaroto(consts.Portrait, consts.A4)
-
-	m.AddUTF8Font("OpenSans", consts.Normal, "fonts/opensans.ttf")
-	m.SetDefaultFontFamily("OpenSans")
-
-	m.Row(40, func() {
-
-		m.Col(3, func() {
-			_ = m.FileImage("icons/school_logo.png", props.Rect{
-				Center:  true,
-				Percent: 80,
-			})
-		})
-
-		m.ColSpace(1)
-
-		m.Col(4, func() {
-			m.Text("Potrdilo o šolanju", props.Text{
-				Top:         12,
-				Size:        25,
-				Extrapolate: true,
-			})
-			m.Text("MeetPlan sistem", props.Text{
-				Top:         23,
-				Size:        13,
-				Extrapolate: true,
-			})
-		})
-		m.ColSpace(1)
-
-		m.Col(3, func() {
-			_ = m.FileImage("icons/country_coat_of_arms_black.png", props.Rect{
-				Center:  true,
-				Percent: 80,
-			})
-		})
-	})
-
-	m.Line(10)
-
-	m.Row(40, func() {
-		m.Text(fmt.Sprintf(
-			"Učenec %s, rojen %s, %s, %s, v šolskem letu %s obiskuje %s",
-			student.Name, student.Birthday, student.CityOfBirth,
-			student.CountryOfBirth, class.ClassYear, class.Name,
-		), props.Text{
-			Top:         12,
-			Size:        11,
-			Extrapolate: true,
-		})
-		m.Text(fmt.Sprintf("razred %s.",
-			server.config.SchoolName,
-		), props.Text{
-			Top:         16,
-			Size:        11,
-			Extrapolate: true,
-		})
-	})
-
-	m.Row(40, func() {
-		m.ColSpace(1)
-		m.Col(6, func() {
-			m.Text("_________________________", props.Text{
-				Top:  14,
-				Size: 15,
-			})
-			m.Text("Ravnatelj2", props.Text{
-				Top:  14,
-				Size: 15,
-			})
-			m.Text("digitalni podpis ravnatelja", props.Text{Top: 20, Size: 9})
-		})
-		m.Col(3, func() {
-			m.Text("_________________________", props.Text{
-				Top:  14,
-				Size: 15,
-			})
-			m.Text("podpis ravnatelja", props.Text{Top: 20, Size: 9})
-		})
-	})
-
-	output, err := m.Output()
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
-	}
-	w.Write(output.Bytes())
 }

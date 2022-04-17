@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
+	"github.com/johnfercher/maroto/pkg/consts"
+	"github.com/johnfercher/maroto/pkg/pdf"
+	"github.com/johnfercher/maroto/pkg/props"
 	"net/http"
 	"strconv"
 	"time"
@@ -373,8 +376,8 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 			}
 			server.logger.Debug(students, userId)
 			for n := 0; n < len(students); n++ {
-				for n := 0; n < len(userId); n++ {
-					if students[n] == userId[n] && !contains(myClassesInt, students[n]) {
+				for l := 0; l < len(userId); l++ {
+					if students[n] == userId[l] && !contains(myClassesInt, students[n]) {
 						user, err := server.db.GetUser(students[n])
 						if err != nil {
 							return
@@ -456,4 +459,159 @@ func (server *httpImpl) HasBirthday(w http.ResponseWriter, r *http.Request) {
 	_, tm, td := currentTime.Date()
 	_, bm, bd := birthday.Date()
 	WriteJSON(w, Response{Data: tm-bm == 0 && td-bd == 0, Success: true}, http.StatusOK)
+}
+
+func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	if jwt["role"] != "admin" {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+
+	student, err := server.db.GetUser(userId)
+	if err != nil {
+		return
+	}
+	if student.Role != "student" {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	classes, err := server.db.GetClasses()
+	if err != nil {
+		return
+	}
+
+	var classId = -1
+
+	for i := 0; i < len(classes); i++ {
+		class := classes[i]
+		var students []int
+		err := json.Unmarshal([]byte(class.Students), &students)
+		if err != nil {
+			return
+		}
+		if contains(students, userId) {
+			classId = class.ID
+			break
+		}
+	}
+
+	if classId == -1 {
+		return
+	}
+
+	class, err := server.db.GetClass(classId)
+	if err != nil {
+		return
+	}
+
+	var students []int
+	err = json.Unmarshal([]byte(class.Students), &students)
+	if err != nil {
+		return
+	}
+	if !contains(students, userId) {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	m := pdf.NewMaroto(consts.Portrait, consts.A4)
+
+	m.AddUTF8Font("OpenSans", consts.Normal, "fonts/opensans.ttf")
+	m.SetDefaultFontFamily("OpenSans")
+
+	m.Row(40, func() {
+
+		m.Col(3, func() {
+			_ = m.FileImage("icons/school_logo.png", props.Rect{
+				Center:  true,
+				Percent: 80,
+			})
+		})
+
+		m.ColSpace(1)
+
+		m.Col(4, func() {
+			m.Text("Potrdilo o šolanju", props.Text{
+				Top:         12,
+				Size:        25,
+				Extrapolate: true,
+			})
+			m.Text("MeetPlan sistem", props.Text{
+				Top:         23,
+				Size:        13,
+				Extrapolate: true,
+			})
+		})
+		m.ColSpace(1)
+
+		m.Col(3, func() {
+			_ = m.FileImage("icons/country_coat_of_arms_black.png", props.Rect{
+				Center:  true,
+				Percent: 80,
+			})
+		})
+	})
+
+	m.Line(10)
+
+	m.Row(40, func() {
+		m.Text(fmt.Sprintf(
+			"Učenec %s, rojen %s, %s, %s, v šolskem letu %s obiskuje %s",
+			student.Name, student.Birthday, student.CityOfBirth,
+			student.CountryOfBirth, class.ClassYear, class.Name,
+		), props.Text{
+			Top:         12,
+			Size:        11,
+			Extrapolate: true,
+		})
+		m.Text(fmt.Sprintf("razred %s.",
+			server.config.SchoolName,
+		), props.Text{
+			Top:         16,
+			Size:        11,
+			Extrapolate: true,
+		})
+	})
+
+	m.Row(40, func() {
+		m.ColSpace(1)
+		m.Col(6, func() {
+			m.Text("_________________________", props.Text{
+				Top:  14,
+				Size: 15,
+			})
+			m.Text("Ravnatelj2", props.Text{
+				Top:  14,
+				Size: 15,
+			})
+			m.Text("digitalni podpis ravnatelja", props.Text{Top: 20, Size: 9})
+		})
+		m.Col(3, func() {
+			m.Text("_________________________", props.Text{
+				Top:  14,
+				Size: 15,
+			})
+			m.Text("podpis ravnatelja", props.Text{Top: 20, Size: 9})
+		})
+	})
+
+	output, err := m.Output()
+	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+	w.Write(output.Bytes())
 }

@@ -63,6 +63,7 @@ func main() {
 	r.HandleFunc("/user/get/homework/{id}", httphandler.GetUserHomework).Methods("GET")
 	r.HandleFunc("/user/get/absences/{id}", httphandler.GetAbsencesUser).Methods("GET")
 	r.HandleFunc("/user/get/ending_certificate/{student_id}", httphandler.PrintCertificateOfEndingClass).Methods("GET")
+	r.HandleFunc("/user/get/certificate_of_schooling/{user_id}", httphandler.CertificateOfSchooling).Methods("GET")
 	r.HandleFunc("/user/get/unread_messages", httphandler.GetUnreadMessages).Methods("GET")
 
 	r.HandleFunc("/user/get/absences/{student_id}/excuse/{absence_id}", httphandler.ExcuseAbsence).Methods("PATCH")

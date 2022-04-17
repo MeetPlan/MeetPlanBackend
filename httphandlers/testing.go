@@ -1,6 +1,7 @@
 package httphandlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
@@ -135,6 +136,11 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 		return
 	}
 
+	user, err := server.db.GetUser(userId)
+	if err != nil {
+		return
+	}
+
 	id, err := strconv.Atoi(mux.Vars(r)["test_id"])
 	if err != nil {
 		WriteBadRequest(w)
@@ -148,6 +154,13 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 
 	if jwtData["role"] == "student" {
 		if test.UserID != userId {
+			WriteForbiddenJWT(w)
+			return
+		}
+	} else if jwtData["role"] == "parent" {
+		var users []int
+		json.Unmarshal([]byte(user.Users), &users)
+		if !contains(users, test.UserID) {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -167,16 +180,15 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 		return
 	}
 
-	// Normalize Slovenian characters
-	student.Name = strings.Replace(student.Name, "č", "c", -1)
-	teacher.Name = strings.Replace(teacher.Name, "č", "c", -1)
-
 	jwt, err, expiration := sql.GetJWTForTestingResult(test.UserID, test.Result, test.ID, test.Date)
 	if err != nil {
 		return
 	}
 
 	m := pdf.NewMaroto(consts.Portrait, consts.A4)
+
+	m.AddUTF8Font("OpenSans", consts.Normal, "fonts/opensans.ttf")
+	m.SetDefaultFontFamily("OpenSans")
 
 	m.Row(40, func() {
 		m.Col(3, func() {
@@ -213,7 +225,7 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 			m.Text(test.Result, props.Text{Size: 20, Top: 20})
 			if test.Result == "POZITIVEN" {
 				m.Text(
-					"Vaš test je bil pozitiven. Samoizolirajte se v cim manjšem možnem casu. To potrdilo vam lahko s podpisom osebe, ki je izvajala testiranje, tudi služi kot dokaz za PCR testiranje.",
+					"Vaš test je bil pozitiven. Samoizolirajte se v čim manjšem možnem času. To potrdilo vam lahko s podpisom osebe, ki je izvajala testiranje, tudi služi kot dokaz za PCR testiranje.",
 					props.Text{Top: 30},
 				)
 			} else if test.Result == "NEVELJAVEN" {
@@ -238,7 +250,7 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 
 	m.Row(60, func() {
 		m.Col(6, func() {
-			m.Text(fmt.Sprintf(" Enolicni identifikator testiranja: %s", fmt.Sprint(test.ID)), props.Text{
+			m.Text(fmt.Sprintf(" Enolični identifikator testiranja: %s", fmt.Sprint(test.ID)), props.Text{
 				Size: 15,
 				Top:  5,
 			})
@@ -254,7 +266,7 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 				Size: 15,
 				Top:  35,
 			})
-			m.Text(fmt.Sprintf(" Enolicni identifikator osebe: %s", fmt.Sprint(student.ID)), props.Text{
+			m.Text(fmt.Sprintf(" Enolični identifikator osebe: %s", fmt.Sprint(student.ID)), props.Text{
 				Size: 15,
 				Top:  45,
 			})

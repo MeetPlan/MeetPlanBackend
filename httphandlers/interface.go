@@ -22,6 +22,7 @@ type HTTP interface {
 	HasClass(w http.ResponseWriter, r *http.Request)
 	GetUserData(w http.ResponseWriter, r *http.Request)
 	GetAbsencesUser(w http.ResponseWriter, r *http.Request)
+	CertificateOfSchooling(w http.ResponseWriter, r *http.Request)
 
 	// testing.go
 	GetSelfTestingTeacher(w http.ResponseWriter, r *http.Request)

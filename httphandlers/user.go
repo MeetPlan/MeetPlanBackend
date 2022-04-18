@@ -204,6 +204,7 @@ func (server *httpImpl) GetUserData(w http.ResponseWriter, r *http.Request) {
 func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) {
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
+		WriteForbiddenJWT(w)
 		return
 	}
 	var studentId int
@@ -227,6 +228,7 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 		if jwt["role"] == "teacher" {
 			classes, err := server.db.GetClasses()
 			if err != nil {
+				WriteJSON(w, Response{Data: "Could not fetch classes", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 				return
 			}
 			var valid = false
@@ -235,6 +237,7 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 				var users []int
 				err := json.Unmarshal([]byte(class.Students), &users)
 				if err != nil {
+					WriteJSON(w, Response{Data: "Could not unmarshal students", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 					return
 				}
 				for j := 0; j < len(users); j++ {
@@ -258,11 +261,13 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 			}
 			parent, err := server.db.GetUser(teacherId)
 			if err != nil {
+				WriteJSON(w, Response{Data: "Could not fetch parent", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 				return
 			}
 			var students []int
 			err = json.Unmarshal([]byte(parent.Users), &students)
 			if err != nil {
+				WriteJSON(w, Response{Data: "Could not unmarshal students", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 				return
 			}
 			if !contains(students, studentId) {
@@ -271,23 +276,31 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 			}
 		}
 	}
+	var absenceJson = make([]Absence, 0)
 	absences, err := server.db.GetAbsencesForUser(studentId)
 	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+		    WriteJSON(w, Response{Data: absenceJson, Error: err.Error(), Success: true}, http.StatusOK)
+			return
+		}
+		WriteJSON(w, Response{Data: "Could not fetch absences", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
-	var absenceJson = make([]Absence, 0)
 	for i := 0; i < len(absences); i++ {
 		absence := absences[i]
 		teacher, err := server.db.GetUser(absence.TeacherID)
 		if err != nil {
+			WriteJSON(w, Response{Data: "Could not fetch teacher", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
 		user, err := server.db.GetUser(absence.UserID)
 		if err != nil {
+			WriteJSON(w, Response{Data: "Could not fetch user", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
 		meeting, err := server.db.GetMeeting(absence.MeetingID)
 		if err != nil {
+			WriteJSON(w, Response{Data: "Could not fetch meeting", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
 		if absence.AbsenceType == "ABSENT" || absence.AbsenceType == "LATE" {

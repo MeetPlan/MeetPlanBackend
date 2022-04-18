@@ -252,10 +252,12 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 		}
 		parentId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		if err != nil {
+			WriteJSON(w, Response{Data: "Could not ATOI parentId", Error: err.Error(), Success: false}, http.StatusBadRequest)
 			return
 		}
 		parent, err := server.db.GetUser(parentId)
 		if err != nil {
+			WriteJSON(w, Response{Data: "Could not fetch parent", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
 		var children []int
@@ -267,7 +269,7 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 	}
 	subjects, err := server.db.GetAllSubjectsForUser(studentId)
 	if err != nil {
-		WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+		WriteJSON(w, Response{Success: false, Error: err.Error(), Data: "Could not fetch subjects"}, http.StatusInternalServerError)
 		return
 	}
 	var homeworkJson = make([]HomeworkPerDate, 0)
@@ -275,7 +277,7 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 		subject := subjects[i]
 		homeworkForSubject, err := server.db.GetHomeworkForSubject(subject.ID)
 		if err != nil {
-			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+			WriteJSON(w, Response{Success: false, Error: err.Error(), Data: "Could not fetch homework for subject"}, http.StatusInternalServerError)
 			return
 		}
 		for n := 0; n < len(homeworkForSubject); n++ {
@@ -292,18 +294,19 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 			}
 			teacher, err := server.db.GetUser(homework.TeacherID)
 			if err != nil {
-				WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+				WriteJSON(w, Response{Success: false, Error: err.Error(), Data: "Could not fetch teacher"}, http.StatusInternalServerError)
 				return
 			}
 			subject, err := server.db.GetSubject(homework.SubjectID)
 			if err != nil {
-				WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+				WriteJSON(w, Response{Success: false, Error: err.Error(), Data: "Could not fetch subject"}, http.StatusInternalServerError)
 				return
 			}
 			var status = ""
 			homeworkStatus, err := server.db.GetStudentHomeworkForUser(homework.ID, studentId)
 			if err != nil {
 				if err.Error() != "sql: no rows in result set" {
+					WriteJSON(w, Response{Data: "Could not fetch homework status", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 					return
 				} else {
 					status = "NOT MANAGED"

@@ -54,7 +54,7 @@ func SaveConfig(config Config) error {
 	if err != nil {
 		return err
 	}
-	f, err = os.Create("config.json")
+	f, err := os.Create("config.json")
 	if err != nil {
 		return err
 	}

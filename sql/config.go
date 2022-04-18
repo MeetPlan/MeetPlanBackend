@@ -54,10 +54,13 @@ func SaveConfig(config Config) error {
 	if err != nil {
 		return err
 	}
-	err = os.Remove("config.json")
+	f, err = os.Create("config.json")
 	if err != nil {
 		return err
 	}
+	if err := f.Close(); err != nil {
+                return err
+        }
 	err = os.WriteFile("config.json", marshal, 0600)
 	if err != nil {
 		return err

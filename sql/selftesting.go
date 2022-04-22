@@ -114,3 +114,13 @@ func (db *sqlImpl) UpdateTestingResult(testing Testing) error {
 		testing)
 	return err
 }
+
+func (db *sqlImpl) DeleteTeacherSelfTesting(teacherId int) error {
+	_, err := db.db.Exec("DELETE FROM testing WHERE teacher_id=$1", teacherId)
+	return err
+}
+
+func (db *sqlImpl) DeleteUserSelfTesting(userId int) error {
+	_, err := db.db.Exec("DELETE FROM testing WHERE user_id=$1", userId)
+	return err
+}

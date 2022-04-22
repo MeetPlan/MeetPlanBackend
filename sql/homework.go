@@ -36,6 +36,14 @@ func (db *sqlImpl) GetHomeworkForSubject(id int) (homework []Homework, err error
 	return homework, err
 }
 
+func (db *sqlImpl) GetHomeworkForTeacher(teacherId int) (homework []Homework, err error) {
+	err = db.db.Select(&homework, "SELECT * FROM homework WHERE teacher_id=$1", teacherId)
+	if homework == nil {
+		homework = make([]Homework, 0)
+	}
+	return homework, err
+}
+
 func (db *sqlImpl) InsertHomework(homework Homework) error {
 	i := `
 	INSERT INTO homework
@@ -57,5 +65,13 @@ func (db *sqlImpl) UpdateHomework(homework Homework) error {
 
 func (db *sqlImpl) DeleteHomework(ID int) error {
 	_, err := db.db.Exec("DELETE FROM homework WHERE id=$1", ID)
+	db.DeleteStudentHomeworkByHomeworkID(ID)
 	return err
+}
+
+func (db *sqlImpl) DeleteAllTeacherHomeworks(ID int) {
+	homework, _ := db.GetHomeworkForTeacher(ID)
+	for i := 0; i < len(homework); i++ {
+		db.DeleteHomework(homework[i].ID)
+	}
 }

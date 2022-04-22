@@ -55,3 +55,11 @@ func (db *sqlImpl) UpdateAbsence(absence Absence) error {
 		absence)
 	return err
 }
+
+func (db *sqlImpl) DeleteAbsencesForTeacher(userId int) {
+	db.db.Exec("DELETE FROM absence WHERE teacher_id=$1", userId)
+}
+
+func (db *sqlImpl) DeleteAbsencesForUser(userId int) {
+	db.db.Exec("DELETE FROM absence WHERE user_id=$1", userId)
+}

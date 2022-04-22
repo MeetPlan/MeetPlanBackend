@@ -33,9 +33,8 @@ func (db *sqlImpl) GetMeetingsOnSpecificDate(date string) (meetings []Meeting, e
 	return meetings, err
 }
 
-// GetMeetingsOnSpecificDateAndClass is deprecated and will be removed
-func (db *sqlImpl) GetMeetingsOnSpecificDateAndClass(date string, classId int) (meetings []Meeting, err error) {
-	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE date=$1 AND class_id=$2", date, classId)
+func (db *sqlImpl) GetMeetingsForSubject(subjectId int) (meetings []Meeting, err error) {
+	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE subject_id=$1", subjectId)
 	return meetings, err
 }
 
@@ -80,7 +79,18 @@ func (db *sqlImpl) GetMeetings() (meetings []Meeting, err error) {
 	err = db.db.Select(&meetings, "SELECT * FROM meetings")
 	return meetings, err
 }
+
 func (db *sqlImpl) DeleteMeeting(ID int) error {
 	_, err := db.db.Exec("DELETE FROM meetings WHERE id=$1", ID)
+	return err
+}
+
+func (db *sqlImpl) DeleteMeetingsForTeacher(ID int) error {
+	_, err := db.db.Exec("DELETE FROM meetings WHERE teacher_id=$1", ID)
+	return err
+}
+
+func (db *sqlImpl) DeleteMeetingsForSubject(ID int) error {
+	_, err := db.db.Exec("DELETE FROM meetings WHERE subject_id=$1", ID)
 	return err
 }

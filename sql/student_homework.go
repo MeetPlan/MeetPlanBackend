@@ -142,3 +142,13 @@ func (db *sqlImpl) DeleteStudentHomework(ID int) error {
 	_, err := db.db.Exec("DELETE FROM student_homework WHERE id=$1", ID)
 	return err
 }
+
+func (db *sqlImpl) DeleteStudentHomeworkByHomeworkID(ID int) error {
+	_, err := db.db.Exec("DELETE FROM student_homework WHERE homework_id=$1", ID)
+	return err
+}
+
+func (db *sqlImpl) DeleteStudentHomeworkByStudentID(ID int) error {
+	_, err := db.db.Exec("DELETE FROM student_homework WHERE user_id=$1", ID)
+	return err
+}

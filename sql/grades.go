@@ -11,6 +11,7 @@ type Grade struct {
 	IsFinal     bool `db:"is_final"`
 	Period      int
 	Description string
+	CanPatch    bool `db:"can_patch"`
 }
 
 func (db *sqlImpl) GetLastGradeID() int {
@@ -49,8 +50,8 @@ func (db *sqlImpl) GetGradesForUserInSubject(userId int, subjectId int) (grades 
 func (db *sqlImpl) InsertGrade(grade Grade) error {
 	i := `
 	INSERT INTO grades
-	    (id, user_id, teacher_id, subject_id, date, is_written, grade, period, description, is_final) VALUES
-	    (:id, :user_id, :teacher_id, :subject_id, :date, :is_written, :grade, :period, :description, :is_final)
+	    (id, user_id, teacher_id, subject_id, date, is_written, grade, period, description, is_final, can_patch) VALUES
+	    (:id, :user_id, :teacher_id, :subject_id, :date, :is_written, :grade, :period, :description, :is_final, :can_patch)
 	`
 	_, err := db.db.NamedExec(
 		i,
@@ -60,12 +61,22 @@ func (db *sqlImpl) InsertGrade(grade Grade) error {
 
 func (db *sqlImpl) UpdateGrade(grade Grade) error {
 	_, err := db.db.NamedExec(
-		"UPDATE grades SET user_id=:user_id, teacher_id=:teacher_id, subject_id=:subject_id, date=:date, is_written=:is_written, grade=:grade, period=:period, description=:description WHERE id=:id",
+		"UPDATE grades SET user_id=:user_id, teacher_id=:teacher_id, subject_id=:subject_id, date=:date, is_written=:is_written, grade=:grade, period=:period, description=:description, can_patch=:can_patch WHERE id=:id",
 		grade)
 	return err
 }
 
 func (db *sqlImpl) DeleteGrade(ID int) error {
 	_, err := db.db.Exec("DELETE FROM grades WHERE id=$1", ID)
+	return err
+}
+
+func (db *sqlImpl) DeleteGradesByTeacherID(ID int) error {
+	_, err := db.db.Exec("DELETE FROM grades WHERE teacher_id=$1", ID)
+	return err
+}
+
+func (db *sqlImpl) DeleteGradesByUserID(ID int) error {
+	_, err := db.db.Exec("DELETE FROM grades WHERE user_id=$1", ID)
 	return err
 }

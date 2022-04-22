@@ -100,3 +100,22 @@ func (db *sqlImpl) DeleteSubject(subject Subject) error {
 		subject)
 	return err
 }
+
+func (db *sqlImpl) DeleteStudentSubject(userId int) {
+	subjects, _ := db.GetAllSubjects()
+	for i := 0; i < len(subjects); i++ {
+		subject := subjects[i]
+		var users []int
+		json.Unmarshal([]byte(subject.Students), &users)
+		if subject.InheritsClass {
+			for n := 0; n < len(users); n++ {
+				if users[n] == userId {
+					users = remove(users, n)
+				}
+			}
+			marshal, _ := json.Marshal(users)
+			subject.Students = string(marshal)
+			db.UpdateSubject(subject)
+		}
+	}
+}

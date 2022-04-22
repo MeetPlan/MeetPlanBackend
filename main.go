@@ -102,6 +102,7 @@ func main() {
 	r.HandleFunc("/order/get/{meal_id}", httphandler.RemoveOrder).Methods("DELETE")
 
 	r.HandleFunc("/my/grades", httphandler.GetMyGrades).Methods("GET")
+	r.HandleFunc("/my/gradings", httphandler.GetMyGradings).Methods("GET")
 
 	r.HandleFunc("/timetable/get", httphandler.GetTimetable).Methods("GET")
 

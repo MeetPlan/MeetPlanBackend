@@ -1,0 +1,1 @@
+ALTER TABLE grades ADD COLUMN can_patch BOOLEAN DEFAULT true;

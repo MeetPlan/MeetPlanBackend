@@ -26,6 +26,8 @@ type SQL interface {
 	GetTestingResult(date string, id int) (Testing, error)
 	GetTestingResultByID(id int) (Testing, error)
 	GetLastTestingID() int
+	DeleteTeacherSelfTesting(teacherId int) error
+	DeleteUserSelfTesting(userId int) error
 
 	GetUser(id int) (message User, err error)
 	InsertUser(user User) (err error)
@@ -44,16 +46,20 @@ type SQL interface {
 	UpdateClass(class Class) error
 	GetClasses() ([]Class, error)
 	DeleteClass(ID int) error
+	DeleteTeacherClasses(teacherId int) error
+	DeleteUserClasses(userId int)
 
 	GetMeeting(id int) (meeting Meeting, err error)
 	GetMeetingsOnSpecificTime(date string, hour int) (meetings []Meeting, err error)
-	GetMeetingsOnSpecificDateAndClass(date string, classId int) (meetings []Meeting, err error)
+	GetMeetingsForSubject(subjectId int) (meetings []Meeting, err error)
 	InsertMeeting(meeting Meeting) (err error)
 	UpdateMeeting(meeting Meeting) error
 	GetLastMeetingID() (id int)
 	GetMeetings() (meetings []Meeting, err error)
 	DeleteMeeting(ID int) error
 	GetMeetingsOnSpecificDate(date string) (meetings []Meeting, err error)
+	DeleteMeetingsForTeacher(ID int) error
+	DeleteMeetingsForSubject(ID int) error
 
 	GetLastAbsenceID() int
 	GetAbsence(id int) (absence Absence, err error)
@@ -62,6 +68,8 @@ type SQL interface {
 	UpdateAbsence(absence Absence) error
 	GetAbsenceForUserMeeting(meeting_id int, user_id int) (absence Absence, err error)
 	GetAbsencesForUser(user_id int) (absence []Absence, err error)
+	DeleteAbsencesForTeacher(userId int)
+	DeleteAbsencesForUser(userId int)
 
 	GetLastSubjectID() int
 	GetSubject(id int) (subject Subject, err error)
@@ -72,6 +80,7 @@ type SQL interface {
 	GetAllSubjects() (subject []Subject, err error)
 	GetStudents() (message []User, err error)
 	DeleteSubject(subject Subject) error
+	DeleteStudentSubject(userId int)
 
 	GetLastGradeID() int
 	GetGrade(id int) (grade Grade, err error)
@@ -81,6 +90,8 @@ type SQL interface {
 	InsertGrade(grade Grade) error
 	UpdateGrade(grade Grade) error
 	DeleteGrade(ID int) error
+	DeleteGradesByTeacherID(ID int) error
+	DeleteGradesByUserID(ID int) error
 
 	GetLastHomeworkID() int
 	GetHomework(id int) (homework Homework, err error)
@@ -92,11 +103,15 @@ type SQL interface {
 	GetLastStudentHomeworkID() int
 	GetStudentHomework(id int) (homework StudentHomework, err error)
 	GetStudentHomeworkForUser(homeworkId int, userId int) (homework StudentHomework, err error)
+	DeleteStudentHomeworkByStudentID(ID int) error
+	GetHomeworkForTeacher(teacherId int) (homework []Homework, err error)
 	GetStudentsHomeworkByHomeworkID(id int, meetingId int) (homework []StudentHomeworkJSON, err error)
 	GetStudentsHomework(id int) (homework []StudentHomework, err error)
 	InsertStudentHomework(homework StudentHomework) error
 	UpdateStudentHomework(homework StudentHomework) error
 	DeleteStudentHomework(ID int) error
+	DeleteStudentHomeworkByHomeworkID(ID int) error
+	DeleteAllTeacherHomeworks(ID int)
 
 	GetCommunication(id int) (communication Communication, err error)
 	InsertCommunication(communication Communication) (err error)
@@ -104,6 +119,7 @@ type SQL interface {
 	GetLastCommunicationID() (id int)
 	GetCommunications() (communication []Communication, err error)
 	DeleteCommunication(ID int) error
+	DeleteUserCommunications(userId int)
 
 	GetMessage(id int) (message Message, err error)
 	GetCommunicationMessages(communicationId int) (messages []Message, err error)

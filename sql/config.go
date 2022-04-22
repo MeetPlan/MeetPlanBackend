@@ -18,6 +18,7 @@ type Config struct {
 	ParentViewGrades   bool   `json:"parent_view_grades"`
 	ParentViewAbsences bool   `json:"parent_view_absences"`
 	ParentViewHomework bool   `json:"parent_view_homework"`
+	ParentViewGradings bool   `json:"parent_view_gradings"`
 }
 
 func GetConfig() (Config, error) {
@@ -59,8 +60,8 @@ func SaveConfig(config Config) error {
 		return err
 	}
 	if err := f.Close(); err != nil {
-                return err
-        }
+		return err
+	}
 	err = os.WriteFile("config.json", marshal, 0600)
 	if err != nil {
 		return err

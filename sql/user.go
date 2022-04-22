@@ -80,6 +80,20 @@ func (db *sqlImpl) UpdateUser(user User) error {
 }
 
 func (db *sqlImpl) DeleteUser(ID int) error {
+	db.DeleteAllTeacherHomeworks(ID)
+	db.DeleteStudentHomeworkByStudentID(ID)
+	db.DeleteGradesByTeacherID(ID)
+	db.DeleteGradesByUserID(ID)
+	db.DeleteUserCommunications(ID)
+	db.DeleteAbsencesForUser(ID)
+	db.DeleteAbsencesForTeacher(ID)
+	db.DeleteTeacherClasses(ID)
+	db.DeleteUserClasses(ID)
+	db.DeleteMeetingsForTeacher(ID)
+	db.DeleteUserSelfTesting(ID)
+	db.DeleteTeacherSelfTesting(ID)
+	db.DeleteStudentSubject(ID)
+
 	_, err := db.db.Exec("DELETE FROM users WHERE id=$1", ID)
 	return err
 }

@@ -1,5 +1,7 @@
 package sql
 
+import "encoding/json"
+
 type Communication struct {
 	ID          int
 	People      string
@@ -50,4 +52,15 @@ func (db *sqlImpl) DeleteCommunication(ID int) error {
 	}
 	_, err = db.db.Exec("DELETE FROM message WHERE communication_id=$1", ID)
 	return err
+}
+
+func (db *sqlImpl) DeleteUserCommunications(userId int) {
+	communications, _ := db.GetCommunications()
+	for i := 0; i < len(communications); i++ {
+		var users []int
+		json.Unmarshal([]byte(communications[i].People), &users)
+		if contains(users, userId) {
+			db.DeleteCommunication(communications[i].ID)
+		}
+	}
 }

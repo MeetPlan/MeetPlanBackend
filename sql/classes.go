@@ -1,5 +1,12 @@
 package sql
 
+import "encoding/json"
+
+func remove(s []int, i int) []int {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
+}
+
 type Class struct {
 	ID             int
 	Name           string
@@ -46,7 +53,48 @@ func (db *sqlImpl) GetClasses() (classes []Class, err error) {
 	err = db.db.Select(&classes, "SELECT * FROM classes")
 	return classes, err
 }
+
 func (db *sqlImpl) DeleteClass(ID int) error {
 	_, err := db.db.Exec("DELETE FROM classes WHERE id=$1", ID)
 	return err
+}
+
+func (db *sqlImpl) DeleteTeacherClasses(teacherId int) error {
+	classes, err := db.GetClasses()
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(classes); i++ {
+		if classes[i].Teacher == teacherId {
+			subjects, err := db.GetAllSubjects()
+			if err != nil {
+				return err
+			}
+			for n := 0; n < len(subjects); n++ {
+				if subjects[n].InheritsClass && subjects[n].ClassID == classes[i].ID {
+					db.DeleteMeetingsForSubject(subjects[n].ID)
+					db.DeleteSubject(subjects[n])
+				}
+			}
+			db.DeleteClass(classes[i].ID)
+		}
+	}
+	return nil
+}
+
+func (db *sqlImpl) DeleteUserClasses(userId int) {
+	classes, _ := db.GetClasses()
+	for i := 0; i < len(classes); i++ {
+		class := classes[i]
+		var users []int
+		json.Unmarshal([]byte(class.Students), &users)
+		for n := 0; n < len(users); n++ {
+			if users[n] == userId {
+				users = remove(users, n)
+			}
+		}
+		marshal, _ := json.Marshal(users)
+		class.Students = string(marshal)
+		db.UpdateClass(class)
+	}
 }

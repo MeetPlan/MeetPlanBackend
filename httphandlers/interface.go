@@ -112,6 +112,9 @@ type HTTP interface {
 	GetSystemNotifications(w http.ResponseWriter, r *http.Request)
 	NewNotification(w http.ResponseWriter, r *http.Request)
 	DeleteNotification(w http.ResponseWriter, r *http.Request)
+
+	// gradings.go
+	GetMyGradings(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL, config sql.Config) HTTP {

@@ -258,6 +258,11 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 			isFinalBool = true
 		}
 
+		canPatch, err := strconv.ParseBool(r.FormValue("can_patch"))
+		if err != nil {
+			return
+		}
+
 		if isFinalBool {
 			grades, err := server.db.GetGradesForUserInSubject(userId, meeting.SubjectID)
 			if err != nil {
@@ -283,6 +288,7 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 			Period:      period,
 			Description: "",
 			IsFinal:     isFinalBool,
+			CanPatch:    canPatch,
 		}
 
 		err = server.db.InsertGrade(g)
@@ -305,7 +311,6 @@ func (server *httpImpl) PatchGrade(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-
 		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		if err != nil {
 			WriteBadRequest(w)
@@ -383,7 +388,6 @@ func (server *httpImpl) DeleteGrade(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-
 		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		if err != nil {
 			WriteBadRequest(w)

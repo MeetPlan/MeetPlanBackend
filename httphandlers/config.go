@@ -10,6 +10,7 @@ type ParentConfig struct {
 	ParentViewGrades   bool `json:"parent_view_grades"`
 	ParentViewAbsences bool `json:"parent_view_absences"`
 	ParentViewHomework bool `json:"parent_view_homework"`
+	ParentViewGradings bool `json:"parent_view_gradings"`
 }
 
 func (server *httpImpl) GetConfig(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +54,11 @@ func (server *httpImpl) UpdateConfiguration(w http.ResponseWriter, r *http.Reque
 			WriteBadRequest(w)
 			return
 		}
+		parentViewGradings, err := strconv.ParseBool(r.FormValue("parent_view_gradings"))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
 		server.config.SchoolPostCode = schoolPostCode
 		server.config.SchoolCountry = r.FormValue("school_country")
 		server.config.SchoolAddress = r.FormValue("school_address")
@@ -61,6 +67,7 @@ func (server *httpImpl) UpdateConfiguration(w http.ResponseWriter, r *http.Reque
 		server.config.ParentViewGrades = parentViewGrades
 		server.config.ParentViewAbsences = parentViewAbsences
 		server.config.ParentViewHomework = parentViewHomework
+		server.config.ParentViewGradings = parentViewGradings
 		err = sql.SaveConfig(server.config)
 		if err != nil {
 			WriteJSON(w, Response{Data: "Failed to save config", Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -87,5 +94,6 @@ func (server *httpImpl) ParentConfig(w http.ResponseWriter, r *http.Request) {
 		ParentViewGrades:   server.config.ParentViewGrades,
 		ParentViewAbsences: server.config.ParentViewAbsences,
 		ParentViewHomework: server.config.ParentViewHomework,
+		ParentViewGradings: server.config.ParentViewGradings,
 	}, Success: true}, http.StatusOK)
 }

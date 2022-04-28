@@ -33,7 +33,7 @@ func (db *sqlImpl) GetGrade(id int) (grade Grade, err error) {
 }
 
 func (db *sqlImpl) GetGradesForUser(userId int) (grades []Grade, err error) {
-	err = db.db.Select(&grades, "SELECT * FROM grades WHERE user_id=$1", userId)
+	err = db.db.Select(&grades, "SELECT * FROM grades WHERE user_id=$1 ORDER BY id ASC", userId)
 	return grades, err
 }
 
@@ -43,7 +43,7 @@ func (db *sqlImpl) CheckIfFinal(userId int, subjectId int) (grade Grade, err err
 }
 
 func (db *sqlImpl) GetGradesForUserInSubject(userId int, subjectId int) (grades []Grade, err error) {
-	err = db.db.Select(&grades, "SELECT * FROM grades WHERE user_id=$1 AND subject_id=$2", userId, subjectId)
+	err = db.db.Select(&grades, "SELECT * FROM grades WHERE user_id=$1 AND subject_id=$2 ORDER BY id ASC", userId, subjectId)
 	return grades, err
 }
 

@@ -87,6 +87,7 @@ func main() {
 	r.HandleFunc("/meal/get/{meal_id}", httphandler.EditMeal).Methods("PATCH")
 	r.HandleFunc("/meal/get/{meal_id}", httphandler.DeleteMeal).Methods("DELETE")
 	r.HandleFunc("/meals/new", httphandler.NewMeal).Methods("POST")
+	r.HandleFunc("/meals/blocked", httphandler.MealsBlocked).Methods("GET")
 	r.HandleFunc("/teachers/get", httphandler.GetTeachers).Methods("GET")
 	r.HandleFunc("/students/get", httphandler.GetStudents).Methods("GET")
 	r.HandleFunc("/user/role/update/{id}", httphandler.ChangeRole).Methods("PATCH")

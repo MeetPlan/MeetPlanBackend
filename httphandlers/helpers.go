@@ -28,7 +28,11 @@ func GetAuthorizationJWT(r *http.Request) string {
 	if h == "" {
 		return ""
 	}
-	return strings.Split(h, " ")[1]
+	split := strings.Split(h, " ")
+	if len(split) != 2 {
+		return ""
+	}
+	return split[1]
 }
 
 func WriteBadRequest(w http.ResponseWriter) {

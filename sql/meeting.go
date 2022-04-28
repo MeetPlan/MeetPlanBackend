@@ -24,17 +24,17 @@ func (db *sqlImpl) GetMeeting(id int) (meeting Meeting, err error) {
 }
 
 func (db *sqlImpl) GetMeetingsOnSpecificTime(date string, hour int) (meetings []Meeting, err error) {
-	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE date=$1 AND hour=$2", date, hour)
+	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE date=$1 AND hour=$2 ORDER BY id ASC", date, hour)
 	return meetings, err
 }
 
 func (db *sqlImpl) GetMeetingsOnSpecificDate(date string) (meetings []Meeting, err error) {
-	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE date=$1", date)
+	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE date=$1 ORDER BY id ASC", date)
 	return meetings, err
 }
 
 func (db *sqlImpl) GetMeetingsForSubject(subjectId int) (meetings []Meeting, err error) {
-	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE subject_id=$1", subjectId)
+	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE subject_id=$1 ORDER BY id ASC", subjectId)
 	return meetings, err
 }
 
@@ -76,7 +76,7 @@ func (db *sqlImpl) GetLastMeetingID() (id int) {
 }
 
 func (db *sqlImpl) GetMeetings() (meetings []Meeting, err error) {
-	err = db.db.Select(&meetings, "SELECT * FROM meetings")
+	err = db.db.Select(&meetings, "SELECT * FROM meetings ORDER BY id ASC")
 	return meetings, err
 }
 

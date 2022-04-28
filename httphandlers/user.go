@@ -18,6 +18,12 @@ func (server *httpImpl) Login(w http.ResponseWriter, r *http.Request) {
 	pass := r.FormValue("pass")
 	// Check if password is valid
 	user, err := server.db.GetUserByEmail(email)
+
+	if user.Role == "unverified" {
+		WriteJSON(w, Response{Data: "You are unverified. You cannot login until the school administrator confirms you.", Success: false}, http.StatusForbidden)
+		return
+	}
+
 	hashCorrect := sql.CheckHash(pass, user.Password)
 	if !hashCorrect {
 		WriteJSON(w, Response{Data: "Hashes don't match...", Success: false}, http.StatusForbidden)
@@ -35,6 +41,23 @@ func (server *httpImpl) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
+	if server.config.BlockRegistrations {
+		j := GetAuthorizationJWT(r)
+		if j == "" {
+			WriteForbiddenJWT(w)
+			return
+		}
+		jwt, err := sql.CheckJWT(j)
+		if err != nil {
+			WriteForbiddenJWT(w)
+			return
+		}
+		if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		} else {
+			WriteForbiddenJWT(w)
+			return
+		}
+	}
 	email := r.FormValue("email")
 	pass := r.FormValue("pass")
 	name := r.FormValue("name")
@@ -64,7 +87,7 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var role = "student"
+	var role = "unverified"
 
 	isAdmin := !server.db.CheckIfAdminIsCreated()
 	if isAdmin {
@@ -280,7 +303,7 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 	absences, err := server.db.GetAbsencesForUser(studentId)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-		    WriteJSON(w, Response{Data: absenceJson, Error: err.Error(), Success: true}, http.StatusOK)
+			WriteJSON(w, Response{Data: absenceJson, Error: err.Error(), Success: true}, http.StatusOK)
 			return
 		}
 		WriteJSON(w, Response{Data: "Could not fetch absences", Error: err.Error(), Success: false}, http.StatusInternalServerError)

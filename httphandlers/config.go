@@ -1,6 +1,7 @@
 package httphandlers
 
 import (
+	"encoding/json"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"net/http"
 	"strconv"
@@ -59,6 +60,22 @@ func (server *httpImpl) UpdateConfiguration(w http.ResponseWriter, r *http.Reque
 			WriteBadRequest(w)
 			return
 		}
+		blockRegistrations, err := strconv.ParseBool(r.FormValue("block_registrations"))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		blockMeals, err := strconv.ParseBool(r.FormValue("block_meals"))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		// admins, pls no shady business when patching dates, otherwise, system will not work anymore
+		err = json.Unmarshal([]byte(r.FormValue("school_free_days")), &server.config.SchoolFreeDays)
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
 		server.config.SchoolPostCode = schoolPostCode
 		server.config.SchoolCountry = r.FormValue("school_country")
 		server.config.SchoolAddress = r.FormValue("school_address")
@@ -68,6 +85,8 @@ func (server *httpImpl) UpdateConfiguration(w http.ResponseWriter, r *http.Reque
 		server.config.ParentViewAbsences = parentViewAbsences
 		server.config.ParentViewHomework = parentViewHomework
 		server.config.ParentViewGradings = parentViewGradings
+		server.config.BlockRegistrations = blockRegistrations
+		server.config.BlockMeals = blockMeals
 		err = sql.SaveConfig(server.config)
 		if err != nil {
 			WriteJSON(w, Response{Data: "Failed to save config", Error: err.Error(), Success: false}, http.StatusInternalServerError)

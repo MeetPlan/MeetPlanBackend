@@ -90,7 +90,7 @@ func (db *sqlImpl) GetTestingResult(date string, id int) (Testing, error) {
 }
 
 func (db *sqlImpl) GetAllTestingsForUser(id int) (testing []Testing, err error) {
-	err = db.db.Select(&testing, "SELECT * FROM testing WHERE user_id=$1", id)
+	err = db.db.Select(&testing, "SELECT * FROM testing WHERE user_id=$1 ORDER BY id ASC", id)
 	return testing, err
 }
 

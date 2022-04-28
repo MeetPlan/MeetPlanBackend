@@ -67,10 +67,13 @@ func CheckJWT(tokenString string) (jwt.MapClaims, error) {
 
 	if token != nil {
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			if claims["iss"] == JWTIssuer {
-				return claims, nil
+			if claims["iss"] != JWTIssuer {
+				return nil, errors.New("JWT issuer isn't correct")
 			}
-			return nil, errors.New("JWT issuer isn't correct")
+			if claims["role"] == "unverified" {
+				return nil, errors.New("you are an unverified user. You cannot do anything in this system until the server administrator confirms you")
+			}
+			return claims, nil
 		} else {
 			return nil, err
 		}

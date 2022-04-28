@@ -50,7 +50,7 @@ func (db *sqlImpl) GetLastClassID() (id int) {
 }
 
 func (db *sqlImpl) GetClasses() (classes []Class, err error) {
-	err = db.db.Select(&classes, "SELECT * FROM classes")
+	err = db.db.Select(&classes, "SELECT * FROM classes ORDER BY id ASC")
 	return classes, err
 }
 

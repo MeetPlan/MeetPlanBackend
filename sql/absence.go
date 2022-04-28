@@ -33,12 +33,12 @@ func (db *sqlImpl) GetAbsenceForUserMeeting(meeting_id int, user_id int) (absenc
 }
 
 func (db *sqlImpl) GetAbsencesForUser(user_id int) (absence []Absence, err error) {
-	err = db.db.Select(&absence, "SELECT * FROM absence WHERE user_id=$1", user_id)
+	err = db.db.Select(&absence, "SELECT * FROM absence WHERE user_id=$1 ORDER BY id ASC", user_id)
 	return absence, err
 }
 
 func (db *sqlImpl) GetAllAbsences(id int) (absences []Absence, err error) {
-	err = db.db.Select(&absences, "SELECT * FROM absence WHERE user_id=$1", id)
+	err = db.db.Select(&absences, "SELECT * FROM absence WHERE user_id=$1 ORDER BY id ASC", id)
 	return absences, err
 }
 

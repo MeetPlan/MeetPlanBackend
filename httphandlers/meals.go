@@ -22,6 +22,10 @@ type MealDate struct {
 }
 
 func (server *httpImpl) GetMeals(w http.ResponseWriter, r *http.Request) {
+	if server.config.BlockMeals {
+		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
+		return
+	}
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
@@ -97,6 +101,10 @@ func (server *httpImpl) GetMeals(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) NewMeal(w http.ResponseWriter, r *http.Request) {
+	if server.config.BlockMeals {
+		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
+		return
+	}
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
@@ -160,6 +168,10 @@ func (server *httpImpl) NewMeal(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) NewOrder(w http.ResponseWriter, r *http.Request) {
+	if server.config.BlockMeals {
+		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
+		return
+	}
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
@@ -210,6 +222,10 @@ func (server *httpImpl) NewOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) EditMeal(w http.ResponseWriter, r *http.Request) {
+	if server.config.BlockMeals {
+		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
+		return
+	}
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
@@ -275,6 +291,10 @@ func (server *httpImpl) EditMeal(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) DeleteMeal(w http.ResponseWriter, r *http.Request) {
+	if server.config.BlockMeals {
+		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
+		return
+	}
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
@@ -303,6 +323,10 @@ func (server *httpImpl) DeleteMeal(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) BlockUnblockOrder(w http.ResponseWriter, r *http.Request) {
+	if server.config.BlockMeals {
+		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
+		return
+	}
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
@@ -336,6 +360,10 @@ func (server *httpImpl) BlockUnblockOrder(w http.ResponseWriter, r *http.Request
 }
 
 func (server *httpImpl) RemoveOrder(w http.ResponseWriter, r *http.Request) {
+	if server.config.BlockMeals {
+		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
+		return
+	}
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
@@ -375,4 +403,13 @@ func (server *httpImpl) RemoveOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusOK)
+}
+
+func (server *httpImpl) MealsBlocked(w http.ResponseWriter, r *http.Request) {
+	_, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	WriteJSON(w, Response{Success: true, Data: server.config.BlockMeals}, http.StatusOK)
 }

@@ -47,7 +47,7 @@ func (db *sqlImpl) GetLastMealID() (id int) {
 }
 
 func (db *sqlImpl) GetMeals() (meals []Meal, err error) {
-	err = db.db.Select(&meals, "SELECT * FROM meals")
+	err = db.db.Select(&meals, "SELECT * FROM meals ORDER BY id ASC")
 	return meals, err
 }
 

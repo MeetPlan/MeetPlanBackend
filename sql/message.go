@@ -48,12 +48,12 @@ func (db *sqlImpl) GetLastMessageID() (id int) {
 }
 
 func (db *sqlImpl) GetAllMessages() (messages []Message, err error) {
-	err = db.db.Select(&messages, "SELECT * FROM message")
+	err = db.db.Select(&messages, "SELECT * FROM message ORDER BY id ASC")
 	return messages, err
 }
 
 func (db *sqlImpl) GetAllUnreadMessages(userId int) (messages []Message, err error) {
-	err = db.db.Select(&messages, "SELECT * FROM message")
+	err = db.db.Select(&messages, "SELECT * FROM message ORDER BY id ASC")
 	var unread = make([]Message, 0)
 	for i := 0; i < len(messages); i++ {
 		message := messages[i]

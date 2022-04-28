@@ -41,7 +41,7 @@ func (db *sqlImpl) GetLastCommunicationID() (id int) {
 }
 
 func (db *sqlImpl) GetCommunications() (communication []Communication, err error) {
-	err = db.db.Select(&communication, "SELECT * FROM communication")
+	err = db.db.Select(&communication, "SELECT * FROM communication ORDER BY id ASC")
 	return communication, err
 }
 

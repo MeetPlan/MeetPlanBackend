@@ -29,7 +29,7 @@ func (db *sqlImpl) GetHomework(id int) (homework Homework, err error) {
 }
 
 func (db *sqlImpl) GetHomeworkForSubject(id int) (homework []Homework, err error) {
-	err = db.db.Select(&homework, "SELECT * FROM homework WHERE subject_id=$1", id)
+	err = db.db.Select(&homework, "SELECT * FROM homework WHERE subject_id=$1 ORDER BY id ASC", id)
 	if homework == nil {
 		homework = make([]Homework, 0)
 	}
@@ -37,7 +37,7 @@ func (db *sqlImpl) GetHomeworkForSubject(id int) (homework []Homework, err error
 }
 
 func (db *sqlImpl) GetHomeworkForTeacher(teacherId int) (homework []Homework, err error) {
-	err = db.db.Select(&homework, "SELECT * FROM homework WHERE teacher_id=$1", teacherId)
+	err = db.db.Select(&homework, "SELECT * FROM homework WHERE teacher_id=$1 ORDER BY id ASC", teacherId)
 	if homework == nil {
 		homework = make([]Homework, 0)
 	}

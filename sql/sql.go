@@ -56,6 +56,7 @@ type SQL interface {
 	UpdateMeeting(meeting Meeting) error
 	GetLastMeetingID() (id int)
 	GetMeetings() (meetings []Meeting, err error)
+	GetMeetingsForSubjectWithIDLower(id int, subjectId int) (meetings []Meeting, err error)
 	DeleteMeeting(ID int) error
 	GetMeetingsOnSpecificDate(date string) (meetings []Meeting, err error)
 	DeleteMeetingsForTeacher(ID int) error

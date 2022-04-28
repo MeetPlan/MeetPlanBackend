@@ -80,6 +80,11 @@ func (db *sqlImpl) GetMeetings() (meetings []Meeting, err error) {
 	return meetings, err
 }
 
+func (db *sqlImpl) GetMeetingsForSubjectWithIDLower(id int, subjectId int) (meetings []Meeting, err error) {
+	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE id<$1 AND subject_id=$2", id, subjectId)
+	return meetings, err
+}
+
 func (db *sqlImpl) DeleteMeeting(ID int) error {
 	_, err := db.db.Exec("DELETE FROM meetings WHERE id=$1", ID)
 	return err

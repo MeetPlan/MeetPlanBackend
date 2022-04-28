@@ -1,0 +1,1 @@
+ALTER TABLE subject ADD COLUMN realization FLOAT DEFAULT 0.0;

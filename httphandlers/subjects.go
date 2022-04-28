@@ -10,8 +10,9 @@ import (
 
 type Subject struct {
 	sql.Subject
-	TeacherName string
-	User        []UserJSON
+	TeacherName     string
+	User            []UserJSON
+	RealizationDone float32
 }
 
 func (server *httpImpl) GetSubjects(w http.ResponseWriter, r *http.Request) {
@@ -54,6 +55,11 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+		realization, err := strconv.ParseFloat(r.FormValue("realization"), 32)
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
 		var students = make([]int, 0)
 		studentsJson, err := json.Marshal(students)
 		nSubject := sql.Subject{
@@ -64,6 +70,7 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 			InheritsClass: inheritsClass,
 			ClassID:       classIdInt,
 			Students:      string(studentsJson),
+			Realization:   float32(realization),
 		}
 		err = server.db.InsertSubject(nSubject)
 		if err != nil {
@@ -302,15 +309,24 @@ func (server *httpImpl) PatchSubjectName(w http.ResponseWriter, r *http.Request)
 	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
 		subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
 		if err != nil {
+			WriteJSON(w, Response{Data: "Failed to parse subjectId", Error: err.Error(), Success: false}, http.StatusBadRequest)
 			return
 		}
 		subject, err := server.db.GetSubject(subjectId)
 		if err != nil {
+			WriteJSON(w, Response{Data: "Failed to retrieve subject", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+		realization, err := strconv.ParseFloat(r.FormValue("realization"), 32)
+		if err != nil {
+			WriteJSON(w, Response{Data: "Failed to parse realization", Error: err.Error(), Success: false}, http.StatusBadRequest)
 			return
 		}
 		subject.LongName = r.FormValue("long_name")
+		subject.Realization = float32(realization)
 		err = server.db.UpdateSubject(subject)
 		if err != nil {
+			WriteJSON(w, Response{Data: "Failed to update subject", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
 		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)

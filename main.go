@@ -138,7 +138,7 @@ func main() {
 
 	r.HandleFunc("/subject/get/{subject_id}", httphandler.GetSubject).Methods("GET")
 	r.HandleFunc("/subject/get/{subject_id}", httphandler.DeleteSubject).Methods("DELETE")
-	r.HandleFunc("/subject/get/{subject_id}/long_name", httphandler.PatchSubjectName).Methods("PATCH")
+	r.HandleFunc("/subject/get/{subject_id}", httphandler.PatchSubjectName).Methods("PATCH")
 	r.HandleFunc("/subject/get/{subject_id}/add_user/{user_id}", httphandler.AssignUserToSubject).Methods("PATCH")
 	r.HandleFunc("/subject/get/{subject_id}/remove_user/{user_id}", httphandler.RemoveUserFromSubject).Methods("DELETE")
 

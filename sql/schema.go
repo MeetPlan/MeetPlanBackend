@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS subject (
 	name                    VARCHAR(200),
     long_name               VARCHAR(200),
 	inherits_class          BOOLEAN,
+    realization             FLOAT,
 	class_id                INTEGER         DEFAULT(-1),
 	students                JSON            DEFAULT('[]')
 );

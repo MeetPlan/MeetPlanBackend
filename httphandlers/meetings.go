@@ -15,6 +15,7 @@ type Meeting struct {
 	sql.Meeting
 	TeacherName string
 	SubjectName string
+	Subject     Subject
 }
 
 type TimetableDate struct {
@@ -519,7 +520,21 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	m := Meeting{meeting, teacher.Name, ""}
+	subject, err := server.db.GetSubject(meeting.SubjectID)
+	if err != nil {
+		return
+	}
+	meetingsList, err := server.db.GetMeetingsForSubjectWithIDLower(meetingId, subject.ID)
+	if err != nil {
+		return
+	}
+	server.logger.Debug(meetingsList)
+	m := Meeting{meeting, teacher.Name, subject.Name, Subject{
+		Subject:         subject,
+		TeacherName:     teacher.Name,
+		User:            nil,
+		RealizationDone: float32(len(meetingsList)),
+	}}
 	WriteJSON(w, Response{Data: m, Success: true}, http.StatusOK)
 }
 

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/httphandlers"
+	"github.com/MeetPlan/MeetPlanBackend/proton"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -48,7 +49,9 @@ func main() {
 		return
 	}
 
-	httphandler := httphandlers.NewHTTPInterface(sugared, db, config)
+	protonState := proton.NewProton(db)
+
+	httphandler := httphandlers.NewHTTPInterface(sugared, db, config, protonState)
 
 	sugared.Info("Database created successfully")
 
@@ -125,6 +128,7 @@ func main() {
 	r.HandleFunc("/meeting/get/{meeting_id}/homework/{homework_id}/{student_id}", httphandler.PatchHomeworkForStudent).Methods("PATCH")
 	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.NewHomework).Methods("POST")
 	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.GetAllHomeworksForSpecificSubject).Methods("GET")
+	r.HandleFunc("/meeting/get/{meeting_id}/substitutions/proton", httphandler.ManageTeacherAbsences).Methods("GET")
 
 	r.HandleFunc("/meeting/absence/{absence_id}", httphandler.PatchAbsence).Methods("PATCH")
 

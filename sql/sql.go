@@ -52,6 +52,7 @@ type SQL interface {
 	GetMeeting(id int) (meeting Meeting, err error)
 	GetMeetingsOnSpecificTime(date string, hour int) (meetings []Meeting, err error)
 	GetMeetingsForSubject(subjectId int) (meetings []Meeting, err error)
+	GetMeetingsForTeacherOnSpecificDate(teacherId int, date string) (meetings []Meeting, err error)
 	InsertMeeting(meeting Meeting) (err error)
 	UpdateMeeting(meeting Meeting) error
 	GetLastMeetingID() (id int)
@@ -76,6 +77,7 @@ type SQL interface {
 	GetSubject(id int) (subject Subject, err error)
 	GetAllSubjectsForTeacher(id int) (subject []Subject, err error)
 	GetAllSubjectsForUser(id int) (subject []Subject, err error)
+	GetSubjectsWithSpecificLongName(longName string) (subject []Subject, err error)
 	InsertSubject(subject Subject) error
 	UpdateSubject(subject Subject) error
 	GetAllSubjects() (subject []Subject, err error)

@@ -40,6 +40,11 @@ func (db *sqlImpl) GetSubject(id int) (subject Subject, err error) {
 	return subject, err
 }
 
+func (db *sqlImpl) GetSubjectsWithSpecificLongName(longName string) (subject []Subject, err error) {
+	err = db.db.Select(&subject, "SELECT * FROM subject WHERE long_name=$1", longName)
+	return subject, err
+}
+
 func (db *sqlImpl) GetAllSubjectsForTeacher(id int) (subject []Subject, err error) {
 	err = db.db.Select(&subject, "SELECT * FROM subject WHERE teacher_id=$1 ORDER BY id ASC", id)
 	return subject, err

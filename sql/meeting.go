@@ -33,6 +33,11 @@ func (db *sqlImpl) GetMeetingsOnSpecificDate(date string) (meetings []Meeting, e
 	return meetings, err
 }
 
+func (db *sqlImpl) GetMeetingsForTeacherOnSpecificDate(teacherId int, date string) (meetings []Meeting, err error) {
+	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE date=$1 AND teacher_id=$2 ORDER BY id ASC", date, teacherId)
+	return meetings, err
+}
+
 func (db *sqlImpl) GetMeetingsForSubject(subjectId int) (meetings []Meeting, err error) {
 	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE subject_id=$1 ORDER BY id ASC", subjectId)
 	return meetings, err
@@ -81,7 +86,7 @@ func (db *sqlImpl) GetMeetings() (meetings []Meeting, err error) {
 }
 
 func (db *sqlImpl) GetMeetingsForSubjectWithIDLower(id int, subjectId int) (meetings []Meeting, err error) {
-	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE id<$1 AND subject_id=$2", id, subjectId)
+	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE id<=$1 AND subject_id=$2", id, subjectId)
 	return meetings, err
 }
 

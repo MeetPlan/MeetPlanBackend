@@ -1,6 +1,7 @@
 package httphandlers
 
 import (
+	"github.com/MeetPlan/MeetPlanBackend/proton"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"go.uber.org/zap"
 	"net/http"
@@ -10,6 +11,7 @@ type httpImpl struct {
 	logger *zap.SugaredLogger
 	db     sql.SQL
 	config sql.Config
+	proton proton.Proton
 }
 
 type HTTP interface {
@@ -116,12 +118,16 @@ type HTTP interface {
 
 	// gradings.go
 	GetMyGradings(w http.ResponseWriter, r *http.Request)
+
+	// proton.go
+	ManageTeacherAbsences(w http.ResponseWriter, r *http.Request)
 }
 
-func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL, config sql.Config) HTTP {
+func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL, config sql.Config, proton proton.Proton) HTTP {
 	return &httpImpl{
 		logger: logger,
 		db:     db,
 		config: config,
+		proton: proton,
 	}
 }

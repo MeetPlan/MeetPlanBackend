@@ -33,9 +33,10 @@ type TierGradingList struct {
 }
 
 type TeacherTier struct {
-	TeacherID int
-	Tier      int
-	Name      string
+	TeacherID   int
+	Tier        int
+	Name        string
+	GradingList TierGradingList
 }
 
 func (p *protonImpl) ManageAbsences(meetingId int) ([]TeacherTier, error) {
@@ -121,22 +122,31 @@ func (p *protonImpl) ManageAbsences(meetingId int) ([]TeacherTier, error) {
 		if teacherTier.HasMeetingBefore {
 			tierGrade += 3
 		}
+
+		var skip = true
+
 		for n := 0; n < len(recommendation); n++ {
 			r := recommendation[n]
 			if tierGrade > r.Tier {
 				recommendation = insertTeacherTier(recommendation, n, TeacherTier{
-					TeacherID: teacherTier.TeacherID,
-					Tier:      tierGrade,
-					Name:      teacherTier.Name,
+					TeacherID:   teacherTier.TeacherID,
+					Tier:        tierGrade,
+					Name:        teacherTier.Name,
+					GradingList: teacherTier,
 				})
+				skip = false
 				break
 			}
 		}
-		recommendation = append(recommendation, TeacherTier{
-			TeacherID: teacherTier.TeacherID,
-			Tier:      tierGrade,
-			Name:      teacherTier.Name,
-		})
+
+		if skip {
+			recommendation = append(recommendation, TeacherTier{
+				TeacherID:   teacherTier.TeacherID,
+				Tier:        tierGrade,
+				Name:        teacherTier.Name,
+				GradingList: teacherTier,
+			})
+		}
 	}
 	return recommendation, err
 }

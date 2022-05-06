@@ -114,8 +114,23 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		users = make([]int, 0)
+		// TODO: This doesn't seem right
 		users = append(users, uid)
 		myMeetings = true
+	} else if r.URL.Query().Get("teacherId") != "" {
+		if jwt["role"] == "admin" || jwt["role"] == "principal assistant" || jwt["role"] == "principal" {
+			teacherId, err := strconv.Atoi(r.URL.Query().Get("teacherId"))
+			if err != nil {
+				WriteBadRequest(w)
+				return
+			}
+			users = make([]int, 0)
+			users = append(users, teacherId)
+			myMeetings = true
+		} else {
+			WriteForbiddenJWT(w)
+			return
+		}
 	} else {
 		// my user
 		users = make([]int, 0)
@@ -154,7 +169,15 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 		}
 		i++
 	}
-	server.logger.Debug(dates)
+
+	if len(users) == 0 {
+		return
+	}
+	user, err := server.db.GetUser(users[0])
+	if err != nil {
+		return
+	}
+
 	var meetingsJson = make([]TimetableDate, 0)
 	for i := 0; i < len(dates); i++ {
 		date := dates[i]
@@ -197,8 +220,6 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			server.logger.Debug(studentsParent, u, users)
-
 			// Check if at least one user belongs to class
 			for x := 0; x < len(u); x++ {
 				if (myMeetings && (jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant")) || contains(users, u[x]) {
@@ -211,13 +232,20 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 					break
 				}
 			}
+
 			if cont {
-				if jwt["role"] == "student" {
-					if contains(u, uid) {
+				if user.Role == "teacher" && myMeetings {
+					if meeting.TeacherID == user.ID {
 						m = append(m, meeting)
 					}
-				} else if jwt["role"] == "admin" || jwt["role"] == "principal" || (jwt["role"] == "teacher" && meeting.TeacherID == uid) || jwt["role"] == "parent" {
-					m = append(m, meeting)
+				} else {
+					if jwt["role"] == "student" {
+						if contains(u, uid) {
+							m = append(m, meeting)
+						}
+					} else if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || (!myMeetings && jwt["role"] == "teacher") || (myMeetings && jwt["role"] == "teacher" && meeting.TeacherID == uid) || jwt["role"] == "parent" {
+						m = append(m, meeting)
+					}
 				}
 			}
 		}

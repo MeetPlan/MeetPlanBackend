@@ -17,6 +17,7 @@ type UserJSON struct {
 	Birthday               string
 	CityOfBirth            string
 	CountryOfBirth         string
+	IsPassing              bool
 }
 
 func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {

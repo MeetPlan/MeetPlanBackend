@@ -11,6 +11,7 @@ type User struct {
 	CityOfBirth            string `db:"city_of_birth"`
 	CountryOfBirth         string `db:"country_of_birth"`
 	Users                  string
+	IsPassing              bool `db:"is_passing"`
 }
 
 func (db *sqlImpl) GetUser(id int) (message User, err error) {
@@ -40,7 +41,7 @@ func (db *sqlImpl) GetUserByEmail(email string) (message User, err error) {
 
 func (db *sqlImpl) InsertUser(user User) (err error) {
 	_, err = db.db.NamedExec(
-		"INSERT INTO users (id, email, pass, role, name, birth_certificate_number, city_of_birth, country_of_birth, birthday, users) VALUES (:id, :email, :pass, :role, :name, :birth_certificate_number, :city_of_birth, :country_of_birth, :birthday, :users)",
+		"INSERT INTO users (id, email, pass, role, name, birth_certificate_number, city_of_birth, country_of_birth, birthday, users, is_passing) VALUES (:id, :email, :pass, :role, :name, :birth_certificate_number, :city_of_birth, :country_of_birth, :birthday, :users, :is_passing)",
 		user)
 	return err
 }
@@ -74,7 +75,7 @@ func (db *sqlImpl) GetAllUsers() (users []User, err error) {
 
 func (db *sqlImpl) UpdateUser(user User) error {
 	_, err := db.db.NamedExec(
-		"UPDATE users SET pass=:pass, name=:name, role=:role, email=:email, birth_certificate_number=:birth_certificate_number, city_of_birth=:city_of_birth, country_of_birth=:country_of_birth, birthday=:birthday, users=:users WHERE id=:id",
+		"UPDATE users SET pass=:pass, name=:name, role=:role, email=:email, birth_certificate_number=:birth_certificate_number, city_of_birth=:city_of_birth, country_of_birth=:country_of_birth, birthday=:birthday, users=:users, is_passing=:is_passing WHERE id=:id",
 		user)
 	return err
 }

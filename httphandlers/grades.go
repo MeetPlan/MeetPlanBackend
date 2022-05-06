@@ -434,17 +434,16 @@ func (server *httpImpl) DeleteGrade(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetMyGrades is exclusive to student (and class teacher once I implement them)
 func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "student" || jwt["role"] == "teacher" || jwt["role"] == "parent" {
+	if jwt["role"] == "student" || jwt["role"] == "teacher" || jwt["role"] == "parent" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "admin" {
 		var studentId int
 		var teacherId int
-		if jwt["role"] == "teacher" || jwt["role"] == "parent" {
+		if jwt["role"] == "teacher" || jwt["role"] == "parent" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "admin" {
 			if jwt["role"] == "parent" {
 				if !server.config.ParentViewGrades {
 					WriteForbiddenJWT(w)
@@ -726,6 +725,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 			IsDynamicallyAllocated: true,
 		},
 	}
+
 	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
 		studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
 		if err != nil {
@@ -919,9 +919,20 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 				pdf.SetX(subjectsPosition[i].X - 175)
 				pdf.Cell(nil, name)
 			}
-			pdf.SetX(subjectsPosition[i].X - float64(len(grade)/2)*5)
+			pdf.SetX(subjectsPosition[i].X - float64(len(grade)/3)*6)
 			pdf.Cell(nil, grade)
 			subjectsAlreadyIn = append(subjectsAlreadyIn, name)
+		}
+
+		pdf.SetLineWidth(2)
+		pdf.SetLineType("full")
+
+		const lineY = 640
+
+		if user.IsPassing {
+			pdf.Line(190, lineY, 335, lineY)
+		} else {
+			pdf.Line(340, lineY, 412, lineY)
 		}
 
 		pdf.SetX(70)
@@ -936,6 +947,8 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		pdf.SetX(50)
 		pdf.SetY(725)
 		pdf.Cell(nil, fmt.Sprintf("%s.%s.%s", fmt.Sprint(day), fmt.Sprint(int(month)), fmt.Sprint(year)))
+		pdf.SetX(390)
+		pdf.Cell(nil, fmt.Sprintf("MEETPLAN/01/%s", fmt.Sprint(year)))
 
 		teacher, err := server.db.GetUser(class.Teacher)
 		if err != nil {

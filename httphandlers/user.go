@@ -134,12 +134,32 @@ func (server *httpImpl) PatchUser(w http.ResponseWriter, r *http.Request) {
 			WriteJSON(w, Response{Error: err.Error(), Data: "Failed to retrieve used from database", Success: false}, http.StatusInternalServerError)
 			return
 		}
-		user.Birthday = r.FormValue("birthday")
-		user.CountryOfBirth = r.FormValue("country_of_birth")
-		user.CityOfBirth = r.FormValue("city_of_birth")
-		user.Email = r.FormValue("email")
-		user.BirthCertificateNumber = r.FormValue("birth_certificate_number")
-		user.Name = r.FormValue("name")
+		if r.FormValue("birthday") != "" {
+			user.Birthday = r.FormValue("birthday")
+		}
+		if r.FormValue("country_of_birth") != "" {
+			user.CountryOfBirth = r.FormValue("country_of_birth")
+		}
+		if r.FormValue("city_of_birth") != "" {
+			user.CityOfBirth = r.FormValue("city_of_birth")
+		}
+		if r.FormValue("email") != "" {
+			user.Email = r.FormValue("email")
+		}
+		if r.FormValue("birth_certificate_number") != "" {
+			user.BirthCertificateNumber = r.FormValue("birth_certificate_number")
+		}
+		if r.FormValue("name") != "" {
+			user.Name = r.FormValue("name")
+		}
+		if r.FormValue("is_passing") != "" {
+			isPassing, err := strconv.ParseBool(r.FormValue("is_passing"))
+			if err != nil {
+				WriteBadRequest(w)
+				return
+			}
+			user.IsPassing = isPassing
+		}
 		err = server.db.UpdateUser(user)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Data: "Failed to update user", Success: false}, http.StatusInternalServerError)
@@ -220,6 +240,7 @@ func (server *httpImpl) GetUserData(w http.ResponseWriter, r *http.Request) {
 		Birthday:               user.Birthday,
 		CityOfBirth:            user.CityOfBirth,
 		CountryOfBirth:         user.CountryOfBirth,
+		IsPassing:              user.IsPassing,
 	}
 	WriteJSON(w, Response{Data: ujson, Success: true}, http.StatusOK)
 }

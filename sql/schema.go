@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS users (
     birthday                 VARCHAR(200),
     country_of_birth         VARCHAR(200),
     city_of_birth            VARCHAR(200),
-    users                    VARCHAR(200)   DEFAULT('[]')
+    users                    VARCHAR(200)   DEFAULT('[]'),
+    is_passing               BOOLEAN
 );
 CREATE TABLE IF NOT EXISTS classes (
 	id                       INTEGER        PRIMARY KEY,

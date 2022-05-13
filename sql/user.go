@@ -20,17 +20,17 @@ func (db *sqlImpl) GetUser(id int) (message User, err error) {
 }
 
 func (db *sqlImpl) GetTeachers() (message []User, err error) {
-	err = db.db.Select(&message, "SELECT * FROM users WHERE role='teacher'")
+	err = db.db.Select(&message, "SELECT * FROM users WHERE role='teacher' ORDER BY id ASC")
 	return message, err
 }
 
 func (db *sqlImpl) GetPrincipal() (principal User, err error) {
-	err = db.db.Get(&principal, "SELECT * FROM users WHERE role='principal'")
+	err = db.db.Get(&principal, "SELECT * FROM users WHERE role='principal' ORDER BY id ASC")
 	return principal, err
 }
 
 func (db *sqlImpl) GetStudents() (message []User, err error) {
-	err = db.db.Select(&message, "SELECT * FROM users WHERE role='student'")
+	err = db.db.Select(&message, "SELECT * FROM users WHERE role='student' ORDER BY id ASC")
 	return message, err
 }
 
@@ -69,7 +69,7 @@ func (db *sqlImpl) CheckIfAdminIsCreated() bool {
 }
 
 func (db *sqlImpl) GetAllUsers() (users []User, err error) {
-	err = db.db.Select(&users, "SELECT * FROM users")
+	err = db.db.Select(&users, "SELECT * FROM users ORDER BY id ASC")
 	return users, err
 }
 

@@ -60,9 +60,11 @@ func main() {
 	r.HandleFunc("/user/login", httphandler.Login).Methods("POST")
 	// Get all classes for specific user
 	r.HandleFunc("/user/get/classes", httphandler.GetAllClasses).Methods("GET")
+	r.HandleFunc("/user/get/password_change", httphandler.ChangePassword).Methods("PATCH")
 	r.HandleFunc("/user/check/has/class", httphandler.HasClass).Methods("GET")
 	r.HandleFunc("/user/get/data/{id}", httphandler.GetUserData).Methods("GET")
 	r.HandleFunc("/user/get/data/{user_id}", httphandler.PatchUser).Methods("PATCH")
+	r.HandleFunc("/user/get/password_reset/{user_id}", httphandler.ResetPassword).Methods("GET")
 	r.HandleFunc("/user/get/homework/{id}", httphandler.GetUserHomework).Methods("GET")
 	r.HandleFunc("/user/get/absences/{id}", httphandler.GetAbsencesUser).Methods("GET")
 	r.HandleFunc("/user/get/ending_certificate/{student_id}", httphandler.PrintCertificateOfEndingClass).Methods("GET")

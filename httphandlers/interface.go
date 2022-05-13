@@ -3,6 +3,7 @@ package httphandlers
 import (
 	"github.com/MeetPlan/MeetPlanBackend/proton"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
+	"github.com/signintech/gopdf"
 	"go.uber.org/zap"
 	"net/http"
 )
@@ -25,6 +26,9 @@ type HTTP interface {
 	GetUserData(w http.ResponseWriter, r *http.Request)
 	GetAbsencesUser(w http.ResponseWriter, r *http.Request)
 	CertificateOfSchooling(w http.ResponseWriter, r *http.Request)
+	ResetPassword(w http.ResponseWriter, r *http.Request)
+	GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopdf.GoPdf, error)
+	ChangePassword(w http.ResponseWriter, r *http.Request)
 
 	// testing.go
 	GetSelfTestingTeacher(w http.ResponseWriter, r *http.Request)

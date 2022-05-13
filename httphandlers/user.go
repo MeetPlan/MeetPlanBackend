@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
+	"github.com/dchest/uniuri"
 	"github.com/gorilla/mux"
 	"github.com/johnfercher/maroto/pkg/consts"
 	"github.com/johnfercher/maroto/pkg/pdf"
 	"github.com/johnfercher/maroto/pkg/props"
+	"github.com/signintech/gopdf"
 	"net/http"
 	"strconv"
 	"time"
@@ -677,4 +679,205 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 		WriteForbiddenJWT(w)
 		return
 	}
+}
+
+func (server *httpImpl) GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopdf.GoPdf, error) {
+	user, err := server.db.GetUser(userId)
+	if err != nil {
+		return pdf, err
+	}
+
+	pdf.AddPage()
+	rect := gopdf.Rect{H: 120, W: 120}
+
+	err = pdf.Image("icons/meetplan.png", 50, 50, &rect)
+	if err != nil {
+		return pdf, err
+	}
+
+	newPassword := uniuri.NewLen(10)
+	password, err := sql.HashPassword(newPassword)
+	if err != nil {
+		return pdf, err
+	}
+
+	user.Password = password
+
+	const borderBase = 30
+
+	pdf.SetX(250)
+	pdf.SetY(120)
+	pdf.SetFontSize(30)
+	pdf.Text("MeetPlan")
+	pdf.SetFontSize(18)
+	pdf.SetX(250)
+	pdf.SetY(140)
+	pdf.Text("Pristopna izjava k MeetPlan sistemu")
+
+	pdf.Line(20, 200, 575, 200)
+
+	pdf.SetFontSize(13)
+	pdf.SetX(borderBase)
+	pdf.SetY(240)
+	pdf.Text("Verjetno ste bili že obveščeni, da je vaša šola to leto izbrala drug sistem.")
+	pdf.SetX(borderBase)
+	pdf.SetY(255)
+	pdf.Text("MeetPlan je popolnoma odprtokoden sistem, ki je popolnoma zastonj.")
+	pdf.SetX(borderBase)
+	pdf.SetY(270)
+	pdf.Text("Ta izjava vsebuje vaše osebne podatke za dostop do MeetPlan sistema.")
+	pdf.SetX(borderBase)
+	pdf.SetY(285)
+	pdf.Text("Priporočamo, da pri prvem vstopu v sistem to geslo tudi zamenjate.")
+	pdf.SetX(borderBase)
+	pdf.SetY(300)
+	pdf.Text("Poleg spodaj naštetih podatkov zbiramo samo še matično številko osebe.")
+
+	const differ = 150
+
+	pdf.SetX(borderBase)
+	pdf.SetY(350)
+	pdf.SetFontSize(10)
+	pdf.Text("uporabnik")
+	pdf.SetFontSize(20)
+	pdf.SetX(differ)
+	pdf.Text(user.Name)
+
+	pdf.SetX(borderBase)
+	pdf.SetY(380)
+	pdf.SetFontSize(10)
+	pdf.Text("elektronski naslov")
+	pdf.SetX(differ)
+	pdf.SetFontSize(20)
+	pdf.Text(user.Email)
+
+	pdf.SetX(borderBase)
+	pdf.SetY(410)
+	pdf.SetFontSize(10)
+	pdf.Text("geslo")
+	pdf.SetX(differ)
+	pdf.SetFontSize(20)
+	pdf.Text(newPassword)
+
+	pdf.SetX(borderBase)
+	pdf.SetY(440)
+	pdf.SetFontSize(10)
+	pdf.Text("naziv v sistemu")
+	pdf.SetX(differ)
+	pdf.SetFontSize(20)
+	pdf.Text(user.Role)
+
+	pdf.SetX(borderBase)
+	pdf.SetY(470)
+	pdf.SetFontSize(10)
+	pdf.Text("kraj rojstva")
+	pdf.SetX(differ)
+	pdf.SetFontSize(20)
+	pdf.Text(user.CityOfBirth)
+
+	pdf.SetX(borderBase)
+	pdf.SetY(500)
+	pdf.SetFontSize(10)
+	pdf.Text("država rojstva")
+	pdf.SetX(differ)
+	pdf.SetFontSize(20)
+	pdf.Text(user.CountryOfBirth)
+
+	pdf.SetX(borderBase)
+	pdf.SetY(530)
+	pdf.SetFontSize(10)
+	pdf.Text("datum rojstva")
+	pdf.SetX(differ)
+	pdf.SetFontSize(20)
+	pdf.Text(user.Birthday)
+
+	if server.config.Debug {
+		pdf.SetX(borderBase)
+		pdf.SetY(560)
+		pdf.SetFontSize(10)
+		pdf.Text("enolični identifikator")
+		pdf.SetFontSize(20)
+		pdf.SetX(differ)
+		pdf.Text(fmt.Sprint(user.ID))
+	}
+
+	err = server.db.UpdateUser(user)
+	return pdf, err
+}
+
+func (server *httpImpl) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	jwtData, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	if jwtData["role"] == "admin" || jwtData["role"] == "principal" || jwtData["role"] == "principal assistant" {
+		id, err := strconv.Atoi(mux.Vars(r)["user_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+
+		pdf := &gopdf.GoPdf{}
+		pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
+
+		err = pdf.AddTTFFont("opensans", "fonts/opensans.ttf")
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+
+		err = pdf.SetFont("opensans", "", 11)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+
+		pdf, err = server.GenerateNewUserCert(pdf, id)
+		if err != nil {
+			WriteJSON(w, Response{Data: "Failed at generating PDF", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(pdf.GetBytesPdf())
+	} else {
+		WriteForbiddenJWT(w)
+	}
+}
+
+func (server *httpImpl) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	jwtData, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	userId, err := strconv.Atoi(fmt.Sprint(jwtData["user_id"]))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+
+	user, err := server.db.GetUser(userId)
+	if err != nil {
+		return
+	}
+
+	oldPass := r.FormValue("oldPassword")
+	if !sql.CheckHash(oldPass, user.Password) {
+		WriteJSON(w, Response{Data: "Wrong password", Success: false}, http.StatusForbidden)
+		return
+	}
+
+	password, err := sql.HashPassword(r.FormValue("password"))
+	if err != nil {
+		return
+	}
+
+	user.Password = password
+
+	server.db.UpdateUser(user)
+
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }

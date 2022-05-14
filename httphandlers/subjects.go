@@ -13,6 +13,7 @@ type Subject struct {
 	TeacherName     string
 	User            []UserJSON
 	RealizationDone float32
+	TeacherID       int
 }
 
 func (server *httpImpl) GetSubjects(w http.ResponseWriter, r *http.Request) {

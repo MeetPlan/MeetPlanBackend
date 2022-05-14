@@ -46,7 +46,11 @@ func (server *httpImpl) NewHomework(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" && meeting.TeacherID != userId {
+		subject, err := server.db.GetSubject(meeting.SubjectID)
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" && !(subject.TeacherID == userId || meeting.TeacherID == userId) {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -90,11 +94,13 @@ func (server *httpImpl) GetAllHomeworksForSpecificSubject(w http.ResponseWriter,
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" {
-			if meeting.TeacherID != userId {
-				WriteForbiddenJWT(w)
-				return
-			}
+		subject, err := server.db.GetSubject(meeting.SubjectID)
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" && !(subject.TeacherID == userId || meeting.TeacherID == userId) {
+			WriteForbiddenJWT(w)
+			return
 		}
 		homework, err := server.db.GetHomeworkForSubject(meeting.SubjectID)
 		if err != nil {
@@ -189,11 +195,13 @@ func (server *httpImpl) PatchHomeworkForStudent(w http.ResponseWriter, r *http.R
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" {
-			if homework.TeacherID != teacherId {
-				WriteForbiddenJWT(w)
-				return
-			}
+		subject, err := server.db.GetSubject(homework.SubjectID)
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" && !(subject.TeacherID == teacherId || homework.TeacherID == teacherId) {
+			WriteForbiddenJWT(w)
+			return
 		}
 		h, err := server.db.GetStudentHomeworkForUser(homeworkId, userId)
 		if err != nil {

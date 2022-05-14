@@ -235,7 +235,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 
 			if cont {
 				if user.Role == "teacher" && myMeetings {
-					if meeting.TeacherID == user.ID {
+					if meeting.TeacherID == user.ID || subject.TeacherID == user.ID {
 						m = append(m, meeting)
 					}
 				} else {
@@ -273,7 +273,11 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		dates := make([]string, 0)
+
 		date := r.FormValue("date")
+		dates = append(dates, date)
+
 		hour, err := strconv.Atoi(r.FormValue("hour"))
 		if err != nil {
 			WriteBadRequest(w)
@@ -318,26 +322,56 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 			isTest = true
 		}
 
-		meeting := sql.Meeting{
-			ID:                  server.db.GetLastMeetingID(),
-			MeetingName:         name,
-			TeacherID:           teacherId,
-			SubjectID:           subjectId,
-			Hour:                hour,
-			Date:                date,
-			IsMandatory:         isMandatory,
-			URL:                 url,
-			Details:             details,
-			IsGrading:           isGrading,
-			IsWrittenAssessment: isWrittenAssessment,
-			IsTest:              isTest,
-			IsSubstitution:      false,
+		if r.FormValue("last_date") != "" {
+			repeatCycle, err := strconv.Atoi(r.FormValue("repeat_cycle"))
+			if err != nil {
+				WriteJSON(w, Response{Error: err.Error(), Data: "Failed at converting repeat_cycle to int", Success: false}, http.StatusBadRequest)
+				return
+			}
+			lastDate, err := time.Parse("02-01-2006", r.FormValue("last_date"))
+			if err != nil {
+				WriteJSON(w, Response{Error: err.Error(), Data: "Failed at converting last_date to Time", Success: false}, http.StatusBadRequest)
+				return
+			}
+			date, err := time.Parse("02-01-2006", date)
+			if err != nil {
+				WriteJSON(w, Response{Error: err.Error(), Data: "Failed at converting date to Time", Success: false}, http.StatusBadRequest)
+				return
+			}
+			for {
+				m := 24 * 7 * repeatCycle
+				date = date.Add(time.Hour * time.Duration(m))
+				if date.After(lastDate) {
+					break
+				}
+				dates = append(dates, date.Format("02-01-2006"))
+			}
 		}
 
-		err = server.db.InsertMeeting(meeting)
-		if err != nil {
-			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-			return
+		for i := 0; i < len(dates); i++ {
+			date := dates[i]
+
+			meeting := sql.Meeting{
+				ID:                  server.db.GetLastMeetingID(),
+				MeetingName:         name,
+				TeacherID:           teacherId,
+				SubjectID:           subjectId,
+				Hour:                hour,
+				Date:                date,
+				IsMandatory:         isMandatory,
+				URL:                 url,
+				Details:             details,
+				IsGrading:           isGrading,
+				IsWrittenAssessment: isWrittenAssessment,
+				IsTest:              isTest,
+				IsSubstitution:      false,
+			}
+
+			err = server.db.InsertMeeting(meeting)
+			if err != nil {
+				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+				return
+			}
 		}
 		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 	} else {
@@ -359,11 +393,6 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 		date := r.FormValue("date")
 		hour, err := strconv.Atoi(r.FormValue("hour"))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-		subjectId, err := strconv.Atoi(r.FormValue("subjectId"))
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -414,7 +443,13 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 
 		originalmeeting, err := server.db.GetMeeting(id)
-		if originalmeeting.TeacherID != teacherId && jwt["role"] == "teacher" {
+
+		subject, err := server.db.GetSubject(originalmeeting.SubjectID)
+		if err != nil {
+			return
+		}
+
+		if !(subject.TeacherID == teacherId || originalmeeting.TeacherID == teacherId) && jwt["role"] == "teacher" {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -423,7 +458,7 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 			ID:                  id,
 			MeetingName:         name,
 			TeacherID:           teacherId,
-			SubjectID:           subjectId,
+			SubjectID:           subject.ID,
 			Hour:                hour,
 			Date:                date,
 			IsMandatory:         isMandatory,
@@ -556,12 +591,12 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	server.logger.Debug(meetingsList)
 	m := Meeting{meeting, teacher.Name, subject.Name, Subject{
 		Subject:         subject,
 		TeacherName:     teacher.Name,
 		User:            nil,
 		RealizationDone: float32(len(meetingsList)),
+		TeacherID:       subject.TeacherID,
 	}}
 	WriteJSON(w, Response{Data: m, Success: true}, http.StatusOK)
 }
@@ -586,15 +621,15 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" && meeting.TeacherID != teacherId {
+		subject, err := server.db.GetSubject(meeting.SubjectID)
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" && !(subject.TeacherID == teacherId || meeting.TeacherID == teacherId) {
 			WriteForbiddenJWT(w)
 			return
 		}
 		teacher, err := server.db.GetUser(teacherId)
-		if err != nil {
-			return
-		}
-		subject, err := server.db.GetSubject(meeting.SubjectID)
 		if err != nil {
 			return
 		}
@@ -677,7 +712,15 @@ func (server *httpImpl) PatchAbsence(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" && absence.TeacherID != teacherId {
+		meeting, err := server.db.GetMeeting(absence.MeetingID)
+		if err != nil {
+			return
+		}
+		subject, err := server.db.GetSubject(meeting.SubjectID)
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" && !(subject.TeacherID == teacherId || meeting.TeacherID == teacherId) {
 			WriteForbiddenJWT(w)
 			return
 		}

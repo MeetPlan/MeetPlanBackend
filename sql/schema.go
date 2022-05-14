@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS meetings (
 	teacher_id              INTEGER         NOT NULL,
 	subject_id              INTEGER         NOT NULL,
 	hour                    INTEGER         NOT NULL,
-	date                    INTEGER         NOT NULL,
+	date                    VARCHAR(20)     NOT NULL,
 	is_mandatory            BOOLEAN         NOT NULL,
 	is_grading              BOOLEAN         NOT NULL,
 	is_written_assessment   BOOLEAN,

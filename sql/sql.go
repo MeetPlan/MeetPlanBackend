@@ -146,6 +146,13 @@ type SQL interface {
 	UpdateNotification(notification NotificationSQL) error
 	GetLastNotificationID() (id int)
 	DeleteNotification(ID int) error
+
+	GetLastImprovementID() int
+	GetImprovement(id int) (improvement Improvement, err error)
+	GetImprovementsForStudent(studentId int) (improvements []Improvement, err error)
+	InsertImprovement(improvement Improvement) error
+	UpdateImprovement(homework Homework) error
+	DeleteImprovement(ID int) error
 }
 
 func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, error) {

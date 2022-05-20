@@ -1,0 +1,1 @@
+ALTER TABLE improvements ADD COLUMN teacher_id INTEGER DEFAULT 0;

@@ -4,33 +4,33 @@ const schema string = `
 CREATE TABLE IF NOT EXISTS testing (
 	id           INTEGER                    PRIMARY KEY,
 	user_id      INTEGER                    NOT NULL,
-    date         VARCHAR(250)               NOT NULL,
+	date         VARCHAR(250)               NOT NULL,
 	teacher_id   INTEGER                    NOT NULL,
 	class_id     INTEGER                    NOT NULL,
 	result       VARCHAR(250)               NOT NULL
 );
 CREATE TABLE IF NOT EXISTS users (
-    id                       INTEGER        PRIMARY KEY,
-    email                    VARCHAR(250)   NOT NULL,
-    pass                     VARCHAR(250)   NOT NULL,
+	id                       INTEGER        PRIMARY KEY,
+	email                    VARCHAR(250)   NOT NULL,
+	pass                     VARCHAR(250)   NOT NULL,
 	name                     VARCHAR(250)   NOT NULL,
 	role                     VARCHAR(50)    NOT NULL,
-    birth_certificate_number VARCHAR(200),
-    birthday                 VARCHAR(200),
-    country_of_birth         VARCHAR(200),
-    city_of_birth            VARCHAR(200),
-    users                    VARCHAR(200)   DEFAULT('[]'),
-    is_passing               BOOLEAN
+	birth_certificate_number VARCHAR(200),
+	birthday                 VARCHAR(200),
+	country_of_birth         VARCHAR(200),
+	city_of_birth            VARCHAR(200),
+	users                    VARCHAR(200)   DEFAULT('[]'),
+	is_passing               BOOLEAN
 );
 CREATE TABLE IF NOT EXISTS classes (
 	id                       INTEGER        PRIMARY KEY,
 	students                 JSON           DEFAULT('[]'),
 	name                     VARCHAR(100)   NOT NULL,
-    class_year               VARCHAR(20)    DEFAULT(''),
+	class_year               VARCHAR(20)    DEFAULT(''),
 	last_school_date         INTEGER,
 	teacher                  INTEGER,
-    sok                      INTEGER,
-    eok                      INTEGER
+	sok                      INTEGER,
+	eok                      INTEGER
 );
 CREATE TABLE IF NOT EXISTS meetings (
 	id                      INTEGER         PRIMARY KEY,
@@ -71,9 +71,9 @@ CREATE TABLE IF NOT EXISTS subject (
 	id                      INTEGER         PRIMARY KEY,
 	teacher_id              INTEGER,
 	name                    VARCHAR(200),
-    long_name               VARCHAR(200),
+	long_name               VARCHAR(200),
 	inherits_class          BOOLEAN,
-    realization             FLOAT,
+	realization             FLOAT,
 	class_id                INTEGER         DEFAULT(-1),
 	students                JSON            DEFAULT('[]')
 );
@@ -123,5 +123,12 @@ CREATE TABLE IF NOT EXISTS meals (
 CREATE TABLE IF NOT EXISTS notifications (
 	id                      INTEGER         PRIMARY KEY,
 	notification            VARCHAR(3000)
+);
+CREATE TABLE IF NOT EXISTS improvements (
+	id                      INTEGER         PRIMARY KEY,
+	message                 VARCHAR(3000),
+	student_id              INTEGER,
+    meeting_id              INTEGER,
+	teacher_id              INTEGER
 );
 `

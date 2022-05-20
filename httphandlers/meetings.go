@@ -735,3 +735,66 @@ func (server *httpImpl) PatchAbsence(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 	}
 }
+
+func (server *httpImpl) GetUsersForMeeting(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+		meeting, err := server.db.GetMeeting(meetingId)
+		if err != nil {
+			return
+		}
+		subject, err := server.db.GetSubject(meeting.SubjectID)
+		if err != nil {
+			return
+		}
+		if jwt["role"] == "teacher" && !(subject.TeacherID == teacherId || meeting.TeacherID == teacherId) {
+			WriteForbiddenJWT(w)
+			return
+		}
+		var students []int
+		if subject.InheritsClass {
+			class, err := server.db.GetClass(subject.ClassID)
+			if err != nil {
+				return
+			}
+			err = json.Unmarshal([]byte(class.Students), &students)
+			if err != nil {
+				return
+			}
+		} else {
+			err = json.Unmarshal([]byte(subject.Students), &students)
+			if err != nil {
+				return
+			}
+		}
+		users := make([]UserJSON, 0)
+		for i := 0; i < len(students); i++ {
+			student := students[i]
+			studentUser, err := server.db.GetUser(student)
+			if err != nil {
+				return
+			}
+			users = append(users, UserJSON{
+				Name: studentUser.Name,
+				ID:   studentUser.ID,
+			})
+		}
+		WriteJSON(w, Response{Data: users, Success: true}, http.StatusOK)
+	} else {
+		WriteForbiddenJWT(w)
+	}
+}

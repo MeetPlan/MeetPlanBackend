@@ -59,6 +59,7 @@ type HTTP interface {
 	GetMeeting(w http.ResponseWriter, r *http.Request)
 	GetAbsencesTeacher(w http.ResponseWriter, r *http.Request)
 	PatchAbsence(w http.ResponseWriter, r *http.Request)
+	GetUsersForMeeting(w http.ResponseWriter, r *http.Request)
 
 	// subjects.go
 	GetSubjects(w http.ResponseWriter, r *http.Request)
@@ -125,6 +126,10 @@ type HTTP interface {
 
 	// proton.go
 	ManageTeacherAbsences(w http.ResponseWriter, r *http.Request)
+
+	// improvements.go
+	NewImprovement(w http.ResponseWriter, r *http.Request)
+	GetImprovementsForUser(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL, config sql.Config, proton proton.Proton) HTTP {

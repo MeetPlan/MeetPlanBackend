@@ -67,6 +67,7 @@ func main() {
 	r.HandleFunc("/user/get/password_reset/{user_id}", httphandler.ResetPassword).Methods("GET")
 	r.HandleFunc("/user/get/homework/{id}", httphandler.GetUserHomework).Methods("GET")
 	r.HandleFunc("/user/get/absences/{id}", httphandler.GetAbsencesUser).Methods("GET")
+	r.HandleFunc("/user/get/improvements", httphandler.GetImprovementsForUser).Methods("GET")
 	r.HandleFunc("/user/get/ending_certificate/{student_id}", httphandler.PrintCertificateOfEndingClass).Methods("GET")
 	r.HandleFunc("/user/get/certificate_of_schooling/{user_id}", httphandler.CertificateOfSchooling).Methods("GET")
 	r.HandleFunc("/user/get/unread_messages", httphandler.GetUnreadMessages).Methods("GET")
@@ -126,8 +127,10 @@ func main() {
 
 	r.HandleFunc("/meeting/get/{meeting_id}", httphandler.GetMeeting).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/absences", httphandler.GetAbsencesTeacher).Methods("GET")
+	r.HandleFunc("/meeting/get/{meeting_id}/users", httphandler.GetUsersForMeeting).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/grades", httphandler.GetGradesForMeeting).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/homework/{homework_id}/{student_id}", httphandler.PatchHomeworkForStudent).Methods("PATCH")
+	r.HandleFunc("/meeting/get/{meeting_id}/improvement/new/{student_id}", httphandler.NewImprovement).Methods("POST")
 	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.NewHomework).Methods("POST")
 	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.GetAllHomeworksForSpecificSubject).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/substitutions/proton", httphandler.ManageTeacherAbsences).Methods("GET")

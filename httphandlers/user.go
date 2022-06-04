@@ -466,7 +466,7 @@ func (server *httpImpl) GetStudents(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist" {
 		students, err := server.db.GetStudents()
 		if err != nil {
 			return

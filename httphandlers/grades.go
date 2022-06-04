@@ -440,10 +440,10 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "student" || jwt["role"] == "teacher" || jwt["role"] == "parent" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "admin" {
+	if jwt["role"] == "student" || jwt["role"] == "teacher" || jwt["role"] == "parent" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "admin" || jwt["role"] == "school psychologist" {
 		var studentId int
 		var teacherId int
-		if jwt["role"] == "teacher" || jwt["role"] == "parent" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "admin" {
+		if jwt["role"] == "teacher" || jwt["role"] == "parent" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "admin" || jwt["role"] == "school psychologist" {
 			if jwt["role"] == "parent" {
 				if !server.config.ParentViewGrades {
 					WriteForbiddenJWT(w)

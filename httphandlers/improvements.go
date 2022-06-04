@@ -124,7 +124,7 @@ func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Re
 			WriteForbiddenJWT(w)
 			return
 		}
-	} else if jwt["role"] == "principal assistant" || jwt["role"] == "principal" || jwt["role"] == "admin" || jwt["role"] == "student" {
+	} else if jwt["role"] == "principal assistant" || jwt["role"] == "principal" || jwt["role"] == "admin" || jwt["role"] == "student" || jwt["role"] == "school psychologist" {
 	} else {
 		WriteForbiddenJWT(w)
 		return

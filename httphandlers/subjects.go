@@ -91,7 +91,7 @@ func (server *httpImpl) GetSubject(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist" {
 		subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)

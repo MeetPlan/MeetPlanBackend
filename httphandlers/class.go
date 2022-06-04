@@ -121,7 +121,7 @@ func (server *httpImpl) GetClass(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist" {
 		classId, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			WriteBadRequest(w)

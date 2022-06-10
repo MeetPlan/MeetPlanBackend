@@ -110,7 +110,7 @@ func (server *httpImpl) NewMeal(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal assistant" || jwt["role"] == "principal" {
+	if jwt["role"] == "admin" || jwt["role"] == "principal assistant" || jwt["role"] == "principal" || jwt["role"] == "food organizer" {
 		price, err := strconv.ParseFloat(r.FormValue("price"), 32)
 		if err != nil {
 			WriteJSON(w, Response{Success: false, Data: "Could not parse price", Error: r.FormValue("price")}, http.StatusBadRequest)

@@ -109,14 +109,15 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else if r.URL.Query().Get("studentId") != "" {
-		if jwt["role"] == "student" {
+		if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "parent" || jwt["role"] == "school psychologist" {
+			users = make([]int, 0)
+			// TODO: This doesn't seem right
+			users = append(users, uid)
+			myMeetings = true
+		} else {
 			WriteForbiddenJWT(w)
 			return
 		}
-		users = make([]int, 0)
-		// TODO: This doesn't seem right
-		users = append(users, uid)
-		myMeetings = true
 	} else if r.URL.Query().Get("teacherId") != "" {
 		if jwt["role"] == "admin" || jwt["role"] == "principal assistant" || jwt["role"] == "principal" {
 			teacherId, err := strconv.Atoi(r.URL.Query().Get("teacherId"))
@@ -222,7 +223,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 
 			// Check if at least one user belongs to class
 			for x := 0; x < len(u); x++ {
-				if (myMeetings && (jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant")) || contains(users, u[x]) {
+				if (myMeetings && (jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist")) || contains(users, u[x]) {
 					if jwt["role"] == "parent" {
 						if !contains(studentsParent, u[x]) {
 							continue
@@ -234,7 +235,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if cont {
-				if user.Role == "teacher" && myMeetings {
+				if (user.Role == "teacher" || user.Role == "school psychologist") && myMeetings {
 					if meeting.TeacherID == user.ID || subject.TeacherID == user.ID {
 						m = append(m, meeting)
 					}
@@ -243,7 +244,14 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 						if contains(u, uid) {
 							m = append(m, meeting)
 						}
-					} else if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || (!myMeetings && jwt["role"] == "teacher") || (myMeetings && jwt["role"] == "teacher" && meeting.TeacherID == uid) || jwt["role"] == "parent" {
+					} else if jwt["role"] == "admin" ||
+						jwt["role"] == "principal" ||
+						jwt["role"] == "principal assistant" ||
+						(!myMeetings && jwt["role"] == "teacher") ||
+						(myMeetings && jwt["role"] == "teacher" && meeting.TeacherID == uid) ||
+						(!myMeetings && jwt["role"] == "school psychologist") ||
+						(myMeetings && jwt["role"] == "school psychologist" && meeting.TeacherID == uid) ||
+						jwt["role"] == "parent" {
 						m = append(m, meeting)
 					}
 				}

@@ -126,6 +126,8 @@ type HTTP interface {
 
 	// proton.go
 	ManageTeacherAbsences(w http.ResponseWriter, r *http.Request)
+	NewProtonRule(w http.ResponseWriter, r *http.Request)
+	GetProtonRules(w http.ResponseWriter, r *http.Request)
 
 	// improvements.go
 	NewImprovement(w http.ResponseWriter, r *http.Request)

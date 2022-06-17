@@ -45,11 +45,15 @@ func main() {
 	db.Init()
 
 	if err != nil {
-		sugared.Fatal("Error while creating database: " + err.Error())
+		sugared.Fatal("Error while creating database: ", err.Error())
 		return
 	}
 
-	protonState := proton.NewProton(db)
+	protonState, err := proton.NewProton(db)
+	if err != nil {
+		sugared.Fatal("Error while initializing Proton: ", err.Error())
+		return
+	}
 
 	httphandler := httphandlers.NewHTTPInterface(sugared, db, config, protonState)
 
@@ -157,6 +161,9 @@ func main() {
 	r.HandleFunc("/system/notifications", httphandler.GetSystemNotifications).Methods("GET")
 	r.HandleFunc("/system/notifications/new", httphandler.NewNotification).Methods("POST")
 	r.HandleFunc("/notification/{notification_id}", httphandler.DeleteNotification).Methods("DELETE")
+
+	r.HandleFunc("/proton/rule/new", httphandler.NewProtonRule).Methods("POST")
+	r.HandleFunc("/proton/rules/get", httphandler.GetProtonRules).Methods("GET")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins

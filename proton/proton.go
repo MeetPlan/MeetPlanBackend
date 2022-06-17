@@ -1,6 +1,6 @@
 /// This file is a part of MeetPlan Proton, which is a part of MeetPlanBackend (https://github.com/MeetPlan/MeetPlanBackend).
 ///
-/// Copyright (c) 2022, Mitja Ševerkar <mytja@protonmail.com>.
+/// Copyright (c) 2022, Mitja Ševerkar <mytja@protonmail.com> and The MeetPlan Team.
 /// All rights reserved.
 /// Use of this source code is governed by the GNU GPLv3 license, that can be found in the LICENSE file.
 
@@ -11,15 +11,20 @@ import (
 )
 
 type protonImpl struct {
-	db sql.SQL
+	db     sql.SQL
+	config ProtonConfig
 }
 
 type Proton interface {
 	ManageAbsences(meetingId int) ([]TeacherTier, error)
+
+	NewProtonRule(rule ProtonRule) error
+	GetProtonConfig() ProtonConfig
 }
 
-func NewProton(db sql.SQL) Proton {
-	return &protonImpl{db: db}
+func NewProton(db sql.SQL) (Proton, error) {
+	protonConfig, err := LoadConfig()
+	return &protonImpl{db: db, config: protonConfig}, err
 }
 
 type TierGradingList struct {
@@ -149,4 +154,17 @@ func (p *protonImpl) ManageAbsences(meetingId int) ([]TeacherTier, error) {
 		}
 	}
 	return recommendation, err
+}
+
+func (p *protonImpl) NewProtonRule(rule ProtonRule) error {
+	config, err := AddNewRule(p.config, rule)
+	if err != nil {
+		return err
+	}
+	p.config = config
+	return nil
+}
+
+func (p *protonImpl) GetProtonConfig() ProtonConfig {
+	return p.config
 }

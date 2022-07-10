@@ -72,6 +72,7 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 			ClassID:       classIdInt,
 			Students:      string(studentsJson),
 			Realization:   float32(realization),
+			SelectedHours: 1.0,
 		}
 		err = server.db.InsertSubject(nSubject)
 		if err != nil {
@@ -318,6 +319,11 @@ func (server *httpImpl) PatchSubjectName(w http.ResponseWriter, r *http.Request)
 			WriteJSON(w, Response{Data: "Failed to retrieve subject", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
+		selectedHours, err := strconv.ParseFloat(r.FormValue("selected_hours"), 32)
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
 		realization, err := strconv.ParseFloat(r.FormValue("realization"), 32)
 		if err != nil {
 			WriteJSON(w, Response{Data: "Failed to parse realization", Error: err.Error(), Success: false}, http.StatusBadRequest)
@@ -325,6 +331,7 @@ func (server *httpImpl) PatchSubjectName(w http.ResponseWriter, r *http.Request)
 		}
 		subject.LongName = r.FormValue("long_name")
 		subject.Realization = float32(realization)
+		subject.SelectedHours = float32(selectedHours)
 		err = server.db.UpdateSubject(subject)
 		if err != nil {
 			WriteJSON(w, Response{Data: "Failed to update subject", Error: err.Error(), Success: false}, http.StatusInternalServerError)

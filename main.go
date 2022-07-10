@@ -49,7 +49,7 @@ func main() {
 		return
 	}
 
-	protonState, err := proton.NewProton(db)
+	protonState, err := proton.NewProton(db, sugared)
 	if err != nil {
 		sugared.Fatal("Error while initializing Proton: ", err.Error())
 		return
@@ -164,6 +164,8 @@ func main() {
 
 	r.HandleFunc("/proton/rule/new", httphandler.NewProtonRule).Methods("POST")
 	r.HandleFunc("/proton/rules/get", httphandler.GetProtonRules).Methods("GET")
+
+	r.HandleFunc("/proton/assemble/timetable", httphandler.AssembleTimetable).Methods("GET")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins

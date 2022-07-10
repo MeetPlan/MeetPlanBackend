@@ -17,3 +17,8 @@ func insertTeacherTier(a []TeacherTier, index int, value TeacherTier) []TeacherT
 	a[index] = value
 	return a
 }
+
+func remove(s []ProtonMeeting, i int) []ProtonMeeting {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
+}

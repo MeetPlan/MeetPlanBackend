@@ -11,6 +11,7 @@ type Subject struct {
 	Students      string
 	LongName      string `db:"long_name"`
 	Realization   float32
+	SelectedHours float32 `db:"selected_hours"`
 }
 
 func contains(s []int, e int) bool {
@@ -88,14 +89,14 @@ func (db *sqlImpl) GetAllSubjectsForUser(id int) (subjects []Subject, err error)
 
 func (db *sqlImpl) InsertSubject(subject Subject) error {
 	_, err := db.db.NamedExec(
-		"INSERT INTO subject (id, teacher_id, name, inherits_class, class_id, students, long_name, realization) VALUES (:id, :teacher_id, :name, :inherits_class, :class_id, :students, :long_name, :realization)",
+		"INSERT INTO subject (id, teacher_id, name, inherits_class, class_id, students, long_name, realization, selected_hours) VALUES (:id, :teacher_id, :name, :inherits_class, :class_id, :students, :long_name, :realization, :selected_hours)",
 		subject)
 	return err
 }
 
 func (db *sqlImpl) UpdateSubject(subject Subject) error {
 	_, err := db.db.NamedExec(
-		"UPDATE subject SET teacher_id=:teacher_id, name=:name, inherits_class=:inherits_class, class_id=:class_id, students=:students, long_name=:long_name, realization=:realization WHERE id=:id",
+		"UPDATE subject SET teacher_id=:teacher_id, name=:name, inherits_class=:inherits_class, class_id=:class_id, students=:students, long_name=:long_name, realization=:realization, selected_hours=:selected_hours WHERE id=:id",
 		subject)
 	return err
 }

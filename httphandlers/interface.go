@@ -128,6 +128,7 @@ type HTTP interface {
 	ManageTeacherAbsences(w http.ResponseWriter, r *http.Request)
 	NewProtonRule(w http.ResponseWriter, r *http.Request)
 	GetProtonRules(w http.ResponseWriter, r *http.Request)
+	AssembleTimetable(w http.ResponseWriter, r *http.Request)
 
 	// improvements.go
 	NewImprovement(w http.ResponseWriter, r *http.Request)

@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/proton"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/google/uuid"
@@ -35,6 +36,27 @@ func (server *httpImpl) ManageTeacherAbsences(w http.ResponseWriter, r *http.Req
 	} else {
 		WriteForbiddenJWT(w)
 	}
+}
+
+func (server *httpImpl) PostProcessTimetable(classes []sql.Class, stableTimetable []proton.ProtonMeeting) ([]proton.ProtonMeeting, error) {
+	// Dogajajo se pripetljaji. Ni vsako polnjenje lukenj popolno, zato gremo "zlikati" ta urnik večkrat.
+	for i := 0; i < proton.PROTON_REPEAT_POST_PROCESSING; i++ {
+		server.logger.Debugw("izvajam post-procesiranje", "nivo", i)
+
+		// Post-procesiranje urnika za vsak razred posebej.
+		for i := 0; i < len(classes); i++ {
+			class := classes[i]
+
+			server.logger.Debugw("izvajam post-procesiranje", "class", class)
+
+			var err error
+			stableTimetable, err = server.proton.TimetablePostProcessing(stableTimetable, class)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return stableTimetable, nil
 }
 
 func (server *httpImpl) NewProtonRule(w http.ResponseWriter, r *http.Request) {
@@ -177,7 +199,7 @@ func (server *httpImpl) GetProtonRules(w http.ResponseWriter, r *http.Request) {
 }
 
 func GenerateRandomHourForBeforeAfterSubjects() int {
-	return rand.Intn(12-9) + 9
+	return rand.Intn(proton.PROTON_MAX_AFTER_CLASS_HOUR-proton.PROTON_MIN_AFTER_CLASS_HOUR) + proton.PROTON_MIN_AFTER_CLASS_HOUR
 }
 
 func GenerateBeforeAfterHour(stackedSubjects []int, subject sql.Subject) int {
@@ -185,7 +207,7 @@ func GenerateBeforeAfterHour(stackedSubjects []int, subject sql.Subject) int {
 
 	k := rand.Intn(2)
 	// naključna izbira med preduro in pouro
-	if k == 0 || contains(stackedSubjects, subject.ID) {
+	if k == 0 || helpers.Contains(stackedSubjects, subject.ID) {
 		// Tako ali tako bomo "zafilali" te luknje
 		hour = GenerateRandomHourForBeforeAfterSubjects()
 	} else {
@@ -201,203 +223,257 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-		subjects, err := server.db.GetAllSubjects()
-		if err != nil {
-			WriteJSON(w, Response{Data: "Failed to retrieve subjects", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+		WriteForbiddenJWT(w)
+		return
+	}
+	subjects, err := server.db.GetAllSubjects()
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed to retrieve subjects", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+
+	classes, err := server.db.GetClasses()
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed to retrieve classes", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+
+	// Before & After class subjects will be treated differently
+	beforeAfterSubjects := server.proton.GetSubjectsBeforeOrAfterClass()
+	//beforeAfterSubjects := make([]int, 0)
+	stackedSubjects := server.proton.GetSubjectsWithStackedHours()
+
+	k := float32(0)
+	for i := 0; i < len(subjects); i++ {
+		k += subjects[i].SelectedHours
+	}
+
+	subjectGroups := server.proton.GetSubjectGroups()
+
+	stableTimetable := make([]proton.ProtonMeeting, 0)
+
+	depth := 0
+
+	failRate := 0
+	failResetCount := 0
+
+	for {
+		if failResetCount >= proton.PROTON_ALLOWED_FAIL_RESET_RATE {
+			WriteJSON(w, Response{Data: "Fail reset rate was exceeded. Aborted.", Success: false}, http.StatusInternalServerError)
 			return
 		}
 
-		classes, err := server.db.GetClasses()
-		if err != nil {
-			WriteJSON(w, Response{Data: "Failed to retrieve classes", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		if failRate >= proton.PROTON_ALLOWED_FAIL_RATE {
+			var b [8]byte
+			_, err = crypto_rand.Read(b[:])
+			if err != nil {
+				WriteJSON(w, Response{Data: "cannot seed math/rand package with cryptographically secure random number generator", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+				return
+			}
+			rand.Seed(int64(binary.LittleEndian.Uint64(b[:])))
+
+			server.logger.Debug("fail rate was exceeded. now resetting stableTimetable.")
+			depth = 0
+			failRate = 0
+
+			stableTimetable = make([]proton.ProtonMeeting, 0)
+
+			failResetCount++
+		}
+
+		if depth >= proton.PROTON_ALLOWED_WHILE_DEPTH {
+			WriteJSON(w, Response{Data: "Failed to make a timetable", Success: false}, http.StatusInternalServerError)
 			return
 		}
 
-		// Before & After class subjects will be treated differently
-		beforeAfterSubjects := server.proton.GetSubjectsBeforeOrAfterClass()
-		//beforeAfterSubjects := make([]int, 0)
-		stackedSubjects := server.proton.GetSubjectsWithStackedHours()
+		subjectNum := rand.Intn(len(subjects))
+		subject := subjects[subjectNum]
 
-		k := float32(0)
-		for i := 0; i < len(subjects); i++ {
-			k += subjects[i].SelectedHours
+		// Tako dobimo boljšo naključnost
+		date := rand.Intn(5)
+
+		var hour int
+		// Je izbirni predmet, ampak ni predura
+		if helpers.Contains(beforeAfterSubjects, subject.ID) {
+			hour = GenerateBeforeAfterHour(stackedSubjects, subject)
+		} else {
+			hour = rand.Intn(proton.PROTON_MAX_NORMAL_HOUR-proton.PROTON_MIN_NORMAL_HOUR) + proton.PROTON_MIN_NORMAL_HOUR
 		}
 
-		subjectGroups := server.proton.GetSubjectGroups()
+		t := float32(0)
 
-		stableTimetable := make([]proton.ProtonMeeting, 0)
+		// imamo dva tedna, posledično moramo vse deliti z 2
+		if float32(len(stableTimetable)/2) >= k {
+			break
+		}
 
-		depth := 0
-
-		failRate := 0
-		failResetCount := 0
-
-		for {
-			if failResetCount >= proton.PROTON_ALLOWED_FAIL_RESET_RATE {
-				WriteJSON(w, Response{Data: "Fail reset rate was exceeded. Aborted.", Success: false}, http.StatusInternalServerError)
-				return
+		for i := 0; i < len(stableTimetable); i++ {
+			m := stableTimetable[i]
+			if m.SubjectID == subject.ID {
+				t++
 			}
+		}
 
-			if failRate >= proton.PROTON_ALLOWED_FAIL_RATE {
-				var b [8]byte
-				_, err = crypto_rand.Read(b[:])
-				if err != nil {
-					WriteJSON(w, Response{Data: "cannot seed math/rand package with cryptographically secure random number generator", Error: err.Error(), Success: false}, http.StatusInternalServerError)
-					return
-				}
-				rand.Seed(int64(binary.LittleEndian.Uint64(b[:])))
+		if t/2 >= subject.SelectedHours {
+			continue
+		}
 
-				server.logger.Debug("fail rate was exceeded. now resetting stableTimetable.")
-				depth = 0
-				failRate = 0
+		timetable := make([]proton.ProtonMeeting, 0)
+		timetable = append(timetable, stableTimetable...)
 
-				stableTimetable = make([]proton.ProtonMeeting, 0)
+		var subjectGroup = make([]int, 0)
 
-				failResetCount++
-			}
+		for i := 0; i < len(subjectGroups); i++ {
+			group := subjectGroups[i]
 
-			if depth >= proton.PROTON_ALLOWED_WHILE_DEPTH {
-				WriteJSON(w, Response{Data: "Failed to make a timetable", Success: false}, http.StatusInternalServerError)
-				return
-			}
+			// Check if this group contains OUR SPECIFIED SUBJECT
+			var ok = false
 
-			subjectNum := rand.Intn(len(subjects))
-			subject := subjects[subjectNum]
-
-			// Tako dobimo boljšo naključnost
-			date := rand.Intn(5)
-
-			var hour int
-			// Je izbirni predmet, ampak ni predura
-			if contains(beforeAfterSubjects, subject.ID) {
-				hour = GenerateBeforeAfterHour(stackedSubjects, subject)
-			} else {
-				hour = rand.Intn(7-1) + 1
-			}
-
-			t := float32(0)
-
-			// imamo dva tedna, posledično moramo vse deliti z 2
-			if float32(len(stableTimetable)/2) >= k {
-				break
-			}
-
-			for i := 0; i < len(stableTimetable); i++ {
-				m := stableTimetable[i]
-				if m.SubjectID == subject.ID {
-					t++
+			for x := 0; x < len(group.Objects); x++ {
+				obj := group.Objects[x]
+				if obj.Type == "subject" && obj.ObjectID == subject.ID {
+					ok = true
+					break
 				}
 			}
 
-			if t/2 >= subject.SelectedHours {
-				continue
-			}
-
-			timetable := make([]proton.ProtonMeeting, 0)
-			timetable = append(timetable, stableTimetable...)
-
-			var subjectGroup = make([]int, 0)
-
-			for i := 0; i < len(subjectGroups); i++ {
-				group := subjectGroups[i]
-
-				// Check if this group contains OUR SPECIFIED SUBJECT
-				var ok = false
-
-				for x := 0; x < len(group.Objects); x++ {
-					obj := group.Objects[x]
-					if obj.Type == "subject" && obj.ObjectID == subject.ID {
-						ok = true
-						break
+			if ok {
+				for n := 0; n < len(group.Objects); n++ {
+					object := group.Objects[n]
+					if object.Type == "subject" && !helpers.Contains(subjectGroup, object.ObjectID) {
+						subjectGroup = append(subjectGroup, object.ObjectID)
 					}
 				}
+			}
+		}
 
-				if ok {
-					for n := 0; n < len(group.Objects); n++ {
-						object := group.Objects[n]
-						if object.Type == "subject" && !contains(subjectGroup, object.ObjectID) {
-							subjectGroup = append(subjectGroup, object.ObjectID)
+		if len(subjectGroup) == 0 {
+			subjectGroup = append(subjectGroup, subject.ID)
+		}
+
+		//server.logger.Info(subjectGroup, subjectGroups)
+
+		// S tem bomo preverili, če so vsi predmeti v skupini predmetov kompatibilni med seboj, tj. imajo isto število ur na teden.
+		// V nasprotnem primeru ne moremo ustvariti urnika in javimo "fatal" napako.
+		currentSubjectSelectedHours := float32(0)
+
+		var hasSetHour = false
+
+		for i := 0; i < len(subjectGroup); i++ {
+			subjectId := subjectGroup[i]
+			var currentSubject sql.Subject
+			if subject.ID == subjectId {
+				currentSubject = subject
+			} else {
+				currentSubject, err = server.db.GetSubject(subjectId)
+				if err != nil {
+					server.logger.Error(fmt.Sprintf("failed to retrieve subject %s from the database. skipping.", fmt.Sprint(subjectId)))
+					continue
+				}
+			}
+
+			if currentSubjectSelectedHours == 0 {
+				currentSubjectSelectedHours = currentSubject.SelectedHours
+			} else if currentSubjectSelectedHours != currentSubject.SelectedHours {
+				WriteJSON(w, Response{Data: fmt.Sprintf("Nekompatibilna sestava Proton konfiguracije. Predmet %s je nekompatibilen v številu ur z ostalimi v skupini. Ne morem ustvariti urnika.", fmt.Sprint(subjectId)), Success: false}, http.StatusConflict)
+				return
+			}
+			UUID, err2 := uuid.NewUUID()
+			if err2 != nil {
+				return
+			}
+
+			var generateOnlyOneHour = false
+
+			// Dej, naj mi kdo pove, če je kaka boljša opcija za preverjanje polur.
+			if currentSubjectSelectedHours-float32(int(currentSubjectSelectedHours)) == 0.5 {
+				// preverimo, če je že vpisane pol ure v naslednjemu tednu
+				var hours = 0
+				for n := 0; n < len(stableTimetable); n++ {
+					meeting := stableTimetable[n]
+					if meeting.SubjectID == currentSubject.ID {
+						hours++
+					}
+				}
+				if float32(hours/2) == currentSubjectSelectedHours-0.5 {
+					if !hasSetHour {
+						// V tem primeru nam manjka samo te pol ure, posledično bomo samo dodali tole uro na 2. teden na naključno uro (katero ustvarimo z generatorjem naključnih števil za predure in poure)
+						hour = GenerateBeforeAfterHour(stackedSubjects, subject)
+
+						// Preprečimo, da bi se generirali dve različni uri za predmete v isti skupini srečanj
+						hasSetHour = true
+					}
+
+					// Generiramo samo eno uro v 2. tednu (Week 1)
+					generateOnlyOneHour = true
+				}
+			}
+
+			var classId = make([]int, 0)
+			if currentSubject.InheritsClass {
+				classId = append(classId, currentSubject.ClassID)
+			} else {
+				var students []int
+				err := json.Unmarshal([]byte(currentSubject.Students), &students)
+				if err != nil {
+					return
+				}
+				for i := 0; i < len(classes); i++ {
+					var classStudents []int
+					err := json.Unmarshal([]byte(classes[i].Students), &classStudents)
+					if err != nil {
+						return
+					}
+					for n := 0; n < len(students); n++ {
+						if helpers.Contains(classStudents, students[n]) && !helpers.Contains(classId, classes[i].ID) {
+							classId = append(classId, classes[i].ID)
 						}
 					}
 				}
 			}
 
-			if len(subjectGroup) == 0 {
-				subjectGroup = append(subjectGroup, subject.ID)
+			m := proton.ProtonMeeting{
+				ID:           UUID.String(),
+				TeacherID:    currentSubject.TeacherID,
+				SubjectID:    currentSubject.ID,
+				Hour:         hour,
+				DayOfTheWeek: date,
+				SubjectName:  currentSubject.Name,
+				Week:         1,
+				ClassID:      classId,
+			}
+			timetable = append(timetable, m)
+
+			if generateOnlyOneHour {
+				continue
 			}
 
-			//server.logger.Info(subjectGroup, subjectGroups)
+			UUID, err2 = uuid.NewUUID()
+			if err2 != nil {
+				return
+			}
 
-			// S tem bomo preverili, če so vsi predmeti v skupini predmetov kompatibilni med seboj, tj. imajo isto število ur na teden.
-			// V nasprotnem primeru ne moremo ustvariti urnika in javimo "fatal" napako.
-			currentSubjectSelectedHours := float32(0)
+			m = proton.ProtonMeeting{
+				ID:           UUID.String(),
+				TeacherID:    currentSubject.TeacherID,
+				SubjectID:    currentSubject.ID,
+				Hour:         hour,
+				DayOfTheWeek: date,
+				SubjectName:  currentSubject.Name,
+				Week:         0,
+				ClassID:      classId,
+			}
 
-			for i := 0; i < len(subjectGroup); i++ {
-				subjectId := subjectGroup[i]
-				var currentSubject sql.Subject
-				if subject.ID == subjectId {
-					currentSubject = subject
-				} else {
-					currentSubject, err = server.db.GetSubject(subjectId)
-					if err != nil {
-						server.logger.Error(fmt.Sprintf("failed to retrieve subject %s from the database. skipping.", fmt.Sprint(subjectId)))
-						continue
-					}
-				}
+			timetable = append(timetable, m)
 
-				if currentSubjectSelectedHours == 0 {
-					currentSubjectSelectedHours = currentSubject.SelectedHours
-				} else if currentSubjectSelectedHours != currentSubject.SelectedHours {
-					WriteJSON(w, Response{Data: fmt.Sprintf("Nekompatibilna sestava Proton konfiguracije. Predmet %s je nekompatibilen v številu ur z ostalimi v skupini. Ne morem ustvariti urnika.", fmt.Sprint(subjectId)), Success: false}, http.StatusConflict)
-					return
-				}
+			if server.proton.SubjectHasDoubleHours(subjectId) {
 				UUID, err2 := uuid.NewUUID()
 				if err2 != nil {
 					return
 				}
 
-				var generateOnlyOneHour = false
-
-				// Dej, naj mi kdo pove, če je kaka boljša opcija za preverjanje polur.
-				if currentSubjectSelectedHours-float32(int(currentSubjectSelectedHours)) == 0.5 {
-					// preverimo, če je že vpisane pol ure v naslednjemu tednu
-					var hours = 0
-					for n := 0; n < len(stableTimetable); n++ {
-						meeting := stableTimetable[n]
-						if meeting.SubjectID == currentSubject.ID {
-							hours++
-						}
-					}
-					if float32(hours/2) == currentSubjectSelectedHours-0.5 {
-						// V tem primeru nam manjka samo te pol ure, posledično bomo samo dodali tole uro na 2. teden na naključno uro (katero ustvarimo z generatorjem naključnih števil za predure in poure)
-						hour = GenerateBeforeAfterHour(stackedSubjects, subject)
-						generateOnlyOneHour = true
-					}
-				}
-
-				var classId = make([]int, 0)
-				if currentSubject.InheritsClass {
-					classId = append(classId, currentSubject.ClassID)
-				} else {
-					var students []int
-					err := json.Unmarshal([]byte(currentSubject.Students), &students)
-					if err != nil {
-						return
-					}
-					for i := 0; i < len(classes); i++ {
-						var classStudents []int
-						err := json.Unmarshal([]byte(classes[i].Students), &classStudents)
-						if err != nil {
-							return
-						}
-						for n := 0; n < len(students); n++ {
-							if contains(classStudents, students[n]) && !contains(classId, classes[i].ID) {
-								classId = append(classId, classes[i].ID)
-							}
-						}
-					}
-				}
+				hour++
 
 				m := proton.ProtonMeeting{
 					ID:           UUID.String(),
@@ -411,15 +487,6 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 				}
 				timetable = append(timetable, m)
 
-				if generateOnlyOneHour {
-					continue
-				}
-
-				UUID, err2 = uuid.NewUUID()
-				if err2 != nil {
-					return
-				}
-
 				m = proton.ProtonMeeting{
 					ID:           UUID.String(),
 					TeacherID:    currentSubject.TeacherID,
@@ -430,72 +497,107 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 					Week:         0,
 					ClassID:      classId,
 				}
-
 				timetable = append(timetable, m)
-
-				if server.proton.SubjectHasDoubleHours(subjectId) {
-					UUID, err2 := uuid.NewUUID()
-					if err2 != nil {
-						return
-					}
-
-					m := proton.ProtonMeeting{
-						ID:           UUID.String(),
-						TeacherID:    currentSubject.TeacherID,
-						SubjectID:    currentSubject.ID,
-						Hour:         hour + 1,
-						DayOfTheWeek: date,
-						SubjectName:  currentSubject.Name,
-						Week:         1,
-						ClassID:      classId,
-					}
-					timetable = append(timetable, m)
-
-					m = proton.ProtonMeeting{
-						ID:           UUID.String(),
-						TeacherID:    currentSubject.TeacherID,
-						SubjectID:    currentSubject.ID,
-						Hour:         hour + 1,
-						DayOfTheWeek: date,
-						SubjectName:  currentSubject.Name,
-						Week:         0,
-						ClassID:      classId,
-					}
-					timetable = append(timetable, m)
-				}
 			}
-
-			//server.logger.Debug(timetable, stableTimetable)
-			ok, err := server.proton.CheckIfProtonConfigIsOk(timetable)
-			if ok {
-				//server.logger.Debugw("successfully added new meetings", "timetable", timetable)
-				stableTimetable = make([]proton.ProtonMeeting, 0)
-				stableTimetable = append(stableTimetable, timetable...)
-
-				failRate = 0
-			} else {
-				if err.Error() == "exceeded maximum allowed repeat depth" {
-					WriteJSON(w, Response{Data: "Failed to make a timetable. Exceeded maximum repeat depth within CheckIfProtonConfigIsOk function", Error: err.Error(), Success: false}, http.StatusInternalServerError)
-					return
-				}
-				server.logger.Debugw("fail while trying to make a timetable using proton", "error", err.Error())
-
-				failRate++
-			}
-
-			depth++
 		}
 
-		t, err := server.proton.FillGapsInTimetable(stableTimetable)
+		//server.logger.Debug(timetable, stableTimetable)
+		ok, err := server.proton.CheckIfProtonConfigIsOk(timetable)
+		if ok {
+			//server.logger.Debugw("successfully added new meetings", "timetable", timetable)
+			stableTimetable = make([]proton.ProtonMeeting, 0)
+			stableTimetable = append(stableTimetable, timetable...)
+
+			failRate = 0
+		} else {
+			if err.Error() == "exceeded maximum allowed repeat depth" {
+				WriteJSON(w, Response{Data: "Failed to make a timetable. Exceeded maximum repeat depth within CheckIfProtonConfigIsOk function", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+				return
+			}
+			server.logger.Debugw("fail while trying to make a timetable using proton", "error", err.Error())
+
+			failRate++
+		}
+
+		depth++
+	}
+
+	server.logger.Info("done generating timetable. now passing post-processing to the proton package.")
+
+	stableTimetable, err = server.PostProcessTimetable(classes, stableTimetable)
+	if err != nil {
+		WriteJSON(w, Response{Data: "Fail while post-processing the timetable", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+
+	WriteJSON(w, Response{Data: stableTimetable, Success: true}, http.StatusOK)
+}
+
+func (server *httpImpl) ManualPostProcessRepeat(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	var stableTimetable []proton.ProtonMeeting
+	err = json.Unmarshal([]byte(r.FormValue("timetable")), &stableTimetable)
+	if err != nil {
+		WriteJSON(w, Response{Data: "Fail while unmarshalling the timetable", Error: err.Error(), Success: false}, http.StatusBadRequest)
+		return
+	}
+
+	classes, err := server.db.GetClasses()
+	if err != nil {
+		WriteJSON(w, Response{Data: "Fail while retrieving the classes", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+
+	stableTimetable, err = server.PostProcessTimetable(classes, stableTimetable)
+	if err != nil {
+		WriteJSON(w, Response{Data: "Fail while post-processing the timetable", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+
+	WriteJSON(w, Response{Data: stableTimetable, Success: true}, http.StatusOK)
+}
+
+func (server *httpImpl) AcceptAssembledTimetable(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+		WriteForbiddenJWT(w)
+		return
+	}
+	timetableString := r.FormValue("timetable")
+	var protonMeetings []proton.ProtonMeeting
+	err = json.Unmarshal([]byte(timetableString), &protonMeetings)
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed while unmarshalling proton meetings", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+
+	meetings, err := server.proton.AssembleMeetingsFromProtonMeetings(protonMeetings, server.config)
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed while assembling meetings from proton meetings", Success: false, Error: err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	for i := 0; i < len(meetings); i++ {
+		meeting := meetings[i]
+		err := server.db.InsertMeeting(meeting)
 		if err != nil {
-			WriteJSON(w, Response{Data: "Failed while normalizing timetable", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			WriteJSON(w, Response{Data: "Failed while inserting new meeting", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
-
-		stableTimetable = t
-
-		WriteJSON(w, Response{Data: stableTimetable, Success: true}, http.StatusOK)
-	} else {
-		WriteForbiddenJWT(w)
 	}
+
+	WriteJSON(w, Response{Data: meetings, Error: "OK", Success: true}, http.StatusCreated)
 }

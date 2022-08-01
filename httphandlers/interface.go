@@ -126,9 +126,12 @@ type HTTP interface {
 
 	// proton.go
 	ManageTeacherAbsences(w http.ResponseWriter, r *http.Request)
+	PostProcessTimetable(classes []sql.Class, stableTimetable []proton.ProtonMeeting) ([]proton.ProtonMeeting, error)
 	NewProtonRule(w http.ResponseWriter, r *http.Request)
 	GetProtonRules(w http.ResponseWriter, r *http.Request)
 	AssembleTimetable(w http.ResponseWriter, r *http.Request)
+	AcceptAssembledTimetable(w http.ResponseWriter, r *http.Request)
+	ManualPostProcessRepeat(w http.ResponseWriter, r *http.Request)
 
 	// improvements.go
 	NewImprovement(w http.ResponseWriter, r *http.Request)

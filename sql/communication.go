@@ -1,6 +1,9 @@
 package sql
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
+)
 
 type Communication struct {
 	ID          int
@@ -59,7 +62,7 @@ func (db *sqlImpl) DeleteUserCommunications(userId int) {
 	for i := 0; i < len(communications); i++ {
 		var users []int
 		json.Unmarshal([]byte(communications[i].People), &users)
-		if contains(users, userId) {
+		if helpers.Contains(users, userId) {
 			db.DeleteCommunication(communications[i].ID)
 		}
 	}

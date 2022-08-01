@@ -153,6 +153,11 @@ type SQL interface {
 	InsertImprovement(improvement Improvement) error
 	UpdateImprovement(homework Homework) error
 	DeleteImprovement(ID int) error
+
+	GetDocument(id string) (document Document, err error)
+	GetAllDocuments(id string) (documents []Document, err error)
+	InsertDocument(document Document) error
+	DeleteDocument(id string)
 }
 
 func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, error) {

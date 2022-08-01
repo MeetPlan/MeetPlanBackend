@@ -1,0 +1,2 @@
+ALTER TABLE meetings ADD COLUMN location VARCHAR(100) DEFAULT 'Učilnica 10';
+ALTER TABLE subject ADD COLUMN location VARCHAR(100) DEFAULT 'Učilnica 10';

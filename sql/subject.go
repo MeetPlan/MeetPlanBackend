@@ -1,6 +1,9 @@
 package sql
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
+)
 
 type Subject struct {
 	ID            int
@@ -12,15 +15,8 @@ type Subject struct {
 	LongName      string `db:"long_name"`
 	Realization   float32
 	SelectedHours float32 `db:"selected_hours"`
-}
-
-func contains(s []int, e int) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
+	Color         string
+	Location      string `db:"location"`
 }
 
 func (db *sqlImpl) GetLastSubjectID() int {
@@ -80,7 +76,7 @@ func (db *sqlImpl) GetAllSubjectsForUser(id int) (subjects []Subject, err error)
 				return make([]Subject, 0), err
 			}
 		}
-		if contains(users, id) {
+		if helpers.Contains(users, id) {
 			subjects = append(subjects, subject)
 		}
 	}
@@ -89,14 +85,14 @@ func (db *sqlImpl) GetAllSubjectsForUser(id int) (subjects []Subject, err error)
 
 func (db *sqlImpl) InsertSubject(subject Subject) error {
 	_, err := db.db.NamedExec(
-		"INSERT INTO subject (id, teacher_id, name, inherits_class, class_id, students, long_name, realization, selected_hours) VALUES (:id, :teacher_id, :name, :inherits_class, :class_id, :students, :long_name, :realization, :selected_hours)",
+		"INSERT INTO subject (id, teacher_id, name, inherits_class, class_id, students, long_name, realization, selected_hours, color, location) VALUES (:id, :teacher_id, :name, :inherits_class, :class_id, :students, :long_name, :realization, :selected_hours, :color, :location)",
 		subject)
 	return err
 }
 
 func (db *sqlImpl) UpdateSubject(subject Subject) error {
 	_, err := db.db.NamedExec(
-		"UPDATE subject SET teacher_id=:teacher_id, name=:name, inherits_class=:inherits_class, class_id=:class_id, students=:students, long_name=:long_name, realization=:realization, selected_hours=:selected_hours WHERE id=:id",
+		"UPDATE subject SET teacher_id=:teacher_id, name=:name, inherits_class=:inherits_class, class_id=:class_id, students=:students, long_name=:long_name, realization=:realization, selected_hours=:selected_hours, color=:color, location=:location WHERE id=:id",
 		subject)
 	return err
 }

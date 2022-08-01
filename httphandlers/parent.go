@@ -3,6 +3,7 @@ package httphandlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -50,7 +51,7 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return
 	}
-	if contains(users, studentId) {
+	if helpers.Contains(users, studentId) {
 		return
 	}
 	users = append(users, studentId)
@@ -151,7 +152,7 @@ func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Requ
 	}
 	for i := 0; i < len(users); i++ {
 		if users[i] == studentId {
-			users = remove(users, i)
+			users = helpers.Remove(users, i)
 		}
 	}
 	marshal, err := json.Marshal(users)

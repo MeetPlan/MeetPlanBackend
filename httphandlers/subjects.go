@@ -1,9 +1,13 @@
 package httphandlers
 
 import (
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
+	"math/rand"
 	"net/http"
 	"strconv"
 )
@@ -61,6 +65,13 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 			WriteBadRequest(w)
 			return
 		}
+
+		bytes := make([]byte, 3)
+		if _, err := rand.Read(bytes); err != nil {
+			WriteJSON(w, Response{Data: "failed while creating a random color for the subject", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+
 		var students = make([]int, 0)
 		studentsJson, err := json.Marshal(students)
 		nSubject := sql.Subject{
@@ -73,6 +84,8 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 			Students:      string(studentsJson),
 			Realization:   float32(realization),
 			SelectedHours: 1.0,
+			Color:         fmt.Sprintf("#%s", hex.EncodeToString(bytes)),
+			Location:      r.FormValue("location"),
 		}
 		err = server.db.InsertSubject(nSubject)
 		if err != nil {
@@ -250,7 +263,7 @@ func (server *httpImpl) RemoveUserFromSubject(w http.ResponseWriter, r *http.Req
 		}
 		for i := 0; i < len(m); i++ {
 			if m[i] == userId {
-				m = remove(m, i)
+				m = helpers.Remove(m, i)
 				break
 			}
 		}
@@ -332,6 +345,7 @@ func (server *httpImpl) PatchSubjectName(w http.ResponseWriter, r *http.Request)
 		subject.LongName = r.FormValue("long_name")
 		subject.Realization = float32(realization)
 		subject.SelectedHours = float32(selectedHours)
+		subject.Location = r.FormValue("location")
 		err = server.db.UpdateSubject(subject)
 		if err != nil {
 			WriteJSON(w, Response{Data: "Failed to update subject", Error: err.Error(), Success: false}, http.StatusInternalServerError)

@@ -3,6 +3,7 @@ package httphandlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -95,7 +96,7 @@ func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Re
 		if err != nil {
 			return
 		}
-		if !contains(students, studentId) {
+		if !helpers.Contains(students, studentId) {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -115,7 +116,7 @@ func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Re
 			if err != nil {
 				return
 			}
-			if !contains(students, studentId) {
+			if !helpers.Contains(students, studentId) {
 				continue
 			}
 			ok = true

@@ -11,11 +11,17 @@ type Meeting struct {
 	URL            string `db:"url"`
 	Details        string `db:"details"`
 	IsSubstitution bool   `db:"is_substitution"`
+	Location       string `db:"location"`
 	// Ocenjevanje
 	IsGrading           bool `db:"is_grading"`
 	IsWrittenAssessment bool `db:"is_written_assessment"`
 	// Preverjanje znanja
 	IsTest bool `db:"is_test"`
+	// Beta srečanja so tista, ustvarjena z Proton layerjem. Proton bo prvo ustvaril nova beta, srečanja, katera so neodvisna od drugih in katerih učenci ne morejo videti.
+	// Vsak učitelj bo lahko preveril svoje učne ure in svoj urnik s tem ustvarjenim urnikom.
+	// Če učitelji ne bodo zadovoljni, se z enim klikom izbriše ta srečanja in se ustvari nov urnik z Proton layerjem, drugače pa se jih z enim klikom spremeni v normalna srečanja,
+	// vidna tudi učencem
+	IsBeta bool `db:"is_beta"`
 }
 
 func (db *sqlImpl) GetMeeting(id int) (meeting Meeting, err error) {
@@ -45,8 +51,8 @@ func (db *sqlImpl) GetMeetingsForSubject(subjectId int) (meetings []Meeting, err
 
 func (db *sqlImpl) InsertMeeting(meeting Meeting) (err error) {
 	i := `
-	INSERT INTO meetings (id, meeting_name, teacher_id, subject_id, hour, date, is_mandatory, url, details, is_grading, is_written_assessment, is_test, is_substitution)
-		VALUES (:id, :meeting_name, :teacher_id, :subject_id, :hour, :date, :is_mandatory, :url, :details, :is_grading, :is_written_assessment, :is_test, :is_substitution)
+	INSERT INTO meetings (id, meeting_name, teacher_id, subject_id, hour, date, is_mandatory, url, details, is_grading, is_written_assessment, is_test, is_substitution, is_beta, location)
+		VALUES (:id, :meeting_name, :teacher_id, :subject_id, :hour, :date, :is_mandatory, :url, :details, :is_grading, :is_written_assessment, :is_test, :is_substitution, :is_beta, :location)
 	`
 	_, err = db.db.NamedExec(
 		i,
@@ -60,7 +66,8 @@ func (db *sqlImpl) UpdateMeeting(meeting Meeting) error {
 	                    subject_id=:subject_id, hour=:hour, date=:date,
 	                    is_mandatory=:is_mandatory, url=:url, details=:details,
 	                    is_grading=:is_grading, is_written_assessment=:is_written_assessment,
-	                    is_test=:is_test, is_substitution=:is_substitution WHERE id=:id
+	                    is_test=:is_test, is_substitution=:is_substitution, is_beta=:is_beta,
+	                    location=:location WHERE id=:id
 	`
 	_, err := db.db.NamedExec(
 		i,

@@ -3,6 +3,7 @@ package httphandlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/dchest/uniuri"
 	"github.com/gorilla/mux"
@@ -316,7 +317,7 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 				WriteJSON(w, Response{Data: "Could not unmarshal students", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 				return
 			}
-			if !contains(students, studentId) {
+			if !helpers.Contains(students, studentId) {
 				WriteForbiddenJWT(w)
 				return
 			}
@@ -437,7 +438,7 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 			server.logger.Debug(students, userId)
 			for n := 0; n < len(students); n++ {
 				for l := 0; l < len(userId); l++ {
-					if students[n] == userId[l] && !contains(myClassesInt, students[n]) {
+					if students[n] == userId[l] && !helpers.Contains(myClassesInt, students[n]) {
 						user, err := server.db.GetUser(students[n])
 						if err != nil {
 							return
@@ -558,7 +559,7 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 			if err != nil {
 				return
 			}
-			if contains(students, userId) {
+			if helpers.Contains(students, userId) {
 				classId = class.ID
 				break
 			}
@@ -578,7 +579,7 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 		if err != nil {
 			return
 		}
-		if !contains(students, userId) {
+		if !helpers.Contains(students, userId) {
 			WriteForbiddenJWT(w)
 			return
 		}

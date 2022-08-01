@@ -41,6 +41,10 @@ func main() {
 		os.Mkdir("MeetPlanDB", os.ModePerm)
 	}
 
+	if _, err := os.Stat("documents"); os.IsNotExist(err) {
+		os.Mkdir("documents", os.ModePerm)
+	}
+
 	db, err := sql.NewSQL(config.DatabaseName, config.DatabaseConfig, sugared)
 	db.Init()
 
@@ -166,6 +170,8 @@ func main() {
 	r.HandleFunc("/proton/rules/get", httphandler.GetProtonRules).Methods("GET")
 
 	r.HandleFunc("/proton/assemble/timetable", httphandler.AssembleTimetable).Methods("GET")
+	r.HandleFunc("/proton/accept/timetable", httphandler.AcceptAssembledTimetable).Methods("POST")
+	r.HandleFunc("/proton/timetable/manual_postprocessing", httphandler.ManualPostProcessRepeat).Methods("POST")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins

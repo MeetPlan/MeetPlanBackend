@@ -3,6 +3,7 @@ package httphandlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -19,8 +20,8 @@ type Meeting struct {
 }
 
 type TimetableDate struct {
-	Meetings [][]sql.Meeting `json:"meetings"`
-	Date     string          `json:"date"`
+	Meetings [][]Meeting `json:"meetings"`
+	Date     string      `json:"date"`
 }
 
 type Absence struct {
@@ -30,16 +31,7 @@ type Absence struct {
 	MeetingName string
 }
 
-func containsString(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
-func contains(s []int, e int) bool {
+func contains[T comparable](s []T, e T) bool {
 	for _, a := range s {
 		if a == e {
 			return true
@@ -157,6 +149,10 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 	// Do some fancy logic to get dates
 	i := 0
 	for {
+		if i > 1000 {
+			WriteJSON(w, Response{Data: "Exiting due to exceeded maximum depth", Success: false}, http.StatusInternalServerError)
+			return
+		}
 		ndate, err := time.Parse("02-01-2006", startDate)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -223,9 +219,9 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 
 			// Check if at least one user belongs to class
 			for x := 0; x < len(u); x++ {
-				if (myMeetings && (jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist")) || contains(users, u[x]) {
+				if (myMeetings && (jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist")) || helpers.Contains(users, u[x]) {
 					if jwt["role"] == "parent" {
-						if !contains(studentsParent, u[x]) {
+						if !helpers.Contains(studentsParent, u[x]) {
 							continue
 						}
 					}
@@ -241,7 +237,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 					}
 				} else {
 					if jwt["role"] == "student" {
-						if contains(u, uid) {
+						if helpers.Contains(u, uid) {
 							m = append(m, meeting)
 						}
 					} else if jwt["role"] == "admin" ||
@@ -257,13 +253,39 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		dateMeetingsJson := make([][]sql.Meeting, 0)
+		dateMeetingsJson := make([][]Meeting, 0)
 		for n := 0; n < 9; n++ {
-			hour := make([]sql.Meeting, 0)
+			hour := make([]Meeting, 0)
 			for c := 0; c < len(m); c++ {
 				meeting := m[c]
+				teacher, err := server.db.GetUser(meeting.TeacherID)
+				if err != nil {
+					WriteJSON(w, Response{Data: "failed while retrieving the teacher from the database", Error: err.Error(), Success: false}, http.StatusNotFound)
+					return
+				}
+				subject, err := server.db.GetSubject(meeting.SubjectID)
+				if err != nil {
+					WriteJSON(w, Response{Data: "failed while retrieving the subject from the database", Error: err.Error(), Success: false}, http.StatusNotFound)
+					return
+				}
+				subjectTeacher, err := server.db.GetUser(subject.TeacherID)
+				if err != nil {
+					WriteJSON(w, Response{Data: "failed while retrieving the teacher from the database", Error: err.Error(), Success: false}, http.StatusNotFound)
+					return
+				}
 				if meeting.Hour == n {
-					hour = append(hour, meeting)
+					hour = append(hour, Meeting{
+						Meeting:     meeting,
+						TeacherName: teacher.Name,
+						SubjectName: subject.Name,
+						Subject: Subject{
+							Subject:         subject,
+							TeacherName:     subjectTeacher.Name,
+							User:            nil,
+							RealizationDone: 0,
+							TeacherID:       subject.TeacherID,
+						},
+					})
 				}
 			}
 			dateMeetingsJson = append(dateMeetingsJson, hour)
@@ -369,10 +391,12 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 				IsMandatory:         isMandatory,
 				URL:                 url,
 				Details:             details,
+				Location:            r.FormValue("location"),
 				IsGrading:           isGrading,
 				IsWrittenAssessment: isWrittenAssessment,
 				IsTest:              isTest,
 				IsSubstitution:      false,
+				IsBeta:              false,
 			}
 
 			err = server.db.InsertMeeting(meeting)
@@ -476,6 +500,8 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 			IsWrittenAssessment: isWrittenAssessment,
 			IsTest:              isTest,
 			IsSubstitution:      isSubstitution,
+			IsBeta:              originalmeeting.IsBeta,
+			Location:            r.FormValue("location"),
 		}
 
 		err = server.db.UpdateMeeting(meeting)

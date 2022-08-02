@@ -34,8 +34,13 @@ func (db *sqlImpl) GetMeetingsOnSpecificTime(date string, hour int) (meetings []
 	return meetings, err
 }
 
-func (db *sqlImpl) GetMeetingsOnSpecificDate(date string) (meetings []Meeting, err error) {
-	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE date=$1 ORDER BY id ASC", date)
+func (db *sqlImpl) GetMeetingsOnSpecificDate(date string, includeBeta bool) (meetings []Meeting, err error) {
+	if includeBeta {
+		err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE date=$1 ORDER BY id ASC", date)
+		return meetings, err
+	}
+
+	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE date=$1 AND is_beta=false ORDER BY id ASC", date)
 	return meetings, err
 }
 
@@ -72,6 +77,16 @@ func (db *sqlImpl) UpdateMeeting(meeting Meeting) error {
 	_, err := db.db.NamedExec(
 		i,
 		meeting)
+	return err
+}
+
+func (db *sqlImpl) MigrateBetaMeetingsToNonBeta() error {
+	_, err := db.db.Exec("UPDATE meetings SET is_beta=false WHERE is_beta=true")
+	return err
+}
+
+func (db *sqlImpl) DeleteBetaMeetings() error {
+	_, err := db.db.Exec("DELETE FROM meetings WHERE is_beta=true")
 	return err
 }
 

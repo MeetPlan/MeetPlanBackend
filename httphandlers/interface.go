@@ -60,6 +60,8 @@ type HTTP interface {
 	GetAbsencesTeacher(w http.ResponseWriter, r *http.Request)
 	PatchAbsence(w http.ResponseWriter, r *http.Request)
 	GetUsersForMeeting(w http.ResponseWriter, r *http.Request)
+	MigrateBetaMeetings(w http.ResponseWriter, r *http.Request)
+	DeleteBetaMeetings(w http.ResponseWriter, r *http.Request)
 
 	// subjects.go
 	GetSubjects(w http.ResponseWriter, r *http.Request)
@@ -132,6 +134,7 @@ type HTTP interface {
 	AssembleTimetable(w http.ResponseWriter, r *http.Request)
 	AcceptAssembledTimetable(w http.ResponseWriter, r *http.Request)
 	ManualPostProcessRepeat(w http.ResponseWriter, r *http.Request)
+	DeleteProtonRule(w http.ResponseWriter, r *http.Request)
 
 	// improvements.go
 	NewImprovement(w http.ResponseWriter, r *http.Request)

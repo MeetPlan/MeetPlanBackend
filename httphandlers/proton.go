@@ -192,6 +192,18 @@ func (server *httpImpl) GetProtonRules(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		protonConfig := server.proton.GetProtonConfig()
+		for i := 0; i < len(protonConfig.Rules); i++ {
+			if protonConfig.Rules[i].ID == "" {
+				UUID, err := uuid.NewUUID()
+				if err != nil {
+					continue
+				}
+				protonConfig.Rules[i].ID = UUID.String()
+			}
+		}
+		server.proton.SaveConfig(protonConfig)
+
 		WriteJSON(w, Response{Data: server.proton.GetProtonConfig(), Success: false}, http.StatusOK)
 	} else {
 		WriteForbiddenJWT(w)
@@ -442,6 +454,7 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 				SubjectName:  currentSubject.Name,
 				Week:         1,
 				ClassID:      classId,
+				IsHalfHour:   generateOnlyOneHour,
 			}
 			timetable = append(timetable, m)
 
@@ -463,6 +476,7 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 				SubjectName:  currentSubject.Name,
 				Week:         0,
 				ClassID:      classId,
+				IsHalfHour:   false,
 			}
 
 			timetable = append(timetable, m)
@@ -484,6 +498,7 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 					SubjectName:  currentSubject.Name,
 					Week:         1,
 					ClassID:      classId,
+					IsHalfHour:   false,
 				}
 				timetable = append(timetable, m)
 
@@ -496,6 +511,7 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 					SubjectName:  currentSubject.Name,
 					Week:         0,
 					ClassID:      classId,
+					IsHalfHour:   false,
 				}
 				timetable = append(timetable, m)
 			}
@@ -600,4 +616,18 @@ func (server *httpImpl) AcceptAssembledTimetable(w http.ResponseWriter, r *http.
 	}
 
 	WriteJSON(w, Response{Data: meetings, Error: "OK", Success: true}, http.StatusCreated)
+}
+
+func (server *httpImpl) DeleteProtonRule(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+		WriteForbiddenJWT(w)
+		return
+	}
+	server.proton.DeleteRule(r.FormValue("ruleId"))
+	WriteJSON(w, Response{Data: server.proton.GetProtonConfig(), Success: true}, http.StatusOK)
 }

@@ -72,6 +72,9 @@ type Proton interface {
 	AssembleMeetingsFromProtonMeetings(timetable []ProtonMeeting, systemConfig sql.Config) ([]sql.Meeting, error)
 
 	FindIfHolesExist(timetable []ProtonMeeting) bool
+
+	SaveConfig(config ProtonConfig)
+	DeleteRule(ruleId string)
 }
 
 func NewProton(db sql.SQL, logger *zap.SugaredLogger) (Proton, error) {
@@ -442,27 +445,9 @@ func (p *protonImpl) PatchTheHoles(timetable []ProtonMeeting, fullTimetable []Pr
 
 					meeting := meetingsHour[m]
 
-					subject, err := p.db.GetSubject(meeting.SubjectID)
-					if err != nil {
+					if meeting.IsHalfHour {
+						p.logger.Debug("izognil sem se poluri", meeting)
 						continue
-					}
-
-					// Preskočimo polure
-					if (subject.SelectedHours - float32(int(subject.SelectedHours))) == 0.5 {
-						isLonely := true
-
-						for i := 0; i < len(timetable); i++ {
-							m2 := timetable[i]
-							if m2.Week == meeting.Week || !(m2.Hour == meeting.Hour && m2.DayOfTheWeek == meeting.DayOfTheWeek) || m2.ID == meeting.ID || meeting.SubjectID != m2.SubjectID {
-								continue
-							}
-							isLonely = false
-						}
-
-						if isLonely {
-							p.logger.Debugw("našel poluro in jo preskočil", "subject", subject, "meeting", meeting)
-							continue
-						}
 					}
 
 					if helpers.Contains(beforeAfterSubjects, meeting.SubjectID) && hole.Hour <= maxHour {
@@ -965,6 +950,8 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 		subjectsNotInSubjectGroups = append(subjectsNotInSubjectGroups, subject.ID)
 	}
 
+	p.logger.Debugw("executing patching mistakes", "subjectsNotInSubjectGroups", subjectsNotInSubjectGroups)
+
 	for i := 0; i < len(subjectGroups); i++ {
 		subjectGroup := subjectGroups[i]
 		subjects := make([]int, 0)
@@ -1150,11 +1137,23 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 				var lonelyHour *ProtonMeeting
 
 				// Find other lonely hours
-				for y := 0; y < len(week); y++ {
-					m := week[y]
-					if m.Week == meeting.Week {
-						continue
+				for y := 0; y < len(weeks[1-n]); y++ {
+					m := weeks[1-n][y]
+
+					if meeting.SubjectID == 11 && m.SubjectID == meeting.SubjectID {
+						p.logger.Debugw(
+							"subject",
+							"meeting", meeting,
+							"isLonely", isLonely,
+							"week", 1-n,
+							"lonelyHour", m,
+							"weekEquality", m.Week == meeting.Week,
+							"subjectEquality", m.SubjectID != meeting.SubjectID,
+							"hourDayEquality", meeting.Hour == m.Hour && meeting.DayOfTheWeek == m.DayOfTheWeek,
+							"meetingIdEquality", meeting.ID == m.ID,
+						)
 					}
+
 					if m.SubjectID != meeting.SubjectID || (meeting.Hour == m.Hour && meeting.DayOfTheWeek == m.DayOfTheWeek) || meeting.ID == m.ID {
 						continue
 					}
@@ -1162,8 +1161,8 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 					isLonely := true
 
 					// Naming go brrrrrr.
-					for o := 0; o < len(weeks[1-n]); o++ {
-						m2 := weeks[1-n][o]
+					for o := 0; o < len(week); o++ {
+						m2 := week[o]
 						if m2.SubjectID != m.SubjectID || !(m.Hour == m2.Hour && m.DayOfTheWeek == m2.DayOfTheWeek) || m.ID == m2.ID {
 							continue
 						}
@@ -1342,6 +1341,7 @@ type ProtonMeeting struct {
 	TeacherID    int
 	Week         int
 	ClassID      []int
+	IsHalfHour   bool
 }
 
 // CheckIfProtonConfigIsOk preverja, če je trenuten timetable v redu sestavljen (v skladu z vsemi pravili).
@@ -1638,25 +1638,14 @@ func (p *protonImpl) SwapMeetings(timetable []ProtonMeeting, fullTimetable []Pro
 						continue
 					}
 
+					if meeting.IsHalfHour {
+						p.logger.Debug("izognil sem se poluri", meeting)
+						continue
+					}
+
 					subject, err := p.db.GetSubject(meeting.SubjectID)
 					if err != nil {
 						return stableClassTimetable, stableFullTimetable
-					}
-
-					if subject.SelectedHours-float32(int(subject.SelectedHours)) == 0.5 {
-						var isHalfHour = false
-						for i := 0; i < len(timetable); i++ {
-							m := timetable[i]
-							if m.Week == meeting.Week || !(meeting.Hour == m.Hour && meeting.DayOfTheWeek == m.DayOfTheWeek) || m.SubjectID != meeting.SubjectID || m.ID == meeting.ID {
-								continue
-							}
-							isHalfHour = true
-							break
-						}
-						if isHalfHour {
-							p.logger.Debugw("found half hour and bypassed it", "subject", subject, "meeting", meeting)
-							continue
-						}
 					}
 
 					var s []int
@@ -1693,25 +1682,14 @@ func (p *protonImpl) SwapMeetings(timetable []ProtonMeeting, fullTimetable []Pro
 						continue
 					}
 
+					if meeting.IsHalfHour {
+						p.logger.Debug("izognil sem se poluri", meeting)
+						continue
+					}
+
 					subject, err := p.db.GetSubject(meeting.SubjectID)
 					if err != nil {
 						return stableClassTimetable, stableFullTimetable
-					}
-
-					if subject.SelectedHours-float32(int(subject.SelectedHours)) == 0.5 {
-						var isHalfHour = false
-						for i := 0; i < len(timetable); i++ {
-							m := timetable[i]
-							if m.Week == meeting.Week || !(meeting.Hour == m.Hour && meeting.DayOfTheWeek == m.DayOfTheWeek) || m.SubjectID != meeting.SubjectID || m.ID == meeting.ID {
-								continue
-							}
-							isHalfHour = true
-							break
-						}
-						if isHalfHour {
-							p.logger.Debugw("found half hour and bypassed it", "subject", subject, "meeting", meeting)
-							continue
-						}
 					}
 
 					var s []int
@@ -2012,6 +1990,24 @@ func (p *protonImpl) NewProtonRule(rule ProtonRule) error {
 	}
 	p.config = config
 	return nil
+}
+
+func (p *protonImpl) SaveConfig(config ProtonConfig) {
+	err := SaveConfig(config)
+	if err != nil {
+		return
+	}
+	p.config = config
+}
+
+func (p *protonImpl) DeleteRule(ruleId string) {
+	for i := 0; i < len(p.config.Rules); i++ {
+		if p.config.Rules[i].ID == ruleId {
+			p.config.Rules = helpers.Remove(p.config.Rules, i)
+			SaveConfig(p.config)
+			return
+		}
+	}
 }
 
 func (p *protonImpl) GetProtonConfig() ProtonConfig {

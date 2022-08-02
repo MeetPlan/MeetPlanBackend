@@ -124,6 +124,8 @@ func main() {
 	r.HandleFunc("/meetings/new", httphandler.NewMeeting).Methods("POST")
 	r.HandleFunc("/meetings/new/{id}", httphandler.PatchMeeting).Methods("PATCH")
 	r.HandleFunc("/meetings/new/{id}", httphandler.DeleteMeeting).Methods("DELETE")
+	r.HandleFunc("/meetings/beta", httphandler.MigrateBetaMeetings).Methods("PATCH")
+	r.HandleFunc("/meetings/beta", httphandler.DeleteBetaMeetings).Methods("DELETE")
 
 	r.HandleFunc("/communications/get", httphandler.GetCommunications).Methods("GET")
 	r.HandleFunc("/communication/get/{id}", httphandler.GetCommunication).Methods("GET")
@@ -168,6 +170,7 @@ func main() {
 
 	r.HandleFunc("/proton/rule/new", httphandler.NewProtonRule).Methods("POST")
 	r.HandleFunc("/proton/rules/get", httphandler.GetProtonRules).Methods("GET")
+	r.HandleFunc("/proton/rule/get", httphandler.DeleteProtonRule).Methods("DELETE")
 
 	r.HandleFunc("/proton/assemble/timetable", httphandler.AssembleTimetable).Methods("GET")
 	r.HandleFunc("/proton/accept/timetable", httphandler.AcceptAssembledTimetable).Methods("POST")

@@ -59,9 +59,11 @@ type SQL interface {
 	GetMeetings() (meetings []Meeting, err error)
 	GetMeetingsForSubjectWithIDLower(id int, subjectId int) (meetings []Meeting, err error)
 	DeleteMeeting(ID int) error
-	GetMeetingsOnSpecificDate(date string) (meetings []Meeting, err error)
+	GetMeetingsOnSpecificDate(date string, includeBeta bool) (meetings []Meeting, err error)
 	DeleteMeetingsForTeacher(ID int) error
 	DeleteMeetingsForSubject(ID int) error
+	MigrateBetaMeetingsToNonBeta() error
+	DeleteBetaMeetings() error
 
 	GetLastAbsenceID() int
 	GetAbsence(id int) (absence Absence, err error)

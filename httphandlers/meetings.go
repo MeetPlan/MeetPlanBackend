@@ -178,7 +178,9 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 	var meetingsJson = make([]TimetableDate, 0)
 	for i := 0; i < len(dates); i++ {
 		date := dates[i]
-		meetings, err := server.db.GetMeetingsOnSpecificDate(date)
+		meetings, err := server.db.GetMeetingsOnSpecificDate(date,
+			jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "teacher" || jwt["role"] == "school psychologist",
+		)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
@@ -831,4 +833,40 @@ func (server *httpImpl) GetUsersForMeeting(w http.ResponseWriter, r *http.Reques
 	} else {
 		WriteForbiddenJWT(w)
 	}
+}
+
+func (server *httpImpl) MigrateBetaMeetings(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+		WriteForbiddenJWT(w)
+		return
+	}
+	err = server.db.MigrateBetaMeetingsToNonBeta()
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed while migrating beta meetings to non-beta meetings", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
+}
+
+func (server *httpImpl) DeleteBetaMeetings(w http.ResponseWriter, r *http.Request) {
+	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+		WriteForbiddenJWT(w)
+		return
+	}
+	err = server.db.DeleteBetaMeetings()
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed while deleting beta meetings", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }

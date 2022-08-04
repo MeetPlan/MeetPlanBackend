@@ -3,6 +3,7 @@ package httphandlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -270,7 +271,7 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 		}
 		var children []int
 		json.Unmarshal([]byte(parent.Users), &children)
-		if !contains(children, studentId) {
+		if !helpers.Contains(children, studentId) {
 			WriteForbiddenJWT(w)
 			return
 		}

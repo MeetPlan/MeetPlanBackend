@@ -1,6 +1,6 @@
-package proton
+package helpers
 
-func contains(s []int, e int) bool {
+func Contains[T comparable](s []T, e T) bool {
 	for _, a := range s {
 		if a == e {
 			return true
@@ -9,11 +9,16 @@ func contains(s []int, e int) bool {
 	return false
 }
 
-func insertTeacherTier(a []TeacherTier, index int, value TeacherTier) []TeacherTier {
+func Insert[T any](a []T, index int, value T) []T {
 	if len(a) == index { // nil or empty slice or after last element
 		return append(a, value)
 	}
 	a = append(a[:index+1], a[index:]...) // index < len(a)
 	a[index] = value
 	return a
+}
+
+func Remove[T any](s []T, i int) []T {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
 }

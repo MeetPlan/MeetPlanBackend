@@ -1,0 +1,1 @@
+ALTER TABLE meetings ADD COLUMN is_beta BOOLEAN DEFAULT false;

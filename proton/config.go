@@ -27,6 +27,7 @@ type ProtonRule struct {
 	Objects  []ProtonObject `json:"objects"`
 	RuleName string         `json:"rule_name"`
 	RuleType int            `json:"rule_type"`
+	ID       string         `json:"id"`
 }
 
 type ProtonConfig struct {

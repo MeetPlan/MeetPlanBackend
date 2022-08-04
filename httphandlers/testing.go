@@ -3,6 +3,7 @@ package httphandlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"github.com/johnfercher/maroto/pkg/consts"
@@ -161,7 +162,7 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 		} else if jwtData["role"] == "parent" {
 			var users []int
 			json.Unmarshal([]byte(user.Users), &users)
-			if !contains(users, test.UserID) {
+			if !helpers.Contains(users, test.UserID) {
 				WriteForbiddenJWT(w)
 				return
 			}

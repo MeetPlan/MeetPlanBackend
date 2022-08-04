@@ -3,6 +3,7 @@ package httphandlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"net/http"
 	"strconv"
@@ -93,7 +94,7 @@ func (server *httpImpl) GetMyGradings(w http.ResponseWriter, r *http.Request) {
 				WriteJSON(w, Response{Error: err.Error(), Data: "Failed to unmarshal parent's students", Success: false}, http.StatusInternalServerError)
 				return
 			}
-			if !contains(children, studentId) {
+			if !helpers.Contains(children, studentId) {
 				WriteForbiddenJWT(w)
 				return
 			}
@@ -145,7 +146,7 @@ func (server *httpImpl) GetMyGradings(w http.ResponseWriter, r *http.Request) {
 					dates[n].Gradings = append(dates[n].Gradings, gradings[i])
 					added = true
 				} else if gradingDate.After(parsedDate) {
-					dates = insertGradingDate(dates, n, GradingDate{
+					dates = helpers.Insert(dates, n, GradingDate{
 						Date:     gradings[i].Date,
 						Gradings: []Meeting{gradings[i]},
 					})

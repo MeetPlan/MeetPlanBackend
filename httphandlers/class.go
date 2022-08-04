@@ -3,6 +3,7 @@ package httphandlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -257,7 +258,7 @@ func (server *httpImpl) RemoveUserFromClass(w http.ResponseWriter, r *http.Reque
 		}
 		for i := 0; i < len(m); i++ {
 			if m[i] == userId {
-				m = remove(m, i)
+				m = helpers.Remove(m, i)
 				break
 			}
 		}

@@ -3,6 +3,7 @@ package httphandlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -50,7 +51,7 @@ func (server *httpImpl) GetMeals(w http.ResponseWriter, r *http.Request) {
 			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
 			return
 		}
-		var ordered = contains(orders, userId)
+		var ordered = helpers.Contains(orders, userId)
 		var isLimitReached = meal.IsLimited && len(orders) >= meal.OrderLimit
 		var hasAppended = false
 		var mealOrders = make([]UserJSON, 0)
@@ -200,7 +201,7 @@ func (server *httpImpl) NewOrder(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	if contains(orders, userId) {
+	if helpers.Contains(orders, userId) {
 		WriteJSON(w, Response{Success: false, Data: "You cannot order same meal twice."}, http.StatusConflict)
 		return
 	}
@@ -390,7 +391,7 @@ func (server *httpImpl) RemoveOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	for i := 0; i < len(orders); i++ {
 		if orders[i] == userId {
-			orders = remove(orders, i)
+			orders = helpers.Remove(orders, i)
 		}
 	}
 	marshal, err := json.Marshal(orders)

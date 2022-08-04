@@ -3,6 +3,7 @@ package httphandlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -45,7 +46,7 @@ func (server *httpImpl) GetCommunications(w http.ResponseWriter, r *http.Request
 		if err != nil {
 			return
 		}
-		if contains(people, userId) {
+		if helpers.Contains(people, userId) {
 			communicationsJson = append(communicationsJson, communication)
 		}
 	}
@@ -77,7 +78,7 @@ func (server *httpImpl) GetCommunication(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return
 	}
-	if !contains(people, userId) {
+	if !helpers.Contains(people, userId) {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -104,7 +105,7 @@ func (server *httpImpl) GetCommunication(w http.ResponseWriter, r *http.Request)
 		if err != nil {
 			return
 		}
-		if !contains(users, userId) {
+		if !helpers.Contains(users, userId) {
 			users = append(users, userId)
 			marshal, err := json.Marshal(users)
 			if err != nil {
@@ -148,7 +149,7 @@ func (server *httpImpl) NewMessage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	if !contains(people, userId) {
+	if !helpers.Contains(people, userId) {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -183,7 +184,7 @@ func (server *httpImpl) NewCommunication(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return
 	}
-	if !contains(people, userId) {
+	if !helpers.Contains(people, userId) {
 		people = append(people, userId)
 	}
 	users, err := json.Marshal(people)

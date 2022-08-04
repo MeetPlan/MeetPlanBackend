@@ -40,8 +40,3 @@ func WriteBadRequest(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(DumpJSON(Response{Success: false, Data: "Bad request"}))
 }
-
-func remove(s []int, i int) []int {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
-}

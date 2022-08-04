@@ -41,6 +41,10 @@ func main() {
 		os.Mkdir("MeetPlanDB", os.ModePerm)
 	}
 
+	if _, err := os.Stat("documents"); os.IsNotExist(err) {
+		os.Mkdir("documents", os.ModePerm)
+	}
+
 	db, err := sql.NewSQL(config.DatabaseName, config.DatabaseConfig, sugared)
 	db.Init()
 
@@ -49,7 +53,7 @@ func main() {
 		return
 	}
 
-	protonState, err := proton.NewProton(db)
+	protonState, err := proton.NewProton(db, sugared)
 	if err != nil {
 		sugared.Fatal("Error while initializing Proton: ", err.Error())
 		return
@@ -120,6 +124,8 @@ func main() {
 	r.HandleFunc("/meetings/new", httphandler.NewMeeting).Methods("POST")
 	r.HandleFunc("/meetings/new/{id}", httphandler.PatchMeeting).Methods("PATCH")
 	r.HandleFunc("/meetings/new/{id}", httphandler.DeleteMeeting).Methods("DELETE")
+	r.HandleFunc("/meetings/beta", httphandler.MigrateBetaMeetings).Methods("PATCH")
+	r.HandleFunc("/meetings/beta", httphandler.DeleteBetaMeetings).Methods("DELETE")
 
 	r.HandleFunc("/communications/get", httphandler.GetCommunications).Methods("GET")
 	r.HandleFunc("/communication/get/{id}", httphandler.GetCommunication).Methods("GET")
@@ -164,6 +170,14 @@ func main() {
 
 	r.HandleFunc("/proton/rule/new", httphandler.NewProtonRule).Methods("POST")
 	r.HandleFunc("/proton/rules/get", httphandler.GetProtonRules).Methods("GET")
+	r.HandleFunc("/proton/rule/get", httphandler.DeleteProtonRule).Methods("DELETE")
+
+	r.HandleFunc("/proton/assemble/timetable", httphandler.AssembleTimetable).Methods("GET")
+	r.HandleFunc("/proton/accept/timetable", httphandler.AcceptAssembledTimetable).Methods("POST")
+	r.HandleFunc("/proton/timetable/manual_postprocessing", httphandler.ManualPostProcessRepeat).Methods("POST")
+
+	r.HandleFunc("/documents/get", httphandler.FetchAllDocuments).Methods("GET")
+	r.HandleFunc("/documents/get", httphandler.DeleteDocument).Methods("DELETE")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins

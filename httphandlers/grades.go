@@ -3,10 +3,13 @@ package httphandlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
+	"github.com/dchest/uniuri"
 	"github.com/gorilla/mux"
 	"github.com/signintech/gopdf"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 )
@@ -497,7 +500,7 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 			}
 			var children []int
 			json.Unmarshal([]byte(parent.Users), &children)
-			if !contains(children, studentId) {
+			if !helpers.Contains(children, studentId) {
 				WriteForbiddenJWT(w)
 				return
 			}
@@ -753,7 +756,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 				return
 			}
-			if contains(users, studentId) {
+			if helpers.Contains(users, studentId) {
 				class = &classes[i]
 			}
 		}
@@ -809,7 +812,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
 		pdf.AddPage()
 
-		if server.config.Debug {
+		if server.config.Debug || r.URL.Query().Get("useDocument") == "true" {
 			// Import page 1
 			tpl1 := pdf.ImportPage("officialdocs/spričevalo.pdf", 1, "/MediaBox")
 
@@ -869,7 +872,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 						break
 					}
 				} else {
-					if subjectsPosition[i].IsDynamicallyAllocated && !containsString(subjectsAlreadyIn, subjects[n].LongName) {
+					if subjectsPosition[i].IsDynamicallyAllocated && !helpers.Contains(subjectsAlreadyIn, subjects[n].LongName) {
 						name = subjects[n].LongName
 						found = n
 						break
@@ -942,13 +945,15 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		pdf.SetX(150)
 		pdf.Cell(nil, fmt.Sprint(class.EOK))
 
+		UUID := uniuri.NewLen(10)
+
 		lastDate := time.UnixMilli(int64(class.LastSchoolDate * 1000))
 		year, month, day := lastDate.Date()
 		pdf.SetX(50)
 		pdf.SetY(725)
 		pdf.Cell(nil, fmt.Sprintf("%s.%s.%s", fmt.Sprint(day), fmt.Sprint(int(month)), fmt.Sprint(year)))
 		pdf.SetX(390)
-		pdf.Cell(nil, fmt.Sprintf("MEETPLAN/01/%s", fmt.Sprint(year)))
+		pdf.Cell(nil, fmt.Sprintf("00/%s/%s", fmt.Sprint(year), UUID))
 
 		teacher, err := server.db.GetUser(class.Teacher)
 		if err != nil {
@@ -969,6 +974,35 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		pdf.Cell(nil, principal.Name)
 
 		output := pdf.GetBytesPdf()
-		w.Write(output)
+
+		filename := fmt.Sprintf("documents/%s.pdf", UUID)
+
+		err = helpers.Sign(output, filename, "cacerts/key-pair.p12", "")
+		if err != nil {
+			WriteJSON(w, Response{Data: "Failed while signing", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+
+		currentTime := time.Now().UnixMilli()
+		document := sql.Document{
+			ID:           UUID,
+			ExportedBy:   teacherId,
+			DocumentType: SPRICEVALO,
+			Timestamp:    int(currentTime),
+			IsSigned:     true,
+		}
+		err = server.db.InsertDocument(document)
+		if err != nil {
+			WriteJSON(w, Response{Data: "Failed while inserting Document into database", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+
+		file, err := os.ReadFile(filename)
+		if err != nil {
+			WriteJSON(w, Response{Data: "Failed while reading signed document", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(file)
 	}
 }

@@ -41,11 +41,13 @@ CREATE TABLE IF NOT EXISTS meetings (
 	subject_id              INTEGER         NOT NULL,
 	hour                    INTEGER         NOT NULL,
 	date                    VARCHAR(20)     NOT NULL,
+	location                VARCHAR(100)    NOT NULL,
 	is_mandatory            BOOLEAN         NOT NULL,
 	is_grading              BOOLEAN         NOT NULL,
 	is_written_assessment   BOOLEAN,
 	is_test                 BOOLEAN         NOT NULL,
-	is_substitution         BOOLEAN         NOT NULL
+	is_substitution         BOOLEAN         NOT NULL,
+	is_beta                 BOOLEAN         NOT NULL
 );
 CREATE TABLE IF NOT EXISTS absence (
 	id                      INTEGER         PRIMARY KEY,
@@ -74,8 +76,10 @@ CREATE TABLE IF NOT EXISTS subject (
 	long_name               VARCHAR(200),
 	inherits_class          BOOLEAN,
 	realization             FLOAT,
+	location                VARCHAR(100)    NOT NULL,
 	class_id                INTEGER         DEFAULT(-1),
-	students                JSON            DEFAULT('[]')
+	students                JSON            DEFAULT('[]'),
+	color                   VARCHAR(10)
 );
 CREATE TABLE IF NOT EXISTS student_homework (
 	id                      INTEGER,
@@ -131,4 +135,11 @@ CREATE TABLE IF NOT EXISTS improvements (
     meeting_id              INTEGER,
 	teacher_id              INTEGER
 );
+CREATE TABLE IF NOT EXISTS documents (
+    id                      VARCHAR(50)     PRIMARY KEY,
+    exported_by             INTEGER         NOT NULL,
+    document_type           INTEGER         NOT NULL,
+    timestamp               INTEGER         NOT NULL,
+    is_signed               BOOLEAN         NOT NULL
+)
 `

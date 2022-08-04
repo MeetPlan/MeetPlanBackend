@@ -1,6 +1,9 @@
 package sql
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
+)
 
 type Message struct {
 	ID              int
@@ -71,7 +74,7 @@ func (db *sqlImpl) GetAllUnreadMessages(userId int) (messages []Message, err err
 		if err != nil {
 			return make([]Message, 0), err
 		}
-		if contains(communicationUsers, userId) && !contains(users, userId) {
+		if helpers.Contains(communicationUsers, userId) && !helpers.Contains(users, userId) {
 			unread = append(unread, message)
 		}
 	}

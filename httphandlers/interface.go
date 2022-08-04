@@ -60,6 +60,8 @@ type HTTP interface {
 	GetAbsencesTeacher(w http.ResponseWriter, r *http.Request)
 	PatchAbsence(w http.ResponseWriter, r *http.Request)
 	GetUsersForMeeting(w http.ResponseWriter, r *http.Request)
+	MigrateBetaMeetings(w http.ResponseWriter, r *http.Request)
+	DeleteBetaMeetings(w http.ResponseWriter, r *http.Request)
 
 	// subjects.go
 	GetSubjects(w http.ResponseWriter, r *http.Request)
@@ -126,12 +128,21 @@ type HTTP interface {
 
 	// proton.go
 	ManageTeacherAbsences(w http.ResponseWriter, r *http.Request)
+	PostProcessTimetable(classes []sql.Class, stableTimetable []proton.ProtonMeeting, cancelPostProcessingBeforeDone bool) ([]proton.ProtonMeeting, error)
 	NewProtonRule(w http.ResponseWriter, r *http.Request)
 	GetProtonRules(w http.ResponseWriter, r *http.Request)
+	AssembleTimetable(w http.ResponseWriter, r *http.Request)
+	AcceptAssembledTimetable(w http.ResponseWriter, r *http.Request)
+	ManualPostProcessRepeat(w http.ResponseWriter, r *http.Request)
+	DeleteProtonRule(w http.ResponseWriter, r *http.Request)
 
 	// improvements.go
 	NewImprovement(w http.ResponseWriter, r *http.Request)
 	GetImprovementsForUser(w http.ResponseWriter, r *http.Request)
+
+	// documents.go
+	FetchAllDocuments(w http.ResponseWriter, r *http.Request)
+	DeleteDocument(w http.ResponseWriter, r *http.Request)
 }
 
 func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL, config sql.Config, proton proton.Proton) HTTP {

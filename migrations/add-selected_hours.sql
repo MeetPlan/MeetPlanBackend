@@ -1,0 +1,1 @@
+ALTER TABLE subject ADD COLUMN selected_hours FLOAT DEFAULT 1.0;

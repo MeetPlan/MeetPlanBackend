@@ -13,8 +13,8 @@ func (db *sqlImpl) GetDocument(id string) (document Document, err error) {
 	return document, err
 }
 
-func (db *sqlImpl) GetAllDocuments(id string) (documents []Document, err error) {
-	err = db.db.Select(&documents, "SELECT * FROM documents WHERE id=$1 ORDER BY timestamp DESC", id)
+func (db *sqlImpl) GetAllDocuments() (documents []Document, err error) {
+	err = db.db.Select(&documents, "SELECT * FROM documents ORDER BY timestamp DESC")
 	return documents, err
 }
 

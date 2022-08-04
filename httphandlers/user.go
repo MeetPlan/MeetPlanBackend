@@ -6,12 +6,14 @@ import (
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/dchest/uniuri"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/johnfercher/maroto/pkg/consts"
 	"github.com/johnfercher/maroto/pkg/pdf"
 	"github.com/johnfercher/maroto/pkg/props"
 	"github.com/signintech/gopdf"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 )
@@ -529,159 +531,207 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist" {
-		userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-
-		student, err := server.db.GetUser(userId)
-		if err != nil {
-			return
-		}
-		if student.Role != "student" {
-			WriteForbiddenJWT(w)
-			return
-		}
-
-		classes, err := server.db.GetClasses()
-		if err != nil {
-			return
-		}
-
-		var classId = -1
-
-		for i := 0; i < len(classes); i++ {
-			class := classes[i]
-			var students []int
-			err := json.Unmarshal([]byte(class.Students), &students)
-			if err != nil {
-				return
-			}
-			if helpers.Contains(students, userId) {
-				classId = class.ID
-				break
-			}
-		}
-
-		if classId == -1 {
-			return
-		}
-
-		class, err := server.db.GetClass(classId)
-		if err != nil {
-			return
-		}
-
-		var students []int
-		err = json.Unmarshal([]byte(class.Students), &students)
-		if err != nil {
-			return
-		}
-		if !helpers.Contains(students, userId) {
-			WriteForbiddenJWT(w)
-			return
-		}
-
-		m := pdf.NewMaroto(consts.Portrait, consts.A4)
-
-		m.AddUTF8Font("OpenSans", consts.Normal, "fonts/opensans.ttf")
-		m.SetDefaultFontFamily("OpenSans")
-
-		m.Row(40, func() {
-
-			m.Col(3, func() {
-				_ = m.FileImage("icons/school_logo.png", props.Rect{
-					Center:  true,
-					Percent: 80,
-				})
-			})
-
-			m.ColSpace(1)
-
-			m.Col(4, func() {
-				m.Text("Potrdilo o šolanju", props.Text{
-					Top:         12,
-					Size:        25,
-					Extrapolate: true,
-				})
-				m.Text("MeetPlan sistem", props.Text{
-					Top:         23,
-					Size:        13,
-					Extrapolate: true,
-				})
-			})
-			m.ColSpace(1)
-
-			m.Col(3, func() {
-				_ = m.FileImage("icons/country_coat_of_arms_black.png", props.Rect{
-					Center:  true,
-					Percent: 80,
-				})
-			})
-		})
-
-		m.Line(10)
-
-		m.Row(40, func() {
-			m.Text(fmt.Sprintf(
-				"Učenec %s, rojen %s, %s, %s, v šolskem letu %s",
-				student.Name, student.Birthday, student.CityOfBirth,
-				student.CountryOfBirth, class.ClassYear,
-			), props.Text{
-				Top:         12,
-				Size:        11,
-				Extrapolate: true,
-			})
-			m.Text(fmt.Sprintf("obiskuje %s razred šole %s.",
-				class.Name, server.config.SchoolName,
-			), props.Text{
-				Top:         16,
-				Size:        11,
-				Extrapolate: true,
-			})
-		})
-
-		principal, err := server.db.GetPrincipal()
-		if err != nil {
-			return
-		}
-
-		m.Row(40, func() {
-			m.ColSpace(1)
-			m.Col(6, func() {
-				m.Text("_________________________", props.Text{
-					Top:  14,
-					Size: 15,
-				})
-				m.Text(principal.Name, props.Text{
-					Top:  14,
-					Size: 15,
-				})
-				m.Text("digitalni podpis ravnatelja", props.Text{Top: 20, Size: 9})
-			})
-			m.Col(3, func() {
-				m.Text("_________________________", props.Text{
-					Top:  14,
-					Size: 15,
-				})
-				m.Text("podpis ravnatelja", props.Text{Top: 20, Size: 9})
-			})
-		})
-
-		output, err := m.Output()
-		if err != nil {
-			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-			return
-		}
-		w.Write(output.Bytes())
-	} else {
+	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist") {
 		WriteForbiddenJWT(w)
 		return
 	}
+
+	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+
+	student, err := server.db.GetUser(userId)
+	if err != nil {
+		return
+	}
+	if student.Role != "student" {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	classes, err := server.db.GetClasses()
+	if err != nil {
+		return
+	}
+
+	var classId = -1
+
+	for i := 0; i < len(classes); i++ {
+		class := classes[i]
+		var students []int
+		err := json.Unmarshal([]byte(class.Students), &students)
+		if err != nil {
+			return
+		}
+		if helpers.Contains(students, userId) {
+			classId = class.ID
+			break
+		}
+	}
+
+	if classId == -1 {
+		return
+	}
+
+	class, err := server.db.GetClass(classId)
+	if err != nil {
+		return
+	}
+
+	var students []int
+	err = json.Unmarshal([]byte(class.Students), &students)
+	if err != nil {
+		return
+	}
+	if !helpers.Contains(students, userId) {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	m := pdf.NewMaroto(consts.Portrait, consts.A4)
+
+	m.AddUTF8Font("OpenSans", consts.Normal, "fonts/opensans.ttf")
+	m.SetDefaultFontFamily("OpenSans")
+
+	m.Row(40, func() {
+
+		m.Col(3, func() {
+			_ = m.FileImage("icons/school_logo.png", props.Rect{
+				Center:  true,
+				Percent: 80,
+			})
+		})
+
+		m.ColSpace(1)
+
+		m.Col(4, func() {
+			m.Text("Potrdilo o šolanju", props.Text{
+				Top:         12,
+				Size:        25,
+				Extrapolate: true,
+			})
+			m.Text("MeetPlan sistem", props.Text{
+				Top:         23,
+				Size:        13,
+				Extrapolate: true,
+			})
+		})
+		m.ColSpace(1)
+
+		m.Col(3, func() {
+			_ = m.FileImage("icons/country_coat_of_arms_black.png", props.Rect{
+				Center:  true,
+				Percent: 80,
+			})
+		})
+	})
+
+	m.Line(10)
+
+	m.Row(40, func() {
+		m.Text(fmt.Sprintf(
+			"Učenec %s, rojen %s, %s, %s, v šolskem letu %s",
+			student.Name, student.Birthday, student.CityOfBirth,
+			student.CountryOfBirth, class.ClassYear,
+		), props.Text{
+			Top:         12,
+			Size:        11,
+			Extrapolate: true,
+		})
+		m.Text(fmt.Sprintf("obiskuje %s razred šole %s.",
+			class.Name, server.config.SchoolName,
+		), props.Text{
+			Top:         16,
+			Size:        11,
+			Extrapolate: true,
+		})
+	})
+
+	principal, err := server.db.GetPrincipal()
+	if err != nil {
+		return
+	}
+
+	m.Row(40, func() {
+		m.ColSpace(1)
+		m.Col(6, func() {
+			m.Text("_________________________", props.Text{
+				Top:  14,
+				Size: 15,
+			})
+			m.Text(principal.Name, props.Text{
+				Top:  14,
+				Size: 15,
+			})
+			m.Text("digitalni podpis ravnatelja", props.Text{Top: 20, Size: 9})
+		})
+		m.Col(3, func() {
+			m.Text("_________________________", props.Text{
+				Top:  14,
+				Size: 15,
+			})
+			m.Text("podpis ravnatelja", props.Text{Top: 20, Size: 9})
+		})
+	})
+
+	m.Line(10)
+
+	UUID := uuid.New().String()
+
+	m.Row(40, func() {
+		m.Text(fmt.Sprintf("Enolični identifikator dokumenta: %s", UUID), props.Text{
+			Top:  14,
+			Size: 10,
+		})
+	})
+
+	output, err := m.Output()
+	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+
+	filename := fmt.Sprintf("documents/%s.pdf", UUID)
+
+	err = helpers.Sign(output.Bytes(), filename, "cacerts/key-pair.p12", "")
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed while signing", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+
+	currentTime := time.Now().UnixMilli()
+
+	document := sql.Document{
+		ID:           UUID,
+		ExportedBy:   teacherId,
+		DocumentType: POTRDILO_O_SOLANJU,
+		Timestamp:    int(currentTime),
+		IsSigned:     true,
+	}
+
+	err = server.db.InsertDocument(document)
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed while inserting document into the database", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+
+	file, err := os.ReadFile(filename)
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed while reading signed document", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(file)
 }
 
+// TODO: Sign this document
 func (server *httpImpl) GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopdf.GoPdf, error) {
 	user, err := server.db.GetUser(userId)
 	if err != nil {
@@ -723,7 +773,7 @@ func (server *httpImpl) GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopd
 	pdf.Text("Verjetno ste bili že obveščeni, da je vaša šola to leto izbrala drug sistem.")
 	pdf.SetX(borderBase)
 	pdf.SetY(255)
-	pdf.Text("MeetPlan je popolnoma odprtokoden sistem, ki je popolnoma zastonj.")
+	pdf.Text("MeetPlan je popolnoma odprtokoden sistem, ki je popolnoma brezplačen za vse.")
 	pdf.SetX(borderBase)
 	pdf.SetY(270)
 	pdf.Text("Ta izjava vsebuje vaše osebne podatke za dostop do MeetPlan sistema.")

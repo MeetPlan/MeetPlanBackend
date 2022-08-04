@@ -157,7 +157,7 @@ type SQL interface {
 	DeleteImprovement(ID int) error
 
 	GetDocument(id string) (document Document, err error)
-	GetAllDocuments(id string) (documents []Document, err error)
+	GetAllDocuments() (documents []Document, err error)
 	InsertDocument(document Document) error
 	DeleteDocument(id string)
 }

@@ -38,7 +38,7 @@ func (server *httpImpl) ManageTeacherAbsences(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (server *httpImpl) PostProcessTimetable(classes []sql.Class, stableTimetable []proton.ProtonMeeting) ([]proton.ProtonMeeting, error) {
+func (server *httpImpl) PostProcessTimetable(classes []sql.Class, stableTimetable []proton.ProtonMeeting, cancelPostProcessingBeforeDone bool) ([]proton.ProtonMeeting, error) {
 	// Dogajajo se pripetljaji. Ni vsako polnjenje lukenj popolno, zato gremo "zlikati" ta urnik večkrat.
 	for i := 0; i < proton.PROTON_REPEAT_POST_PROCESSING; i++ {
 		server.logger.Debugw("izvajam post-procesiranje", "nivo", i)
@@ -50,7 +50,7 @@ func (server *httpImpl) PostProcessTimetable(classes []sql.Class, stableTimetabl
 			server.logger.Debugw("izvajam post-procesiranje", "class", class)
 
 			var err error
-			stableTimetable, err = server.proton.TimetablePostProcessing(stableTimetable, class)
+			stableTimetable, err = server.proton.TimetablePostProcessing(stableTimetable, class, cancelPostProcessingBeforeDone)
 			if err != nil {
 				return nil, err
 			}
@@ -540,7 +540,7 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 
 	server.logger.Info("done generating timetable. now passing post-processing to the proton package.")
 
-	stableTimetable, err = server.PostProcessTimetable(classes, stableTimetable)
+	stableTimetable, err = server.PostProcessTimetable(classes, stableTimetable, false)
 	if err != nil {
 		WriteJSON(w, Response{Data: "Fail while post-processing the timetable", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
@@ -563,17 +563,23 @@ func (server *httpImpl) ManualPostProcessRepeat(w http.ResponseWriter, r *http.R
 	var stableTimetable []proton.ProtonMeeting
 	err = json.Unmarshal([]byte(r.FormValue("timetable")), &stableTimetable)
 	if err != nil {
-		WriteJSON(w, Response{Data: "Fail while unmarshalling the timetable", Error: err.Error(), Success: false}, http.StatusBadRequest)
+		WriteJSON(w, Response{Data: stableTimetable, Error: err.Error(), Success: false}, http.StatusBadRequest)
 		return
 	}
 
 	classes, err := server.db.GetClasses()
 	if err != nil {
-		WriteJSON(w, Response{Data: "Fail while retrieving the classes", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		WriteJSON(w, Response{Data: stableTimetable, Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
 
-	stableTimetable, err = server.PostProcessTimetable(classes, stableTimetable)
+	cancelPostProcessingBeforeDone, err := strconv.ParseBool(r.FormValue("cancelPostProcessingBeforeDone"))
+	if err != nil {
+		WriteJSON(w, Response{Data: stableTimetable, Success: false, Error: err.Error()}, http.StatusBadRequest)
+		return
+	}
+
+	stableTimetable, err = server.PostProcessTimetable(classes, stableTimetable, cancelPostProcessingBeforeDone)
 	if err != nil {
 		WriteJSON(w, Response{Data: "Fail while post-processing the timetable", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return

@@ -29,7 +29,6 @@ const PROTON_MIN_NORMAL_HOUR = 1
 const PROTON_MAX_AFTER_CLASS_HOUR = 12
 const PROTON_MIN_AFTER_CLASS_HOUR = 9
 const PROTON_REPEAT_POST_PROCESSING = 3 // Večja je številka, večja je možnost, da nastane boljši urnik, a bo več časa trajalo, da se urnik post-procesira
-const PROTON_CANCEL_POST_PROCESSING_BEFORE_DONE = false
 
 //const PROTON_ALLOWED_HOLE_PATCHING_REPEAT_RATE = 200
 
@@ -56,7 +55,7 @@ type Proton interface {
 
 	// Post-procesirna suita funkcij
 
-	TimetablePostProcessing(stableTimetable []ProtonMeeting, class sql.Class) ([]ProtonMeeting, error)
+	TimetablePostProcessing(stableTimetable []ProtonMeeting, class sql.Class, cancelPostProcessingBeforeDone bool) ([]ProtonMeeting, error)
 
 	PatchTheHoles(timetable []ProtonMeeting, fullTimetable []ProtonMeeting) ([]ProtonMeeting, []ProtonMeeting)
 	GetSubjectsOfClass(timetable []ProtonMeeting, classStudents []int, class sql.Class) ([]ProtonMeeting, error)
@@ -927,25 +926,25 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 	for i := 0; i < len(subjects); i++ {
 		subject := subjects[i]
 
-		foundInSubjectGroup := false
-
-		for n := 0; n < len(subjectGroups); n++ {
-			subjectGroup := subjectGroups[n]
-			for x := 0; x < len(subjectGroup.Objects); x++ {
-				object := subjectGroup.Objects[x]
-				if object.Type == "subject" && object.ObjectID == subject.ID {
-					foundInSubjectGroup = true
-					break
-				}
-			}
-			if foundInSubjectGroup {
-				break
-			}
-		}
-
-		if foundInSubjectGroup {
-			continue
-		}
+		//foundInSubjectGroup := false
+		//
+		//for n := 0; n < len(subjectGroups); n++ {
+		//	subjectGroup := subjectGroups[n]
+		//	for x := 0; x < len(subjectGroup.Objects); x++ {
+		//		object := subjectGroup.Objects[x]
+		//		if object.Type == "subject" && object.ObjectID == subject.ID {
+		//			foundInSubjectGroup = true
+		//			break
+		//		}
+		//	}
+		//	if foundInSubjectGroup {
+		//		break
+		//	}
+		//}
+		//
+		//if foundInSubjectGroup {
+		//	continue
+		//}
 
 		subjectsNotInSubjectGroups = append(subjectsNotInSubjectGroups, subject.ID)
 	}
@@ -1119,6 +1118,10 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 					continue
 				}
 
+				if meeting.IsHalfHour {
+					continue
+				}
+
 				// Zelo lepo ime, vem...
 				isLonely := true
 				for y := 0; y < len(weeks[1-n]); y++ {
@@ -1140,19 +1143,23 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 				for y := 0; y < len(weeks[1-n]); y++ {
 					m := weeks[1-n][y]
 
-					if meeting.SubjectID == 11 && m.SubjectID == meeting.SubjectID {
-						p.logger.Debugw(
-							"subject",
-							"meeting", meeting,
-							"isLonely", isLonely,
-							"week", 1-n,
-							"lonelyHour", m,
-							"weekEquality", m.Week == meeting.Week,
-							"subjectEquality", m.SubjectID != meeting.SubjectID,
-							"hourDayEquality", meeting.Hour == m.Hour && meeting.DayOfTheWeek == m.DayOfTheWeek,
-							"meetingIdEquality", meeting.ID == m.ID,
-						)
+					if m.IsHalfHour {
+						continue
 					}
+
+					//if meeting.SubjectID == 11 && m.SubjectID == meeting.SubjectID {
+					//	p.logger.Debugw(
+					//		"subject",
+					//		"meeting", meeting,
+					//		"isLonely", isLonely,
+					//		"week", 1-n,
+					//		"lonelyHour", m,
+					//		"weekEquality", m.Week == meeting.Week,
+					//		"subjectEquality", m.SubjectID != meeting.SubjectID,
+					//		"hourDayEquality", meeting.Hour == m.Hour && meeting.DayOfTheWeek == m.DayOfTheWeek,
+					//		"meetingIdEquality", meeting.ID == m.ID,
+					//	)
+					//}
 
 					if m.SubjectID != meeting.SubjectID || (meeting.Hour == m.Hour && meeting.DayOfTheWeek == m.DayOfTheWeek) || meeting.ID == m.ID {
 						continue
@@ -1278,7 +1285,7 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 // - SwapMeetings (Stage 3), skrbi za menjavanje (bingljajočih) ur (v skupinah srečanj) in posledično masovno izboljšuje polnjenje lukenj.
 //
 // - PatchMistakes (Stage 4), skrbi za popravljanje napak pri generaciji in post-procesiranju urnika.
-func (p *protonImpl) TimetablePostProcessing(stableTimetable []ProtonMeeting, class sql.Class) ([]ProtonMeeting, error) {
+func (p *protonImpl) TimetablePostProcessing(stableTimetable []ProtonMeeting, class sql.Class, cancelPostProcessingBeforeDone bool) ([]ProtonMeeting, error) {
 	var students []int
 	err := json.Unmarshal([]byte(class.Students), &students)
 	if err != nil {
@@ -1290,7 +1297,7 @@ func (p *protonImpl) TimetablePostProcessing(stableTimetable []ProtonMeeting, cl
 		return nil, err
 	}
 
-	if !p.FindIfHolesExist(classTimetable) && PROTON_CANCEL_POST_PROCESSING_BEFORE_DONE {
+	if !p.FindIfHolesExist(classTimetable) && cancelPostProcessingBeforeDone {
 		classTimetable, stableTimetable = p.PatchMistakes(classTimetable, stableTimetable)
 		return stableTimetable, nil
 	}
@@ -1298,7 +1305,7 @@ func (p *protonImpl) TimetablePostProcessing(stableTimetable []ProtonMeeting, cl
 	// Stage 1
 	classTimetable, stableTimetable = p.PatchTheHoles(classTimetable, stableTimetable)
 
-	if !p.FindIfHolesExist(classTimetable) && PROTON_CANCEL_POST_PROCESSING_BEFORE_DONE {
+	if !p.FindIfHolesExist(classTimetable) && cancelPostProcessingBeforeDone {
 		classTimetable, stableTimetable = p.PatchMistakes(classTimetable, stableTimetable)
 		return stableTimetable, nil
 	}
@@ -1306,7 +1313,7 @@ func (p *protonImpl) TimetablePostProcessing(stableTimetable []ProtonMeeting, cl
 	// Stage 2
 	classTimetable, stableTimetable = p.PostProcessHolesAndNonNormalHours(classTimetable, stableTimetable)
 
-	if !p.FindIfHolesExist(classTimetable) && PROTON_CANCEL_POST_PROCESSING_BEFORE_DONE {
+	if !p.FindIfHolesExist(classTimetable) && cancelPostProcessingBeforeDone {
 		classTimetable, stableTimetable = p.PatchMistakes(classTimetable, stableTimetable)
 		return stableTimetable, nil
 	}
@@ -1314,7 +1321,7 @@ func (p *protonImpl) TimetablePostProcessing(stableTimetable []ProtonMeeting, cl
 	// Stage 3
 	classTimetable, stableTimetable = p.SwapMeetings(classTimetable, stableTimetable)
 
-	if !p.FindIfHolesExist(classTimetable) && PROTON_CANCEL_POST_PROCESSING_BEFORE_DONE {
+	if !p.FindIfHolesExist(classTimetable) && cancelPostProcessingBeforeDone {
 		classTimetable, stableTimetable = p.PatchMistakes(classTimetable, stableTimetable)
 		return stableTimetable, nil
 	}
@@ -1322,7 +1329,7 @@ func (p *protonImpl) TimetablePostProcessing(stableTimetable []ProtonMeeting, cl
 	// Stage 4
 	classTimetable, stableTimetable = p.PatchMistakes(classTimetable, stableTimetable)
 
-	if !p.FindIfHolesExist(classTimetable) && PROTON_CANCEL_POST_PROCESSING_BEFORE_DONE {
+	if !p.FindIfHolesExist(classTimetable) && cancelPostProcessingBeforeDone {
 		return stableTimetable, nil
 	}
 

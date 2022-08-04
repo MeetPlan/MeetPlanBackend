@@ -987,7 +987,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		document := sql.Document{
 			ID:           UUID,
 			ExportedBy:   teacherId,
-			DocumentType: 0,
+			DocumentType: SPRICEVALO,
 			Timestamp:    int(currentTime),
 			IsSigned:     true,
 		}

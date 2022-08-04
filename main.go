@@ -176,6 +176,9 @@ func main() {
 	r.HandleFunc("/proton/accept/timetable", httphandler.AcceptAssembledTimetable).Methods("POST")
 	r.HandleFunc("/proton/timetable/manual_postprocessing", httphandler.ManualPostProcessRepeat).Methods("POST")
 
+	r.HandleFunc("/documents/get", httphandler.FetchAllDocuments).Methods("GET")
+	r.HandleFunc("/documents/get", httphandler.DeleteDocument).Methods("DELETE")
+
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins
 		AllowedHeaders: []string{"Authorization"},

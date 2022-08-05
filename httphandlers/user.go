@@ -731,11 +731,10 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 	w.Write(file)
 }
 
-// TODO: Sign this document
-func (server *httpImpl) GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopdf.GoPdf, error) {
+func (server *httpImpl) GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopdf.GoPdf, string, error) {
 	user, err := server.db.GetUser(userId)
 	if err != nil {
-		return pdf, err
+		return pdf, "", err
 	}
 
 	pdf.AddPage()
@@ -743,13 +742,13 @@ func (server *httpImpl) GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopd
 
 	err = pdf.Image("icons/meetplan.png", 50, 50, &rect)
 	if err != nil {
-		return pdf, err
+		return pdf, "", err
 	}
 
 	newPassword := uniuri.NewLen(10)
 	password, err := sql.HashPassword(newPassword)
 	if err != nil {
-		return pdf, err
+		return pdf, "", err
 	}
 
 	user.Password = password
@@ -784,7 +783,7 @@ func (server *httpImpl) GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopd
 	pdf.SetY(300)
 	pdf.Text("Poleg spodaj naštetih podatkov zbiramo samo še matično številko osebe.")
 
-	const differ = 150
+	const differ = 200
 
 	pdf.SetX(borderBase)
 	pdf.SetY(350)
@@ -842,18 +841,26 @@ func (server *httpImpl) GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopd
 	pdf.SetFontSize(20)
 	pdf.Text(user.Birthday)
 
-	if server.config.Debug {
-		pdf.SetX(borderBase)
-		pdf.SetY(560)
-		pdf.SetFontSize(10)
-		pdf.Text("enolični identifikator")
-		pdf.SetFontSize(20)
-		pdf.SetX(differ)
-		pdf.Text(fmt.Sprint(user.ID))
-	}
+	UUID := uuid.New().String()
+
+	pdf.SetX(borderBase)
+	pdf.SetY(560)
+	pdf.SetFontSize(10)
+	pdf.Text("enolični identifikator dokumenta")
+	pdf.SetFontSize(20)
+	pdf.SetX(differ)
+	pdf.Text(UUID)
+
+	pdf.SetX(borderBase)
+	pdf.SetY(590)
+	pdf.SetFontSize(10)
+	pdf.Text("enolični identifikator osebe")
+	pdf.SetFontSize(20)
+	pdf.SetX(differ)
+	pdf.Text(fmt.Sprint(user.ID))
 
 	err = server.db.UpdateUser(user)
-	return pdf, err
+	return pdf, UUID, err
 }
 
 func (server *httpImpl) ResetPassword(w http.ResponseWriter, r *http.Request) {
@@ -869,29 +876,64 @@ func (server *httpImpl) ResetPassword(w http.ResponseWriter, r *http.Request) {
 			WriteBadRequest(w)
 			return
 		}
+		teacherId, err := strconv.Atoi(fmt.Sprint(jwtData["user_id"]))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
 
-		pdf := &gopdf.GoPdf{}
-		pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
+		p := &gopdf.GoPdf{}
+		p.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
 
-		err = pdf.AddTTFFont("opensans", "fonts/opensans.ttf")
+		err = p.AddTTFFont("opensans", "fonts/opensans.ttf")
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
 
-		err = pdf.SetFont("opensans", "", 11)
+		err = p.SetFont("opensans", "", 11)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
 
-		pdf, err = server.GenerateNewUserCert(pdf, id)
+		p, UUID, err := server.GenerateNewUserCert(p, id)
 		if err != nil {
 			WriteJSON(w, Response{Data: "Failed at generating PDF", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
 
-		w.Write(pdf.GetBytesPdf())
+		filename := fmt.Sprintf("documents/%s.pdf", UUID)
+
+		err = helpers.Sign(p.GetBytesPdf(), filename, "cacerts/key-pair.p12", "")
+		if err != nil {
+			WriteJSON(w, Response{Data: "Failed while signing", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+
+		currentTime := time.Now().UnixMilli()
+
+		document := sql.Document{
+			ID:           UUID,
+			ExportedBy:   teacherId,
+			DocumentType: RESETIRANJE_GESLA,
+			Timestamp:    int(currentTime),
+			IsSigned:     true,
+		}
+
+		err = server.db.InsertDocument(document)
+		if err != nil {
+			WriteJSON(w, Response{Data: "Failed while inserting document into the database", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+
+		file, err := os.ReadFile(filename)
+		if err != nil {
+			WriteJSON(w, Response{Data: "Failed while reading signed document", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(file)
 	} else {
 		WriteForbiddenJWT(w)
 	}

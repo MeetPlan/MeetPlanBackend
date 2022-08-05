@@ -9,6 +9,7 @@ import (
 
 const SPRICEVALO = 0
 const POTRDILO_O_SOLANJU = 1
+const RESETIRANJE_GESLA = 2
 
 type Document struct {
 	sql.Document

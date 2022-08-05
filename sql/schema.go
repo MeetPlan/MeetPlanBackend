@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS documents (
     id                      VARCHAR(50)     PRIMARY KEY,
     exported_by             INTEGER         NOT NULL,
     document_type           INTEGER         NOT NULL,
-    timestamp               INTEGER         NOT NULL,
+    timestamp               BIGINT          NOT NULL,
     is_signed               BOOLEAN         NOT NULL
 )
 `

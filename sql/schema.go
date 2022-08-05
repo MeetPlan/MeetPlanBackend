@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS subject (
 	location                VARCHAR(100)    NOT NULL,
 	class_id                INTEGER         DEFAULT(-1),
 	students                JSON            DEFAULT('[]'),
+	selected_hours          FLOAT           DEFAULT 1.0;
 	color                   VARCHAR(10)
 );
 CREATE TABLE IF NOT EXISTS student_homework (

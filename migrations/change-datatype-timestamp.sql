@@ -1,1 +1,1 @@
-ALTER TABLE documents ALTER COLUMN timestamp BIGINT;
+ALTER TABLE documents ALTER COLUMN timestamp TYPE BIGINT;

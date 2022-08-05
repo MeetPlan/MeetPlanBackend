@@ -142,5 +142,5 @@ CREATE TABLE IF NOT EXISTS documents (
     document_type           INTEGER         NOT NULL,
     timestamp               BIGINT          NOT NULL,
     is_signed               BOOLEAN         NOT NULL
-)
+);
 `

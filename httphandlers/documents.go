@@ -57,7 +57,13 @@ func (server *httpImpl) DeleteDocument(w http.ResponseWriter, r *http.Request) {
 
 	documentId := r.FormValue("documentId")
 
-	err = os.Remove(fmt.Sprintf("documents/%s.pdf", documentId))
+	document, err := server.db.GetDocument(documentId)
+	if err != nil {
+		WriteJSON(w, Response{Data: "Document not found", Error: err.Error(), Success: false}, http.StatusNotFound)
+		return
+	}
+
+	err = os.Remove(fmt.Sprintf("documents/%s.pdf", document.ID))
 	if err != nil {
 		WriteJSON(w, Response{Data: "Failed while deleting the document", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return

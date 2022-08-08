@@ -445,7 +445,7 @@ func (p *protonImpl) PatchTheHoles(timetable []ProtonMeeting, fullTimetable []Pr
 					meeting := meetingsHour[m]
 
 					if meeting.IsHalfHour {
-						p.logger.Debug("izognil sem se poluri", meeting)
+						p.logger.Debug("izognil sem se poluri", fmt.Sprint(meeting))
 						continue
 					}
 

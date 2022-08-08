@@ -445,7 +445,7 @@ func (p *protonImpl) PatchTheHoles(timetable []ProtonMeeting, fullTimetable []Pr
 					meeting := meetingsHour[m]
 
 					if meeting.IsHalfHour {
-						p.logger.Debug("izognil sem se poluri", fmt.Sprint(meeting))
+						p.logger.Debug("izognil sem se poluri", helpers.FmtSanitize(meeting))
 						continue
 					}
 
@@ -470,7 +470,7 @@ func (p *protonImpl) PatchTheHoles(timetable []ProtonMeeting, fullTimetable []Pr
 
 				ok, err := p.CheckIfProtonConfigIsOk(fullTimetable)
 				if ok {
-					p.logger.Debugw("successfully patched the hole", "hole", fmt.Sprint(hole), "meetings", fmt.Sprint(meetingsHour))
+					p.logger.Debugw("successfully patched the hole", "hole", helpers.FmtSanitize(hole), "meetings", helpers.FmtSanitize(meetingsHour))
 
 					stableFullTimetable = make([]ProtonMeeting, 0)
 					stableFullTimetable = append(stableFullTimetable, fullTimetable...)
@@ -511,7 +511,7 @@ func (p *protonImpl) PatchTheHoles(timetable []ProtonMeeting, fullTimetable []Pr
 				} else {
 					// V primeru, da se ne more dodeliti ta luknja, ni problema, gre samo na naslednjo luknjo v naslednji ponovni eksekuciji "for" zanke.
 
-					p.logger.Debugw("failed while patching the hole. reverting to stable state.", "err", err.Error(), "hole", fmt.Sprint(hole), "meetings", fmt.Sprint(meetingsHour))
+					p.logger.Debugw("failed while patching the hole. reverting to stable state.", "err", err.Error(), "hole", helpers.FmtSanitize(hole), "meetings", helpers.FmtSanitize(meetingsHour))
 
 					fullTimetable = make([]ProtonMeeting, 0)
 					fullTimetable = append(fullTimetable, stableFullTimetable...)
@@ -621,7 +621,7 @@ func (p *protonImpl) FindRelationalHoles(timetable []ProtonMeeting) []ProtonMeet
 		}
 	}
 
-	p.logger.Debugw("found relational holes", "relationalHoles", fmt.Sprint(relationalHoles))
+	p.logger.Debugw("found relational holes", "relationalHoles", helpers.FmtSanitize(relationalHoles))
 
 	return relationalHoles
 }
@@ -669,7 +669,7 @@ func (p *protonImpl) FindHoles(timetable []ProtonMeeting) [][]ProtonMeeting {
 		}
 	}
 
-	p.logger.Debugw("found holes", "freeHours", fmt.Sprint(freeHours))
+	p.logger.Debugw("found holes", "freeHours", helpers.FmtSanitize(freeHours))
 
 	return freeHours
 }
@@ -751,7 +751,7 @@ func (p *protonImpl) FindNonNormalHours(timetable []ProtonMeeting) []ProtonMeeti
 		}
 	}
 
-	p.logger.Debugw("found non-normal hours", "relation", fmt.Sprint(relation), "totalHours", fmt.Sprint(totalHours), "meetings", fmt.Sprint(meetings), "totalDays", fmt.Sprint(totalDays), "average", fmt.Sprint(average))
+	p.logger.Debugw("found non-normal hours", "relation", helpers.FmtSanitize(relation), "totalHours", helpers.FmtSanitize(totalHours), "meetings", helpers.FmtSanitize(meetings), "totalDays", helpers.FmtSanitize(totalDays), "average", helpers.FmtSanitize(average))
 
 	return meetings
 }
@@ -803,7 +803,7 @@ func (p *protonImpl) PostProcessHolesAndNonNormalHours(classTimetable []ProtonMe
 
 				ok, err := p.CheckIfProtonConfigIsOk(fullTimetable)
 				if ok {
-					p.logger.Debugw("successfully moved the dangling hour to a hole", "hole", fmt.Sprint(hole), "meeting", fmt.Sprint(nonNormal[i]))
+					p.logger.Debugw("successfully moved the dangling hour to a hole", "hole", helpers.FmtSanitize(hole), "meeting", helpers.FmtSanitize(nonNormal[i]))
 
 					stableFullTimetable = make([]ProtonMeeting, 0)
 					stableFullTimetable = append(stableFullTimetable, fullTimetable...)
@@ -820,7 +820,7 @@ func (p *protonImpl) PostProcessHolesAndNonNormalHours(classTimetable []ProtonMe
 				} else {
 					// V primeru, da se ne more dodeliti ta luknja, ni problema, gre samo na naslednje nenormalno srečanje v naslednji ponovni eksekuciji "for" zanke.
 
-					p.logger.Debugw("failed while moving the dangling hour to a hole. reverting to stable state.", "err", err.Error(), "hole", fmt.Sprint(hole), "meeting", fmt.Sprint(nonNormal[i]))
+					p.logger.Debugw("failed while moving the dangling hour to a hole. reverting to stable state.", "err", err.Error(), "hole", helpers.FmtSanitize(hole), "meeting", helpers.FmtSanitize(nonNormal[i]))
 
 					fullTimetable = make([]ProtonMeeting, 0)
 					fullTimetable = append(fullTimetable, stableFullTimetable...)
@@ -865,7 +865,7 @@ func (p *protonImpl) PostProcessHolesAndNonNormalHours(classTimetable []ProtonMe
 
 			ok, err := p.CheckIfProtonConfigIsOk(fullTimetable)
 			if ok {
-				p.logger.Debugw("successfully moved the dangling hour to a hole", "hole", fmt.Sprint(hole), "meeting", fmt.Sprint(nonNormal[i]))
+				p.logger.Debugw("successfully moved the dangling hour to a hole", "hole", helpers.FmtSanitize(hole), "meeting", helpers.FmtSanitize(nonNormal[i]))
 
 				stableFullTimetable = make([]ProtonMeeting, 0)
 				stableFullTimetable = append(stableFullTimetable, fullTimetable...)
@@ -882,7 +882,7 @@ func (p *protonImpl) PostProcessHolesAndNonNormalHours(classTimetable []ProtonMe
 			} else {
 				// V primeru, da se ne more dodeliti ta luknja, ni problema, gre samo na naslednje nenormalno srečanje v naslednji ponovni eksekuciji "for" zanke.
 
-				p.logger.Debugw("failed while moving the dangling hour to a hole. reverting to stable state.", "err", err.Error(), "hole", fmt.Sprint(hole), "meeting", fmt.Sprint(nonNormal[i]))
+				p.logger.Debugw("failed while moving the dangling hour to a hole. reverting to stable state.", "err", err.Error(), "hole", helpers.FmtSanitize(hole), "meeting", helpers.FmtSanitize(nonNormal[i]))
 
 				fullTimetable = make([]ProtonMeeting, 0)
 				fullTimetable = append(fullTimetable, stableFullTimetable...)
@@ -949,7 +949,7 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 		subjectsNotInSubjectGroups = append(subjectsNotInSubjectGroups, subject.ID)
 	}
 
-	p.logger.Debugw("executing patching mistakes", "subjectsNotInSubjectGroups", fmt.Sprint(subjectsNotInSubjectGroups))
+	p.logger.Debugw("executing patching mistakes", "subjectsNotInSubjectGroups", helpers.FmtSanitize(subjectsNotInSubjectGroups))
 
 	for i := 0; i < len(subjectGroups); i++ {
 		subjectGroup := subjectGroups[i]
@@ -1023,7 +1023,7 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 
 				lonelyMeeting := *lonelyHour
 
-				p.logger.Debugw("found another lonely hour", "hour", fmt.Sprint(meeting), "lonelyMeeting", fmt.Sprint(lonelyMeeting))
+				p.logger.Debugw("found another lonely hour", "hour", helpers.FmtSanitize(meeting), "lonelyMeeting", helpers.FmtSanitize(lonelyMeeting))
 
 				// Zdaj pa samo še damo eno uro na drugo (in seveda preverimo, če je vse kompatibilno s CheckIfProtonConfigIsOk funkcijo).
 				newHour := lonelyMeeting.Hour
@@ -1059,10 +1059,10 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 				ok, err := p.CheckIfProtonConfigIsOk(fullTimetable)
 				if ok {
 					p.logger.Debugw("successfully moved lonely hours together",
-						"lonelyMeeting", fmt.Sprint(lonelyMeeting),
-						"meeting", fmt.Sprint(meeting),
-						"newHour", fmt.Sprint(newHour),
-						"newDay", fmt.Sprint(newDay),
+						"lonelyMeeting", helpers.FmtSanitize(lonelyMeeting),
+						"meeting", helpers.FmtSanitize(meeting),
+						"newHour", helpers.FmtSanitize(newHour),
+						"newDay", helpers.FmtSanitize(newDay),
 					)
 
 					stableFullTimetable = make([]ProtonMeeting, 0)
@@ -1084,10 +1084,10 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 				p.logger.Debugw(
 					"failed while moving the lonely hours together. reverting to stable state.",
 					"err", err.Error(),
-					"lonelyMeeting", fmt.Sprint(lonelyMeeting),
-					"meeting", fmt.Sprint(meeting),
-					"newHour", fmt.Sprint(newHour),
-					"newDay", fmt.Sprint(newDay),
+					"lonelyMeeting", helpers.FmtSanitize(lonelyMeeting),
+					"meeting", helpers.FmtSanitize(meeting),
+					"newHour", helpers.FmtSanitize(newHour),
+					"newDay", helpers.FmtSanitize(newDay),
 				)
 
 				fullTimetable = make([]ProtonMeeting, 0)
@@ -1173,7 +1173,7 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 						if m2.SubjectID != m.SubjectID || !(m.Hour == m2.Hour && m.DayOfTheWeek == m2.DayOfTheWeek) || m.ID == m2.ID {
 							continue
 						}
-						p.logger.Debug(fmt.Sprint(m), fmt.Sprint(m2))
+						p.logger.Debug(helpers.FmtSanitize(m), helpers.FmtSanitize(m2))
 						isLonely = false
 						break
 					}
@@ -1192,7 +1192,7 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 
 				lonelyMeeting := *lonelyHour
 
-				p.logger.Debugw("found another lonely hour for subject not in subject groups", "hour", fmt.Sprint(meeting), "lonelyMeeting", fmt.Sprint(lonelyMeeting), "subjectId", fmt.Sprint(subjectsNotInSubjectGroups[i]))
+				p.logger.Debugw("found another lonely hour for subject not in subject groups", "hour", helpers.FmtSanitize(meeting), "lonelyMeeting", helpers.FmtSanitize(lonelyMeeting), "subjectId", helpers.FmtSanitize(subjectsNotInSubjectGroups[i]))
 
 				// Zdaj pa samo še damo eno uro na drugo (in seveda preverimo, če je vse kompatibilno s CheckIfProtonConfigIsOk funkcijo).
 				newHour := lonelyMeeting.Hour
@@ -1228,10 +1228,10 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 				ok, err := p.CheckIfProtonConfigIsOk(fullTimetable)
 				if ok {
 					p.logger.Debugw("successfully moved lonely hours (w/out subject groups) together",
-						"lonelyMeeting", fmt.Sprint(lonelyMeeting),
-						"meeting", fmt.Sprint(meeting),
-						"newHour", fmt.Sprint(newHour),
-						"newDay", fmt.Sprint(newDay),
+						"lonelyMeeting", helpers.FmtSanitize(lonelyMeeting),
+						"meeting", helpers.FmtSanitize(meeting),
+						"newHour", helpers.FmtSanitize(newHour),
+						"newDay", helpers.FmtSanitize(newDay),
 					)
 
 					stableFullTimetable = make([]ProtonMeeting, 0)
@@ -1253,10 +1253,10 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 				p.logger.Debugw(
 					"failed while moving the lonely hours (w/out subject groups) together. reverting to stable state.",
 					"err", err.Error(),
-					"lonelyMeeting", fmt.Sprint(lonelyMeeting),
-					"meeting", fmt.Sprint(meeting),
-					"newHour", fmt.Sprint(newHour),
-					"newDay", fmt.Sprint(newDay),
+					"lonelyMeeting", helpers.FmtSanitize(lonelyMeeting),
+					"meeting", helpers.FmtSanitize(meeting),
+					"newHour", helpers.FmtSanitize(newHour),
+					"newDay", helpers.FmtSanitize(newDay),
 				)
 
 				fullTimetable = make([]ProtonMeeting, 0)
@@ -1432,7 +1432,7 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 
 					if subject1.InheritsClass && subject2.InheritsClass {
 						if subject2.ClassID == subject1.ClassID {
-							return false, errors.New(fmt.Sprintf("subjects %s and %s inherit the same class and thus cannot be made at same time", fmt.Sprint(subject1.ID), fmt.Sprint(subject2.ID)))
+							return false, errors.New(fmt.Sprintf("subjects %s and %s inherit the same class and thus cannot be made at same time", helpers.FmtSanitize(subject1.ID), helpers.FmtSanitize(subject2.ID)))
 						}
 						// V tem primeru nista isti razred, posledično se ne prekrivata
 						continue
@@ -1475,7 +1475,7 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 					for s := 0; s < len(students1); s++ {
 						student := students1[s]
 						if helpers.Contains(students2, student) {
-							return false, errors.New(fmt.Sprintf("subjects %s and %s contain the same student %s and thus cannot be made at same time", fmt.Sprint(subject1.ID), fmt.Sprint(subject2.ID), fmt.Sprint(student)))
+							return false, errors.New(fmt.Sprintf("subjects %s and %s contain the same student %s and thus cannot be made at same time", helpers.FmtSanitize(subject1.ID), helpers.FmtSanitize(subject2.ID), helpers.FmtSanitize(student)))
 						}
 					}
 				}
@@ -1484,12 +1484,12 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 					return false, errors.New(
 						fmt.Sprintf(
 							"srečanji %s (%s %s) in pa %s (%s %s) se prekrivata - ne morem ustvariti urnika.",
-							fmt.Sprint(meeting),
-							fmt.Sprint(meeting.Hour),
-							fmt.Sprint(meeting.DayOfTheWeek),
-							fmt.Sprint(meeting2),
-							fmt.Sprint(meeting2.Hour),
-							fmt.Sprint(meeting2.DayOfTheWeek),
+							helpers.FmtSanitize(meeting),
+							helpers.FmtSanitize(meeting.Hour),
+							helpers.FmtSanitize(meeting.DayOfTheWeek),
+							helpers.FmtSanitize(meeting2),
+							helpers.FmtSanitize(meeting2.Hour),
+							helpers.FmtSanitize(meeting2.DayOfTheWeek),
 						),
 					)
 				}
@@ -1510,7 +1510,7 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 			for s := 0; s < len(subjectsInGroup); s++ {
 				subject, err := p.db.GetSubject(subjectsInGroup[s])
 				if err != nil {
-					return false, errors.New(fmt.Sprintf("subject %s is not found in the database - %s", fmt.Sprint(subjectsInGroup[s]), err.Error()))
+					return false, errors.New(fmt.Sprintf("subject %s is not found in the database - %s", helpers.FmtSanitize(subjectsInGroup[s]), err.Error()))
 				}
 				rules := p.GetAllRulesForTeacher(subject.TeacherID)
 				mmap[subjectsInGroup[s]] = false
@@ -1562,7 +1562,7 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 			//fmt.Println(mmap, meeting)
 			for n, v := range mmap {
 				if !v {
-					return false, errors.New(fmt.Sprintf("srečanje s predmetom %s se ne ujema s tem, kdaj je učitelj na šoli", fmt.Sprint(n)))
+					return false, errors.New(fmt.Sprintf("srečanje s predmetom %s se ne ujema s tem, kdaj je učitelj na šoli", helpers.FmtSanitize(n)))
 				}
 			}
 		}
@@ -1646,7 +1646,7 @@ func (p *protonImpl) SwapMeetings(timetable []ProtonMeeting, fullTimetable []Pro
 					}
 
 					if meeting.IsHalfHour {
-						p.logger.Debug("izognil sem se poluri", fmt.Sprint(meeting))
+						p.logger.Debug("izognil sem se poluri", helpers.FmtSanitize(meeting))
 						continue
 					}
 
@@ -1690,7 +1690,7 @@ func (p *protonImpl) SwapMeetings(timetable []ProtonMeeting, fullTimetable []Pro
 					}
 
 					if meeting.IsHalfHour {
-						p.logger.Debug("izognil sem se poluri", fmt.Sprint(meeting))
+						p.logger.Debug("izognil sem se poluri", helpers.FmtSanitize(meeting))
 						continue
 					}
 
@@ -1761,14 +1761,14 @@ func (p *protonImpl) SwapMeetings(timetable []ProtonMeeting, fullTimetable []Pro
 				if ok {
 					p.logger.Debugw(
 						"successfully swapped the dangling hour with a hole",
-						"hole", fmt.Sprint(hole),
-						"meeting", fmt.Sprint(nonNormalHour),
-						"subjectsInGroup", fmt.Sprint(subjectsInSubjectGroup),
-						"replace1", fmt.Sprint(replace1),
-						"replace2", fmt.Sprint(replace2),
-						"students1", fmt.Sprint(students1),
-						"subjectGroups", fmt.Sprint(subjectGroups),
-						"currSubjectGroups", fmt.Sprint(currSubjectGroups),
+						"hole", helpers.FmtSanitize(hole),
+						"meeting", helpers.FmtSanitize(nonNormalHour),
+						"subjectsInGroup", helpers.FmtSanitize(subjectsInSubjectGroup),
+						"replace1", helpers.FmtSanitize(replace1),
+						"replace2", helpers.FmtSanitize(replace2),
+						"students1", helpers.FmtSanitize(students1),
+						"subjectGroups", helpers.FmtSanitize(subjectGroups),
+						"currSubjectGroups", helpers.FmtSanitize(currSubjectGroups),
 					)
 
 					stableFullTimetable = make([]ProtonMeeting, 0)
@@ -1786,12 +1786,12 @@ func (p *protonImpl) SwapMeetings(timetable []ProtonMeeting, fullTimetable []Pro
 					p.logger.Debugw(
 						"failed while swapping the dangling hour with a hole. reverting to stable state.",
 						"err", err.Error(),
-						"hole", fmt.Sprint(hole),
-						"meeting", fmt.Sprint(nonNormalHour),
-						"subjectsInGroup", fmt.Sprint(subjectsInSubjectGroup),
-						"replace1", fmt.Sprint(replace1),
-						"replace2", fmt.Sprint(replace2),
-						"students1", fmt.Sprint(students1),
+						"hole", helpers.FmtSanitize(hole),
+						"meeting", helpers.FmtSanitize(nonNormalHour),
+						"subjectsInGroup", helpers.FmtSanitize(subjectsInSubjectGroup),
+						"replace1", helpers.FmtSanitize(replace1),
+						"replace2", helpers.FmtSanitize(replace2),
+						"students1", helpers.FmtSanitize(students1),
 					)
 
 					fullTimetable = make([]ProtonMeeting, 0)
@@ -1895,7 +1895,7 @@ func (p *protonImpl) AssembleMeetingsFromProtonMeetings(timetable []ProtonMeetin
 	id := p.db.GetLastMeetingID()
 
 	currentTime := time.Now()
-	firstSchoolDay, err := time.Parse("2006-01-02", fmt.Sprintf("%s-%s-%s", fmt.Sprint(currentTime.Year()), "09", "01"))
+	firstSchoolDay, err := time.Parse("2006-01-02", fmt.Sprintf("%s-%s-%s", helpers.FmtSanitize(currentTime.Year()), "09", "01"))
 	if err != nil {
 		return nil, err
 	}
@@ -1945,7 +1945,7 @@ func (p *protonImpl) AssembleMeetingsFromProtonMeetings(timetable []ProtonMeetin
 				vacationDate := date.Format("2006-01-02")
 
 				if helpers.Contains(systemConfig.SchoolFreeDays, vacationDate) {
-					p.logger.Debugw("skipped meeting due to vacation", "date", vacationDate, "meeting", fmt.Sprint(meeting))
+					p.logger.Debugw("skipped meeting due to vacation", "date", vacationDate, "meeting", helpers.FmtSanitize(meeting))
 					continue
 				}
 

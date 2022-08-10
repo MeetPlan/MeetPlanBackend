@@ -24,7 +24,7 @@ func (server *httpImpl) Login(w http.ResponseWriter, r *http.Request) {
 	// Check if password is valid
 	user, err := server.db.GetUserByEmail(email)
 
-	if user.Role == "unverified" {
+	if user.Role == UNVERIFIED {
 		WriteJSON(w, Response{Data: "You are unverified. You cannot login until the school administrator confirms you.", Success: false}, http.StatusForbidden)
 		return
 	}
@@ -52,12 +52,12 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 			WriteForbiddenJWT(w)
 			return
 		}
-		jwt, err := sql.CheckJWT(j)
+		user, err := server.db.CheckJWT(j)
 		if err != nil {
 			WriteForbiddenJWT(w)
 			return
 		}
-		if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+		if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		} else {
 			WriteForbiddenJWT(w)
 			return
@@ -92,11 +92,11 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var role = "unverified"
+	var role = UNVERIFIED
 
 	isAdmin := !server.db.CheckIfAdminIsCreated()
 	if isAdmin {
-		role = "admin"
+		role = ADMIN
 	}
 
 	user := sql.User{
@@ -122,12 +122,12 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) PatchUser(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
 		if err != nil {
 			WriteForbiddenJWT(w)
@@ -178,24 +178,19 @@ func (server *httpImpl) PatchUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) HasClass(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-		userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteForbiddenJWT(w)
-			return
-		}
+	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		classes, err := server.db.GetClasses()
 		if err != nil {
 			return
 		}
 		var hasClass = false
 		for i := 0; i < len(classes); i++ {
-			if classes[i].Teacher == userId {
+			if classes[i].Teacher == user.ID {
 				hasClass = true
 				break
 			}
@@ -208,73 +203,73 @@ func (server *httpImpl) HasClass(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetUserData(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		return
 	}
 	var userId int
-	if jwt["role"] == "student" {
-		userId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-	} else {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST || user.Role == TEACHER || user.Role == PARENT {
 		userId, err = strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			WriteBadRequest(w)
 			return
 		}
+		if user.Role == PARENT {
+			var students []int
+			err := json.Unmarshal([]byte(user.Users), &students)
+			if err != nil {
+				WriteJSON(w, Response{Data: "Failed while unmarshalling parent's students into a slice", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+				return
+			}
+			if !helpers.Contains(students, userId) {
+				WriteJSON(w, Response{Data: "You don't have access to the following user", Success: false}, http.StatusForbidden)
+				return
+			}
+		}
+	} else {
+		userId = user.ID
 	}
-	user, err := server.db.GetUser(userId)
+	currentUser, err := server.db.GetUser(userId)
 	if err != nil {
 		return
 	}
 
 	var birthCertNum = ""
-	if jwt["role"] == "admin" {
-		birthCertNum = user.BirthCertificateNumber
+	if currentUser.Role == ADMIN {
+		birthCertNum = currentUser.BirthCertificateNumber
 	}
 
 	ujson := UserJSON{
-		Name:                   user.Name,
-		ID:                     user.ID,
-		Email:                  user.Email,
-		Role:                   user.Role,
+		Name:                   currentUser.Name,
+		ID:                     currentUser.ID,
+		Email:                  currentUser.Email,
+		Role:                   currentUser.Role,
 		BirthCertificateNumber: birthCertNum,
-		Birthday:               user.Birthday,
-		CityOfBirth:            user.CityOfBirth,
-		CountryOfBirth:         user.CountryOfBirth,
-		IsPassing:              user.IsPassing,
+		Birthday:               currentUser.Birthday,
+		CityOfBirth:            currentUser.CityOfBirth,
+		CountryOfBirth:         currentUser.CountryOfBirth,
+		IsPassing:              currentUser.IsPassing,
 	}
 	WriteJSON(w, Response{Data: ujson, Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
 	var studentId int
-	if jwt["role"] == "student" {
-		studentId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
+	if user.Role == STUDENT {
+		studentId = user.ID
 	} else {
 		studentId, err = strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			WriteBadRequest(w)
 			return
 		}
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-		if jwt["role"] == "teacher" {
+		teacherId := user.ID
+		if user.Role == TEACHER {
 			classes, err := server.db.GetClasses()
 			if err != nil {
 				WriteJSON(w, Response{Data: "Could not fetch classes", Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -303,7 +298,7 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 				WriteForbiddenJWT(w)
 				return
 			}
-		} else if jwt["role"] == "parent" {
+		} else if user.Role == PARENT {
 			if !server.config.ParentViewAbsences {
 				WriteForbiddenJWT(w)
 				return
@@ -365,22 +360,17 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 }
 
 func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		return
 	}
 
 	var userId = make([]int, 0)
 	var isTeacher = false
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		uid := r.URL.Query().Get("id")
 		if uid == "" {
-			u, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-			if err != nil {
-				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-				return
-			}
-			userId = append(userId, u)
+			userId = append(userId, user.ID)
 			isTeacher = true
 		} else {
 			u, err := strconv.Atoi(uid)
@@ -390,27 +380,13 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 			}
 			userId = append(userId, u)
 		}
-	} else if jwt["role"] == "parent" {
-		u, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-			return
-		}
-		user, err := server.db.GetUser(u)
-		if err != nil {
-			return
-		}
+	} else if user.Role == PARENT {
 		err = json.Unmarshal([]byte(user.Users), &userId)
 		if err != nil {
 			return
 		}
 	} else {
-		u, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-			return
-		}
-		userId = append(userId, u)
+		userId = append(userId, user.ID)
 	}
 
 	classes, err := server.db.GetClasses()
@@ -446,12 +422,12 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 							return
 						}
 						var className = class.Name
-						if jwt["role"] == "parent" {
+						if user.Role == PARENT {
 							class.Name = fmt.Sprintf("%s - %s", class.Name, user.Name)
 						}
 						myclasses = append(myclasses, class)
 						myClassesInt = append(myClassesInt, students[n])
-						if jwt["role"] == "parent" {
+						if user.Role == PARENT {
 							class.Name = className
 						}
 						break
@@ -464,12 +440,12 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetStudents(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST {
 		students, err := server.db.GetStudents()
 		if err != nil {
 			return
@@ -495,18 +471,9 @@ func (server *httpImpl) GetStudents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) HasBirthday(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	user, err := server.db.GetUser(userId)
-	if err != nil {
 		return
 	}
 	currentTime := time.Now()
@@ -525,13 +492,13 @@ func (server *httpImpl) HasBirthday(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
 
-	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist") {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST) {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -541,17 +508,12 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 		WriteBadRequest(w)
 		return
 	}
-	teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
 
 	student, err := server.db.GetUser(userId)
 	if err != nil {
 		return
 	}
-	if student.Role != "student" {
+	if student.Role != STUDENT {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -710,7 +672,7 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 
 	document := sql.Document{
 		ID:           UUID,
-		ExportedBy:   teacherId,
+		ExportedBy:   user.ID,
 		DocumentType: POTRDILO_O_SOLANJU,
 		Timestamp:    int(currentTime),
 		IsSigned:     true,
@@ -864,19 +826,14 @@ func (server *httpImpl) GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopd
 }
 
 func (server *httpImpl) ResetPassword(w http.ResponseWriter, r *http.Request) {
-	jwtData, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
 
-	if jwtData["role"] == "admin" || jwtData["role"] == "principal" || jwtData["role"] == "principal assistant" {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		id, err := strconv.Atoi(mux.Vars(r)["user_id"])
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwtData["user_id"]))
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -915,7 +872,7 @@ func (server *httpImpl) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 		document := sql.Document{
 			ID:           UUID,
-			ExportedBy:   teacherId,
+			ExportedBy:   user.ID,
 			DocumentType: RESETIRANJE_GESLA,
 			Timestamp:    int(currentTime),
 			IsSigned:     true,
@@ -940,20 +897,9 @@ func (server *httpImpl) ResetPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) ChangePassword(w http.ResponseWriter, r *http.Request) {
-	jwtData, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
-		return
-	}
-
-	userId, err := strconv.Atoi(fmt.Sprint(jwtData["user_id"]))
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-
-	user, err := server.db.GetUser(userId)
-	if err != nil {
 		return
 	}
 

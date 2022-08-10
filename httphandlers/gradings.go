@@ -2,9 +2,7 @@ package httphandlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
-	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"net/http"
 	"strconv"
 	"time"
@@ -25,16 +23,16 @@ func insertGradingDate(a []GradingDate, index int, value GradingDate) []GradingD
 }
 
 func (server *httpImpl) GetMyGradings(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "student" || jwt["role"] == "teacher" || jwt["role"] == "parent" || jwt["role"] == "admin" || jwt["role"] == "principal assistant" || jwt["role"] == "principal" || jwt["role"] == "school psychologist" {
+	if user.Role == STUDENT || user.Role == TEACHER || user.Role == PARENT || user.Role == ADMIN || user.Role == PRINCIPAL_ASSISTANT || user.Role == PRINCIPAL || user.Role == SCHOOL_PSYCHOLOGIST {
 		var studentId int
 		var teacherId int
-		if jwt["role"] == "teacher" || jwt["role"] == "parent" || jwt["role"] == "admin" || jwt["role"] == "principal assistant" || jwt["role"] == "principal" || jwt["role"] == "school psychologist" {
-			if jwt["role"] == "parent" {
+		if user.Role == TEACHER || user.Role == PARENT || user.Role == ADMIN || user.Role == PRINCIPAL_ASSISTANT || user.Role == PRINCIPAL || user.Role == SCHOOL_PSYCHOLOGIST {
+			if user.Role == PARENT {
 				if !server.config.ParentViewGradings {
 					WriteForbiddenJWT(w)
 					return
@@ -45,15 +43,15 @@ func (server *httpImpl) GetMyGradings(w http.ResponseWriter, r *http.Request) {
 				WriteBadRequest(w)
 				return
 			}
-			teacherId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+			teacherId = user.ID
 		} else {
-			studentId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+			studentId = user.ID
 		}
 		if err != nil {
 			WriteBadRequest(w)
 			return
 		}
-		if jwt["role"] == "teacher" {
+		if user.Role == TEACHER {
 			classes, err := server.db.GetClasses()
 			if err != nil {
 				WriteJSON(w, Response{Error: err.Error(), Data: "Failed to retrieve classes for teacher", Success: false}, http.StatusInternalServerError)
@@ -82,7 +80,7 @@ func (server *httpImpl) GetMyGradings(w http.ResponseWriter, r *http.Request) {
 				WriteForbiddenJWT(w)
 				return
 			}
-		} else if jwt["role"] == "parent" {
+		} else if user.Role == PARENT {
 			parent, err := server.db.GetUser(teacherId)
 			if err != nil {
 				WriteJSON(w, Response{Error: err.Error(), Data: "Failed to retrieve parent", Success: false}, http.StatusInternalServerError)

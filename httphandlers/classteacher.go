@@ -2,20 +2,18 @@ package httphandlers
 
 import (
 	"encoding/json"
-	"fmt"
-	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 )
 
 func (server *httpImpl) ExcuseAbsence(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		return
 	}
 
-	if jwt["role"] != "teacher" {
+	if user.Role != TEACHER {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -25,11 +23,6 @@ func (server *httpImpl) ExcuseAbsence(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	absenceId, err := strconv.Atoi(mux.Vars(r)["absence_id"])
-	if err != nil {
-		WriteBadRequest(w)
-		return
-	}
-	teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -47,7 +40,7 @@ func (server *httpImpl) ExcuseAbsence(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for j := 0; j < len(users); j++ {
-			if users[j] == studentId && class.Teacher == teacherId {
+			if users[j] == studentId && class.Teacher == user.ID {
 				valid = true
 				break
 			}

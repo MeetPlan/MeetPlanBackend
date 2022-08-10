@@ -15,12 +15,12 @@ type ParentConfig struct {
 }
 
 func (server *httpImpl) GetConfig(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		WriteJSON(w, Response{Data: server.config, Success: true}, http.StatusOK)
 	} else {
 		WriteForbiddenJWT(w)
@@ -29,12 +29,12 @@ func (server *httpImpl) GetConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) UpdateConfiguration(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		schoolPostCode, err := strconv.Atoi(r.FormValue("school_post_code"))
 		if err != nil {
 			WriteBadRequest(w)
@@ -100,12 +100,12 @@ func (server *httpImpl) UpdateConfiguration(w http.ResponseWriter, r *http.Reque
 }
 
 func (server *httpImpl) ParentConfig(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "parent" {
+	if user.Role != PARENT {
 		WriteForbiddenJWT(w)
 		return
 	}

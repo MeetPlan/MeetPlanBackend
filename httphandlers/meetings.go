@@ -2,7 +2,6 @@ package httphandlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
@@ -31,22 +30,8 @@ type Absence struct {
 	MeetingName string
 }
 
-func contains[T comparable](s []T, e T) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
 func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	uid, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -101,17 +86,17 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else if r.URL.Query().Get("studentId") != "" {
-		if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "parent" || jwt["role"] == "school psychologist" {
+		if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == PARENT || user.Role == SCHOOL_PSYCHOLOGIST {
 			users = make([]int, 0)
 			// TODO: This doesn't seem right
-			users = append(users, uid)
+			users = append(users, user.ID)
 			myMeetings = true
 		} else {
 			WriteForbiddenJWT(w)
 			return
 		}
 	} else if r.URL.Query().Get("teacherId") != "" {
-		if jwt["role"] == "admin" || jwt["role"] == "principal assistant" || jwt["role"] == "principal" {
+		if user.Role == ADMIN || user.Role == PRINCIPAL_ASSISTANT || user.Role == PRINCIPAL {
 			teacherId, err := strconv.Atoi(r.URL.Query().Get("teacherId"))
 			if err != nil {
 				WriteBadRequest(w)
@@ -127,13 +112,13 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// my user
 		users = make([]int, 0)
-		users = append(users, uid)
+		users = append(users, user.ID)
 		myMeetings = true
 	}
-	if jwt["role"] == "student" {
+	if user.Role == STUDENT {
 		var isIn = false
 		for n := 0; n < len(users); n++ {
-			if users[n] == uid {
+			if users[n] == user.ID {
 				isIn = true
 				break
 			}
@@ -170,7 +155,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 	if len(users) == 0 {
 		return
 	}
-	user, err := server.db.GetUser(users[0])
+	currentUser, err := server.db.GetUser(users[0])
 	if err != nil {
 		return
 	}
@@ -179,7 +164,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < len(dates); i++ {
 		date := dates[i]
 		meetings, err := server.db.GetMeetingsOnSpecificDate(date,
-			jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "teacher" || jwt["role"] == "school psychologist",
+			currentUser.Role == ADMIN || currentUser.Role == PRINCIPAL || currentUser.Role == PRINCIPAL_ASSISTANT || currentUser.Role == TEACHER || currentUser.Role == SCHOOL_PSYCHOLOGIST,
 		)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -209,20 +194,20 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			var cont = false
-			currentUser, err := server.db.GetUser(uid)
+			currentUser2, err := server.db.GetUser(user.ID)
 			if err != nil {
 				return
 			}
 			var studentsParent []int
-			err = json.Unmarshal([]byte(currentUser.Users), &studentsParent)
+			err = json.Unmarshal([]byte(currentUser2.Users), &studentsParent)
 			if err != nil {
 				return
 			}
 
 			// Check if at least one user belongs to class
 			for x := 0; x < len(u); x++ {
-				if (myMeetings && (jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist")) || helpers.Contains(users, u[x]) {
-					if jwt["role"] == "parent" {
+				if (myMeetings && (user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST)) || helpers.Contains(users, u[x]) {
+					if user.Role == PARENT {
 						if !helpers.Contains(studentsParent, u[x]) {
 							continue
 						}
@@ -233,23 +218,23 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if cont {
-				if (user.Role == "teacher" || user.Role == "school psychologist") && myMeetings {
+				if (currentUser.Role == TEACHER || currentUser.Role == SCHOOL_PSYCHOLOGIST) && myMeetings {
 					if meeting.TeacherID == user.ID || subject.TeacherID == user.ID {
 						m = append(m, meeting)
 					}
 				} else {
-					if jwt["role"] == "student" {
-						if helpers.Contains(u, uid) {
+					if user.Role == STUDENT {
+						if helpers.Contains(u, user.ID) {
 							m = append(m, meeting)
 						}
-					} else if jwt["role"] == "admin" ||
-						jwt["role"] == "principal" ||
-						jwt["role"] == "principal assistant" ||
-						(!myMeetings && jwt["role"] == "teacher") ||
-						(myMeetings && jwt["role"] == "teacher" && meeting.TeacherID == uid) ||
-						(!myMeetings && jwt["role"] == "school psychologist") ||
-						(myMeetings && jwt["role"] == "school psychologist" && meeting.TeacherID == uid) ||
-						jwt["role"] == "parent" {
+					} else if user.Role == ADMIN ||
+						user.Role == PRINCIPAL ||
+						user.Role == PRINCIPAL_ASSISTANT ||
+						(!myMeetings && user.Role == TEACHER) ||
+						(myMeetings && user.Role == TEACHER && meeting.TeacherID == user.ID) ||
+						(!myMeetings && user.Role == SCHOOL_PSYCHOLOGIST) ||
+						(myMeetings && user.Role == SCHOOL_PSYCHOLOGIST && meeting.TeacherID == user.ID) ||
+						user.Role == PARENT {
 						m = append(m, meeting)
 					}
 				}
@@ -299,12 +284,12 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		dates := make([]string, 0)
 
 		date := r.FormValue("date")
@@ -316,11 +301,6 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		subjectId, err := strconv.Atoi(r.FormValue("subjectId"))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -386,7 +366,7 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 			meeting := sql.Meeting{
 				ID:                  server.db.GetLastMeetingID(),
 				MeetingName:         name,
-				TeacherID:           teacherId,
+				TeacherID:           user.ID,
 				SubjectID:           subjectId,
 				Hour:                hour,
 				Date:                date,
@@ -414,12 +394,12 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		id, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -431,11 +411,7 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 			WriteBadRequest(w)
 			return
 		}
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
+		teacherId := user.ID
 		name := r.FormValue("name")
 
 		isMandatoryString := r.FormValue("is_mandatory")
@@ -461,7 +437,7 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 
 		isSubstitutionString := r.FormValue("is_substitution")
 		var isSubstitution = false
-		if (jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") && isSubstitutionString == "true" {
+		if (user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) && isSubstitutionString == "true" {
 			isSubstitution = true
 			teacherId, err = strconv.Atoi(r.FormValue("teacherId"))
 			if err != nil {
@@ -483,7 +459,7 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if !(subject.TeacherID == teacherId || originalmeeting.TeacherID == teacherId) && jwt["role"] == "teacher" {
+		if !(subject.TeacherID == teacherId || originalmeeting.TeacherID == teacherId) && user.Role == TEACHER {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -518,26 +494,20 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) DeleteMeeting(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		id, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			WriteBadRequest(w)
 			return
 		}
 
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-
 		originalmeeting, err := server.db.GetMeeting(id)
-		if originalmeeting.TeacherID != teacherId && jwt["role"] == "teacher" {
+		if originalmeeting.TeacherID != user.ID && user.Role == TEACHER {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -554,7 +524,7 @@ func (server *httpImpl) DeleteMeeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -568,12 +538,7 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	if jwt["role"] == "student" {
-		uid, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteForbiddenJWT(w)
-			return
-		}
+	if user.Role == STUDENT {
 		subjects, err := server.db.GetAllSubjects()
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -603,7 +568,7 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 				}
 				var isIn = false
 				for n := 0; n < len(users); n++ {
-					if users[n] == uid {
+					if users[n] == user.ID {
 						isIn = true
 						break
 					}
@@ -638,12 +603,12 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -653,20 +618,12 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 		if err != nil {
 			return
 		}
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			return
-		}
 		subject, err := server.db.GetSubject(meeting.SubjectID)
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" && !(subject.TeacherID == teacherId || meeting.TeacherID == teacherId) {
+		if user.Role == TEACHER && !(subject.TeacherID == user.ID || meeting.TeacherID == user.ID) {
 			WriteForbiddenJWT(w)
-			return
-		}
-		teacher, err := server.db.GetUser(teacherId)
-		if err != nil {
 			return
 		}
 		var users []int
@@ -688,7 +645,7 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 		var absences = make([]Absence, 0)
 		for i := 0; i < len(users); i++ {
 			userId := users[i]
-			user, err := server.db.GetUser(userId)
+			currentUser, err := server.db.GetUser(userId)
 			if err != nil {
 				return
 			}
@@ -698,7 +655,7 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 					absence := sql.Absence{
 						ID:          server.db.GetLastAbsenceID(),
 						UserID:      userId,
-						TeacherID:   teacherId,
+						TeacherID:   user.ID,
 						MeetingID:   meetingId,
 						AbsenceType: "UNMANAGED",
 					}
@@ -708,8 +665,8 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 					}
 					absences = append(absences, Absence{
 						Absence:     absence,
-						TeacherName: teacher.Name,
-						UserName:    user.Name,
+						TeacherName: user.Name,
+						UserName:    currentUser.Name,
 					})
 				} else {
 					return
@@ -717,8 +674,8 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 			} else {
 				absences = append(absences, Absence{
 					Absence:     absence,
-					TeacherName: teacher.Name,
-					UserName:    user.Name,
+					TeacherName: user.Name,
+					UserName:    currentUser.Name,
 				})
 			}
 		}
@@ -729,22 +686,18 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 }
 
 func (server *httpImpl) PatchAbsence(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		absenceId, err := strconv.Atoi(mux.Vars(r)["absence_id"])
 		if err != nil {
 			WriteBadRequest(w)
 			return
 		}
 		absence, err := server.db.GetAbsence(absenceId)
-		if err != nil {
-			return
-		}
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		if err != nil {
 			return
 		}
@@ -756,11 +709,11 @@ func (server *httpImpl) PatchAbsence(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" && !(subject.TeacherID == teacherId || meeting.TeacherID == teacherId) {
+		if user.Role == TEACHER && !(subject.TeacherID == user.ID || meeting.TeacherID == user.ID) {
 			WriteForbiddenJWT(w)
 			return
 		}
-		absence.TeacherID = teacherId
+		absence.TeacherID = user.ID
 		absence.AbsenceType = r.FormValue("absence_type")
 		err = server.db.UpdateAbsence(absence)
 		if err != nil {
@@ -773,17 +726,12 @@ func (server *httpImpl) PatchAbsence(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetUsersForMeeting(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -797,7 +745,7 @@ func (server *httpImpl) GetUsersForMeeting(w http.ResponseWriter, r *http.Reques
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" && !(subject.TeacherID == teacherId || meeting.TeacherID == teacherId) {
+		if user.Role == TEACHER && !(subject.TeacherID == user.ID || meeting.TeacherID == user.ID) {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -836,12 +784,12 @@ func (server *httpImpl) GetUsersForMeeting(w http.ResponseWriter, r *http.Reques
 }
 
 func (server *httpImpl) MigrateBetaMeetings(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -854,12 +802,12 @@ func (server *httpImpl) MigrateBetaMeetings(w http.ResponseWriter, r *http.Reque
 }
 
 func (server *httpImpl) DeleteBetaMeetings(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}

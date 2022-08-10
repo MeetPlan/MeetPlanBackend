@@ -2,7 +2,6 @@ package httphandlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
@@ -27,14 +26,9 @@ func (server *httpImpl) GetMeals(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		WriteBadRequest(w)
 		return
 	}
 	meals, err := server.db.GetMeals()
@@ -51,11 +45,11 @@ func (server *httpImpl) GetMeals(w http.ResponseWriter, r *http.Request) {
 			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
 			return
 		}
-		var ordered = helpers.Contains(orders, userId)
+		var ordered = helpers.Contains(orders, user.ID)
 		var isLimitReached = meal.IsLimited && len(orders) >= meal.OrderLimit
 		var hasAppended = false
 		var mealOrders = make([]UserJSON, 0)
-		if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "food organizer" {
+		if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == FOOD_ORGANIZER {
 			for n := 0; n < len(orders); n++ {
 				user, err := server.db.GetUser(orders[n])
 				if err != nil {
@@ -106,12 +100,12 @@ func (server *httpImpl) NewMeal(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal assistant" || jwt["role"] == "principal" || jwt["role"] == "food organizer" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL_ASSISTANT || user.Role == PRINCIPAL || user.Role == FOOD_ORGANIZER {
 		price, err := strconv.ParseFloat(r.FormValue("price"), 32)
 		if err != nil {
 			WriteJSON(w, Response{Success: false, Data: "Could not parse price", Error: r.FormValue("price")}, http.StatusBadRequest)
@@ -173,14 +167,9 @@ func (server *httpImpl) NewOrder(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		WriteBadRequest(w)
 		return
 	}
 	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
@@ -201,7 +190,7 @@ func (server *httpImpl) NewOrder(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	if helpers.Contains(orders, userId) {
+	if helpers.Contains(orders, user.ID) {
 		WriteJSON(w, Response{Success: false, Data: "You cannot order same meal twice."}, http.StatusConflict)
 		return
 	}
@@ -209,7 +198,7 @@ func (server *httpImpl) NewOrder(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Success: false, Data: "Orders are closed - maximum orders reached."}, http.StatusConflict)
 		return
 	}
-	orders = append(orders, userId)
+	orders = append(orders, user.ID)
 	marshal, err := json.Marshal(orders)
 	if err != nil {
 		return
@@ -227,12 +216,12 @@ func (server *httpImpl) EditMeal(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "food organizer" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == FOOD_ORGANIZER {
 		//userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		//if err != nil {
 		//	WriteBadRequest(w)
@@ -296,12 +285,12 @@ func (server *httpImpl) DeleteMeal(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "food organizer" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == FOOD_ORGANIZER {
 		//userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		//if err != nil {
 		//	WriteBadRequest(w)
@@ -328,12 +317,12 @@ func (server *httpImpl) BlockUnblockOrder(w http.ResponseWriter, r *http.Request
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal assistant" || jwt["role"] == "principal" || jwt["role"] == "food organizer" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL_ASSISTANT || user.Role == PRINCIPAL || user.Role == FOOD_ORGANIZER {
 		//userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
 		//if err != nil {
 		//	WriteBadRequest(w)
@@ -365,14 +354,9 @@ func (server *httpImpl) RemoveOrder(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		WriteBadRequest(w)
 		return
 	}
 	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
@@ -390,7 +374,7 @@ func (server *httpImpl) RemoveOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for i := 0; i < len(orders); i++ {
-		if orders[i] == userId {
+		if orders[i] == user.ID {
 			orders = helpers.Remove(orders, i)
 		}
 	}
@@ -407,7 +391,7 @@ func (server *httpImpl) RemoveOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) MealsBlocked(w http.ResponseWriter, r *http.Request) {
-	_, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	_, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

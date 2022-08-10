@@ -16,12 +16,12 @@ import (
 )
 
 func (server *httpImpl) ManageTeacherAbsences(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -60,12 +60,12 @@ func (server *httpImpl) PostProcessTimetable(classes []sql.Class, stableTimetabl
 }
 
 func (server *httpImpl) NewProtonRule(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		ruleId, err := strconv.Atoi(r.FormValue("protonRuleId"))
 		if err != nil {
 			WriteJSON(w, Response{Data: "Failed at converting protonRuleId to integer", Error: err.Error(), Success: false}, http.StatusBadRequest)
@@ -104,7 +104,7 @@ func (server *httpImpl) NewProtonRule(w http.ResponseWriter, r *http.Request) {
 			}
 			protonRule.Objects = append(protonRule.Objects, proton.ProtonObject{
 				ObjectID: teacherId,
-				Type:     "teacher",
+				Type:     TEACHER,
 			})
 		} else if ruleId == 1 {
 			// Teacher's hours on the school - Ure učitelja na šoli
@@ -149,7 +149,7 @@ func (server *httpImpl) NewProtonRule(w http.ResponseWriter, r *http.Request) {
 			}
 			protonRule.Objects = append(protonRule.Objects, proton.ProtonObject{
 				ObjectID: teacherId,
-				Type:     "teacher",
+				Type:     TEACHER,
 			})
 		} else if ruleId == 2 || ruleId == 3 || ruleId == 4 {
 			// Subject groups - Skupine predmetov - Rule ID 2
@@ -186,12 +186,12 @@ func (server *httpImpl) NewProtonRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetProtonRules(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		protonConfig := server.proton.GetProtonConfig()
 		for i := 0; i < len(protonConfig.Rules); i++ {
 			if protonConfig.Rules[i].ID == "" {
@@ -230,12 +230,12 @@ func GenerateBeforeAfterHour(stackedSubjects []int, subject sql.Subject) int {
 }
 
 func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -550,12 +550,12 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 }
 
 func (server *httpImpl) ManualPostProcessRepeat(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -589,12 +589,12 @@ func (server *httpImpl) ManualPostProcessRepeat(w http.ResponseWriter, r *http.R
 }
 
 func (server *httpImpl) AcceptAssembledTimetable(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -625,12 +625,12 @@ func (server *httpImpl) AcceptAssembledTimetable(w http.ResponseWriter, r *http.
 }
 
 func (server *httpImpl) DeleteProtonRule(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}

@@ -2,7 +2,6 @@ package httphandlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
@@ -17,12 +16,7 @@ type Improvement struct {
 }
 
 func (server *httpImpl) NewImprovement(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -37,7 +31,7 @@ func (server *httpImpl) NewImprovement(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		meeting, err := server.db.GetMeeting(meetingId)
 		if err != nil {
 			return
@@ -46,7 +40,7 @@ func (server *httpImpl) NewImprovement(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" && !(meeting.TeacherID == teacherId || subject.TeacherID == teacherId) {
+		if user.Role == TEACHER && !(meeting.TeacherID == user.ID || subject.TeacherID == user.ID) {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -55,7 +49,7 @@ func (server *httpImpl) NewImprovement(w http.ResponseWriter, r *http.Request) {
 			StudentID: studentId,
 			MeetingID: meetingId,
 			Message:   r.FormValue("message"),
-			TeacherID: teacherId,
+			TeacherID: user.ID,
 		}
 		server.db.InsertImprovement(improvement)
 		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
@@ -65,19 +59,14 @@ func (server *httpImpl) NewImprovement(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
 	var studentId int
-	if jwt["role"] == "student" {
-		studentId = userId
+	if user.Role == STUDENT {
+		studentId = user.ID
 	} else {
 		studentId, err = strconv.Atoi(r.URL.Query().Get("studentId"))
 	}
@@ -86,11 +75,10 @@ func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	user, err := server.db.GetUser(userId)
 	if err != nil {
 		return
 	}
-	if user.Role == "parent" {
+	if user.Role == PARENT {
 		var students []int
 		err := json.Unmarshal([]byte(user.Users), &students)
 		if err != nil {
@@ -100,7 +88,7 @@ func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Re
 			WriteForbiddenJWT(w)
 			return
 		}
-	} else if user.Role == "teacher" {
+	} else if user.Role == TEACHER {
 		classes, err := server.db.GetClasses()
 		if err != nil {
 			return
@@ -108,7 +96,7 @@ func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Re
 		var ok = false
 		for i := 0; i < len(classes); i++ {
 			class := classes[i]
-			if class.Teacher != userId {
+			if class.Teacher != user.ID {
 				continue
 			}
 			var students []int
@@ -125,7 +113,7 @@ func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Re
 			WriteForbiddenJWT(w)
 			return
 		}
-	} else if jwt["role"] == "principal assistant" || jwt["role"] == "principal" || jwt["role"] == "admin" || jwt["role"] == "student" || jwt["role"] == "school psychologist" {
+	} else if user.Role == PRINCIPAL_ASSISTANT || user.Role == PRINCIPAL || user.Role == ADMIN || user.Role == STUDENT || user.Role == SCHOOL_PSYCHOLOGIST {
 	} else {
 		WriteForbiddenJWT(w)
 		return

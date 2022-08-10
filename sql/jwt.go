@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dchest/uniuri"
 	"github.com/golang-jwt/jwt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -54,7 +55,7 @@ func GetJWTForTestingResult(userId int, result string, testId int, date string) 
 	return sgnd, err, strings.Split(expirationTime.Format("02-01-2006"), " ")[0]
 }
 
-func CheckJWT(tokenString string) (jwt.MapClaims, error) {
+func (db *sqlImpl) CheckJWT(tokenString string) (user User, err error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -65,19 +66,20 @@ func CheckJWT(tokenString string) (jwt.MapClaims, error) {
 		return JwtSigningKey, nil
 	})
 
-	if token != nil {
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			if claims["iss"] != JWTIssuer {
-				return nil, errors.New("JWT issuer isn't correct")
-			}
-			if claims["role"] == "unverified" {
-				return nil, errors.New("you are an unverified user. You cannot do anything in this system until the server administrator confirms you")
-			}
-			return claims, nil
-		} else {
-			return nil, err
+	if token == nil {
+		return user, err
+	}
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if claims["iss"] != JWTIssuer {
+			return user, errors.New("JWT issuer isn't correct")
 		}
+		userId, err := strconv.Atoi(fmt.Sprint(claims["user_id"]))
+		if err != nil {
+			return user, err
+		}
+		user, err = db.GetUser(userId)
+		return user, err
 	} else {
-		return nil, err
+		return user, err
 	}
 }

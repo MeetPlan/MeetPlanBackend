@@ -22,13 +22,13 @@ type ClassJSON struct {
 }
 
 func (server *httpImpl) NewClass(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
 
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 
 		className := r.FormValue("name")
 		teacherIdStr := fmt.Sprint(r.FormValue("teacher_id"))
@@ -54,7 +54,7 @@ func (server *httpImpl) NewClass(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetClasses(w http.ResponseWriter, r *http.Request) {
-	_, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	_, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -71,12 +71,12 @@ func (server *httpImpl) GetClasses(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) PatchClass(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		classId, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -117,12 +117,12 @@ func (server *httpImpl) PatchClass(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetClass(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "teacher" || jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist" {
+	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST {
 		classId, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -174,12 +174,12 @@ func (server *httpImpl) GetClass(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) AssignUserToClass(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -229,12 +229,12 @@ func (server *httpImpl) AssignUserToClass(w http.ResponseWriter, r *http.Request
 }
 
 func (server *httpImpl) RemoveUserFromClass(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -283,12 +283,12 @@ func (server *httpImpl) RemoveUserFromClass(w http.ResponseWriter, r *http.Reque
 }
 
 func (server *httpImpl) DeleteClass(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		classId, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			WriteBadRequest(w)

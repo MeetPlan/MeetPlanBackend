@@ -2,7 +2,6 @@ package httphandlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
@@ -29,16 +28,12 @@ type HomeworkPerDate struct {
 }
 
 func (server *httpImpl) NewHomework(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-		userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			return
-		}
+	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
 		if err != nil {
 			return
@@ -51,14 +46,14 @@ func (server *httpImpl) NewHomework(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" && !(subject.TeacherID == userId || meeting.TeacherID == userId) {
+		if user.Role == TEACHER && !(subject.TeacherID == user.ID || meeting.TeacherID == user.ID) {
 			WriteForbiddenJWT(w)
 			return
 		}
 		currentTime := time.Now()
 		homework := sql.Homework{
 			ID:          server.db.GetLastHomeworkID(),
-			TeacherID:   userId,
+			TeacherID:   user.ID,
 			SubjectID:   meeting.SubjectID,
 			Name:        r.FormValue("name"),
 			Description: r.FormValue("description"),
@@ -77,16 +72,12 @@ func (server *httpImpl) NewHomework(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetAllHomeworksForSpecificSubject(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-		userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			return
-		}
+	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
 		if err != nil {
 			return
@@ -99,7 +90,7 @@ func (server *httpImpl) GetAllHomeworksForSpecificSubject(w http.ResponseWriter,
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" && !(subject.TeacherID == userId || meeting.TeacherID == userId) {
+		if user.Role == TEACHER && !(subject.TeacherID == user.ID || meeting.TeacherID == user.ID) {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -130,16 +121,12 @@ func (server *httpImpl) GetAllHomeworksForSpecificSubject(w http.ResponseWriter,
 
 // GetHomeworkData TODO: Not used yet
 func (server *httpImpl) GetHomeworkData(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-		userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			return
-		}
+	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		homeworkId, err := strconv.Atoi(mux.Vars(r)["homework_id"])
 		if err != nil {
 			return
@@ -148,8 +135,8 @@ func (server *httpImpl) GetHomeworkData(w http.ResponseWriter, r *http.Request) 
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" {
-			if homework.TeacherID != userId {
+		if user.Role == TEACHER {
+			if homework.TeacherID != user.ID {
 				WriteForbiddenJWT(w)
 				return
 			}
@@ -169,16 +156,12 @@ func (server *httpImpl) GetHomeworkData(w http.ResponseWriter, r *http.Request) 
 }
 
 func (server *httpImpl) PatchHomeworkForStudent(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			return
-		}
+	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		// Maybe we will use it sometime, you never know
 		_, err = strconv.Atoi(mux.Vars(r)["meeting_id"])
 		if err != nil {
@@ -200,7 +183,7 @@ func (server *httpImpl) PatchHomeworkForStudent(w http.ResponseWriter, r *http.R
 		if err != nil {
 			return
 		}
-		if jwt["role"] == "teacher" && !(subject.TeacherID == teacherId || homework.TeacherID == teacherId) {
+		if user.Role == TEACHER && !(subject.TeacherID == user.ID || homework.TeacherID == user.ID) {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -235,18 +218,14 @@ func (server *httpImpl) PatchHomeworkForStudent(w http.ResponseWriter, r *http.R
 }
 
 func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
 	var studentId int
-	if jwt["role"] == "student" {
-		studentId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
-			return
-		}
+	if user.Role == STUDENT {
+		studentId = user.ID
 	} else {
 		studentId, err = strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
@@ -254,23 +233,13 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 	}
-	if jwt["role"] == "parent" {
+	if user.Role == PARENT {
 		if !server.config.ParentViewHomework {
 			WriteForbiddenJWT(w)
 			return
 		}
-		parentId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteJSON(w, Response{Data: "Could not ATOI parentId", Error: err.Error(), Success: false}, http.StatusBadRequest)
-			return
-		}
-		parent, err := server.db.GetUser(parentId)
-		if err != nil {
-			WriteJSON(w, Response{Data: "Could not fetch parent", Error: err.Error(), Success: false}, http.StatusInternalServerError)
-			return
-		}
 		var children []int
-		json.Unmarshal([]byte(parent.Users), &children)
+		json.Unmarshal([]byte(user.Users), &children)
 		if !helpers.Contains(children, studentId) {
 			WriteForbiddenJWT(w)
 			return

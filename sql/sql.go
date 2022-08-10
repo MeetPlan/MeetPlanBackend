@@ -17,6 +17,8 @@ func (db *sqlImpl) Init() {
 }
 
 type SQL interface {
+	CheckJWT(tokenString string) (User, error)
+
 	Init()
 
 	UpdateTestingResult(testing Testing) error

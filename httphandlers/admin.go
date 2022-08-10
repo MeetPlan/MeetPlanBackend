@@ -1,8 +1,7 @@
 package httphandlers
 
 import (
-	"fmt"
-	"github.com/MeetPlan/MeetPlanBackend/sql"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
@@ -20,28 +19,45 @@ type UserJSON struct {
 	IsPassing              bool
 }
 
+const ADMIN = "admin"
+const PRINCIPAL = "principal"
+const PRINCIPAL_ASSISTANT = "principal assistant"
+const SCHOOL_PSYCHOLOGIST = "school psychologist"
+const TEACHER = "teacher"
+const FOOD_ORGANIZER = "food organizer"
+const PARENT = "parent"
+const STUDENT = "student"
+const UNVERIFIED = "unverified"
+
+var roles = []string{
+	ADMIN,
+	PRINCIPAL,
+	PRINCIPAL_ASSISTANT,
+	SCHOOL_PSYCHOLOGIST,
+	TEACHER,
+	FOOD_ORGANIZER,
+	PARENT,
+	STUDENT,
+	UNVERIFIED,
+}
+
 func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
 
-	currentUserId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		return
-	}
-
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		userId, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			return
 		}
-		user, err := server.db.GetUser(userId)
+		selectedUser, err := server.db.GetUser(userId)
 		if err != nil {
 			return
 		}
-		if user.ID == currentUserId {
+		if selectedUser.ID == user.ID {
 			WriteJSON(w, Response{Data: "Cannot change role to itself", Success: false}, http.StatusConflict)
 			return
 		}
@@ -51,32 +67,32 @@ func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		currentUser, err := server.db.GetUser(currentUserId)
-		if err != nil {
+		if !helpers.Contains(roles, nrole) {
+			WriteJSON(w, Response{Data: "Invalid role", Success: false}, http.StatusBadRequest)
 			return
 		}
 
-		if (currentUser.Role == "principal assistant" && nrole != "admin" && nrole != "principal" && nrole != "principal assistant") ||
-			(currentUser.Role == "principal" && nrole != "admin" && nrole != "principal") ||
-			(currentUser.Role == "admin" && nrole != "admin") {
-			if currentUser.Role == "admin" && nrole == "principal" {
+		if (user.Role == PRINCIPAL_ASSISTANT && nrole != ADMIN && nrole != PRINCIPAL && nrole != PRINCIPAL_ASSISTANT) ||
+			(user.Role == PRINCIPAL && nrole != ADMIN && nrole != PRINCIPAL) ||
+			(user.Role == ADMIN && nrole != ADMIN) {
+			if user.Role == ADMIN && nrole == PRINCIPAL {
 				_, err := server.db.GetPrincipal()
 				if err != nil {
 					if err.Error() == "sql: no rows in result set" {
-						user.Role = nrole
+						selectedUser.Role = nrole
 					}
 				} else {
 					WriteJSON(w, Response{Data: "There already is a principal", Success: false}, http.StatusConflict)
 					return
 				}
 			} else {
-				user.Role = nrole
+				selectedUser.Role = nrole
 			}
 		} else {
 			WriteForbiddenJWT(w)
 			return
 		}
-		err = server.db.UpdateUser(user)
+		err = server.db.UpdateUser(selectedUser)
 		if err != nil {
 			return
 		}
@@ -87,7 +103,7 @@ func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	_, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		return
 	}
@@ -98,8 +114,11 @@ func (server *httpImpl) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	var usersjson = make([]UserJSON, 0)
 	for i := 0; i < len(users); i++ {
-		user := users[i]
-		m := UserJSON{ID: user.ID, Email: user.Email, Role: user.Role, Name: user.Name}
+		currentUser := users[i]
+		if !(user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST || user.Role == PRINCIPAL_ASSISTANT || user.Role == PRINCIPAL || user.Role == ADMIN) && (currentUser.Role == STUDENT || currentUser.Role == PARENT) {
+			continue
+		}
+		m := UserJSON{ID: currentUser.ID, Email: currentUser.Email, Role: currentUser.Role, Name: currentUser.Name}
 		usersjson = append(usersjson, m)
 	}
 	WriteJSON(w, Response{Data: usersjson, Success: true}, http.StatusOK)
@@ -107,12 +126,12 @@ func (server *httpImpl) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetTeachers(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		users, err := server.db.GetTeachers()
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -132,11 +151,11 @@ func (server *httpImpl) GetTeachers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		userId, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			return

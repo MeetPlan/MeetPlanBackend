@@ -2,38 +2,36 @@ package httphandlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
-	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 )
 
 func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if user.Role != ADMIN {
 		WriteForbiddenJWT(w)
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)["parent"])
+	userId, err := strconv.Atoi(mux.Vars(r)[PARENT])
 	if err != nil {
 		WriteBadRequest(w)
 		return
 	}
-	user, err := server.db.GetUser(userId)
+	parent, err := server.db.GetUser(userId)
 	if err != nil {
 		return
 	}
-	if user.Role != "parent" {
+	if parent.Role != PARENT {
 		WriteJSON(w, Response{Data: "User isn't a parent", Success: false}, http.StatusConflict)
 		return
 	}
-	studentId, err := strconv.Atoi(mux.Vars(r)["student"])
+	studentId, err := strconv.Atoi(mux.Vars(r)[STUDENT])
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -42,12 +40,12 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return
 	}
-	if student.Role != "student" {
+	if student.Role != STUDENT {
 		WriteJSON(w, Response{Data: "User isn't a student", Success: false}, http.StatusConflict)
 		return
 	}
 	var users []int
-	err = json.Unmarshal([]byte(user.Users), &users)
+	err = json.Unmarshal([]byte(parent.Users), &users)
 	if err != nil {
 		return
 	}
@@ -59,8 +57,8 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return
 	}
-	user.Users = string(marshal)
-	err = server.db.UpdateUser(user)
+	parent.Users = string(marshal)
+	err = server.db.UpdateUser(parent)
 	if err != nil {
 		return
 	}
@@ -70,23 +68,20 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 }
 
 func (server *httpImpl) GetMyChildren(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "parent" {
+	if user.Role == ADMIN || user.Role == PARENT {
 		var parentId int
-		if jwt["role"] == "admin" {
+		if user.Role == ADMIN {
 			parentId, err = strconv.Atoi(r.URL.Query().Get("parentId"))
 			if err != nil {
 				return
 			}
 		} else {
-			parentId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-			if err != nil {
-				return
-			}
+			parentId = user.ID
 		}
 		parent, err := server.db.GetUser(parentId)
 		if err != nil {
@@ -118,35 +113,35 @@ func (server *httpImpl) GetMyChildren(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if user.Role != ADMIN {
 		WriteForbiddenJWT(w)
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)["parent"])
+	userId, err := strconv.Atoi(mux.Vars(r)[PARENT])
 	if err != nil {
 		WriteBadRequest(w)
 		return
 	}
-	user, err := server.db.GetUser(userId)
+	parent, err := server.db.GetUser(userId)
 	if err != nil {
 		return
 	}
-	if user.Role != "parent" {
+	if user.Role != PARENT {
 		WriteJSON(w, Response{Data: "User isn't a parent", Success: false}, http.StatusConflict)
 		return
 	}
-	studentId, err := strconv.Atoi(mux.Vars(r)["student"])
+	studentId, err := strconv.Atoi(mux.Vars(r)[STUDENT])
 	if err != nil {
 		WriteBadRequest(w)
 		return
 	}
 	var users []int
-	err = json.Unmarshal([]byte(user.Users), &users)
+	err = json.Unmarshal([]byte(parent.Users), &users)
 	if err != nil {
 		return
 	}
@@ -159,8 +154,8 @@ func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return
 	}
-	user.Users = string(marshal)
-	err = server.db.UpdateUser(user)
+	parent.Users = string(marshal)
+	err = server.db.UpdateUser(parent)
 	if err != nil {
 		return
 	}

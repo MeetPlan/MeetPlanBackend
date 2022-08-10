@@ -21,7 +21,7 @@ type Subject struct {
 }
 
 func (server *httpImpl) GetSubjects(w http.ResponseWriter, r *http.Request) {
-	_, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	_, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -38,12 +38,12 @@ func (server *httpImpl) GetSubjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		teacherId, err := strconv.Atoi(r.FormValue("teacher_id"))
 		if err != nil {
 			WriteBadRequest(w)
@@ -100,12 +100,12 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetSubject(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "school psychologist" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST {
 		subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -179,12 +179,12 @@ func (server *httpImpl) GetSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) AssignUserToSubject(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -234,12 +234,12 @@ func (server *httpImpl) AssignUserToSubject(w http.ResponseWriter, r *http.Reque
 }
 
 func (server *httpImpl) RemoveUserFromSubject(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -288,12 +288,12 @@ func (server *httpImpl) RemoveUserFromSubject(w http.ResponseWriter, r *http.Req
 }
 
 func (server *httpImpl) DeleteSubject(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -316,12 +316,12 @@ func (server *httpImpl) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) PatchSubjectName(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
 		if err != nil {
 			WriteJSON(w, Response{Data: "Failed to parse subjectId", Error: err.Error(), Success: false}, http.StatusBadRequest)

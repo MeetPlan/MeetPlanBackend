@@ -47,17 +47,12 @@ type GradeTableResponse struct {
 }
 
 func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
+	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -73,11 +68,11 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
-		if jwt["role"] == "teacher" && subject.TeacherID != teacherId {
+		if user.Role == TEACHER && subject.TeacherID != user.ID {
 			WriteForbiddenJWT(w)
 			return
 		}
-		teacher, err := server.db.GetUser(teacherId)
+		teacher, err := server.db.GetUser(user.ID)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
@@ -189,17 +184,12 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 }
 
 func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
+	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -215,7 +205,7 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
-		if jwt["role"] == "teacher" && subject.TeacherID != teacherId {
+		if user.Role == TEACHER && subject.TeacherID != user.ID {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -283,7 +273,7 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 		g := sql.Grade{
 			ID:          server.db.GetLastGradeID(),
 			UserID:      userId,
-			TeacherID:   teacherId,
+			TeacherID:   user.ID,
 			SubjectID:   subject.ID,
 			Grade:       grade,
 			Date:        time.Now().String(),
@@ -308,17 +298,12 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) PatchGrade(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
+	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		gradeId, err := strconv.Atoi(mux.Vars(r)["grade_id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -343,7 +328,7 @@ func (server *httpImpl) PatchGrade(w http.ResponseWriter, r *http.Request) {
 			WriteForbiddenJWT(w)
 			return
 		}
-		if jwt["role"] == "teacher" && grade.TeacherID != teacherId {
+		if user.Role == TEACHER && grade.TeacherID != user.ID {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -385,17 +370,12 @@ func (server *httpImpl) PatchGrade(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) DeleteGrade(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
+	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		gradeId, err := strconv.Atoi(mux.Vars(r)["grade_id"])
 		if err != nil {
 			WriteBadRequest(w)
@@ -420,7 +400,7 @@ func (server *httpImpl) DeleteGrade(w http.ResponseWriter, r *http.Request) {
 			WriteForbiddenJWT(w)
 			return
 		}
-		if jwt["role"] == "teacher" && grade.TeacherID != teacherId {
+		if user.Role == TEACHER && grade.TeacherID != user.ID {
 			WriteForbiddenJWT(w)
 			return
 		}
@@ -438,16 +418,16 @@ func (server *httpImpl) DeleteGrade(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "student" || jwt["role"] == "teacher" || jwt["role"] == "parent" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "admin" || jwt["role"] == "school psychologist" {
+	if user.Role == STUDENT || user.Role == TEACHER || user.Role == PARENT || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == ADMIN || user.Role == SCHOOL_PSYCHOLOGIST {
 		var studentId int
 		var teacherId int
-		if jwt["role"] == "teacher" || jwt["role"] == "parent" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" || jwt["role"] == "admin" || jwt["role"] == "school psychologist" {
-			if jwt["role"] == "parent" {
+		if user.Role == TEACHER || user.Role == PARENT || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == ADMIN || user.Role == SCHOOL_PSYCHOLOGIST {
+			if user.Role == PARENT {
 				if !server.config.ParentViewGrades {
 					WriteForbiddenJWT(w)
 					return
@@ -458,15 +438,11 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 				WriteBadRequest(w)
 				return
 			}
-			teacherId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+			teacherId = user.ID
 		} else {
-			studentId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+			studentId = user.ID
 		}
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-		if jwt["role"] == "teacher" {
+		if user.Role == TEACHER {
 			classes, err := server.db.GetClasses()
 			if err != nil {
 				return
@@ -493,7 +469,7 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 				WriteForbiddenJWT(w)
 				return
 			}
-		} else if jwt["role"] == "parent" {
+		} else if user.Role == PARENT {
 			parent, err := server.db.GetUser(teacherId)
 			if err != nil {
 				return
@@ -573,7 +549,7 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -729,15 +705,10 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		},
 	}
 
-	if jwt["role"] == "admin" || jwt["role"] == "teacher" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
+	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
 		if err != nil {
 			WriteBadRequest(w)
-			return
-		}
-		teacherId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-		if err != nil {
-			WriteForbiddenJWT(w)
 			return
 		}
 		classes, err := server.db.GetClasses()
@@ -747,7 +718,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		}
 		var class *sql.Class
 		for i := 0; i < len(classes); i++ {
-			if jwt["role"] == "teacher" && classes[i].Teacher != teacherId {
+			if user.Role == TEACHER && classes[i].Teacher != user.ID {
 				continue
 			}
 			var users []int
@@ -766,7 +737,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 			return
 		}
 
-		if jwt["role"] == "teacher" {
+		if user.Role == TEACHER {
 			classes, err := server.db.GetClasses()
 			if err != nil {
 				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -782,7 +753,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 					return
 				}
 				for j := 0; j < len(users); j++ {
-					if users[j] == studentId && class.Teacher == teacherId {
+					if users[j] == studentId && class.Teacher == user.ID {
 						valid = true
 						break
 					}
@@ -796,7 +767,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 				return
 			}
 		}
-		user, err := server.db.GetUser(studentId)
+		student, err := server.db.GetUser(studentId)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
@@ -843,17 +814,17 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		// Student info
 		pdf.SetX(50)
 		pdf.SetY(270)
-		pdf.Cell(nil, user.Name)
+		pdf.Cell(nil, student.Name)
 
 		pdf.SetY(300)
 		pdf.SetX(50)
-		pdf.Cell(nil, user.Birthday)
+		pdf.Cell(nil, student.Birthday)
 		pdf.SetX(215)
-		pdf.Cell(nil, fmt.Sprintf("%s, %s", user.CityOfBirth, user.CountryOfBirth))
+		pdf.Cell(nil, fmt.Sprintf("%s, %s", student.CityOfBirth, student.CountryOfBirth))
 
 		pdf.SetX(50)
 		pdf.SetY(332)
-		pdf.Cell(nil, user.BirthCertificateNumber)
+		pdf.Cell(nil, student.BirthCertificateNumber)
 		pdf.SetX(215)
 		pdf.Cell(nil, class.Name)
 		pdf.SetX(430)
@@ -932,7 +903,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 
 		const lineY = 640
 
-		if user.IsPassing {
+		if student.IsPassing {
 			pdf.Line(190, lineY, 335, lineY)
 		} else {
 			pdf.Line(340, lineY, 412, lineY)
@@ -986,7 +957,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		currentTime := time.Now().UnixMilli()
 		document := sql.Document{
 			ID:           UUID,
-			ExportedBy:   teacherId,
+			ExportedBy:   user.ID,
 			DocumentType: SPRICEVALO,
 			Timestamp:    int(currentTime),
 			IsSigned:     true,

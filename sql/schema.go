@@ -12,9 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
 	country_of_birth         VARCHAR(200),
 	city_of_birth            VARCHAR(200),
 	users                    VARCHAR(200)   DEFAULT('[]'),
-	is_passing               BOOLEAN,
-	
-	PRIMARY KEY (id)
+	is_passing               BOOLEAN
 );
 CREATE TABLE IF NOT EXISTS testing (
 	id           INTEGER                    PRIMARY KEY,
@@ -24,7 +22,6 @@ CREATE TABLE IF NOT EXISTS testing (
 	class_id     INTEGER                    NOT NULL,
 	result       VARCHAR(250)               NOT NULL,
 	
-	PRIMARY KEY (id),
 	CONSTRAINT FK_TestingUser    FOREIGN KEY (user_id) REFERENCES users(id),
 	CONSTRAINT FK_TestingTeacher FOREIGN KEY (teacher_id) REFERENCES users(id),
 	CONSTRAINT FK_TestingClass   FOREIGN KEY (class_id) REFERENCES classes(id)
@@ -37,9 +34,7 @@ CREATE TABLE IF NOT EXISTS classes (
 	last_school_date         INTEGER,
 	teacher                  INTEGER,
 	sok                      INTEGER,
-	eok                      INTEGER,
-	
-	PRIMARY KEY (id)
+	eok                      INTEGER
 );
 CREATE TABLE IF NOT EXISTS meetings (
 	id                      INTEGER         PRIMARY KEY,
@@ -57,8 +52,7 @@ CREATE TABLE IF NOT EXISTS meetings (
 	is_test                 BOOLEAN         NOT NULL,
 	is_substitution         BOOLEAN         NOT NULL,
 	is_beta                 BOOLEAN         NOT NULL,
-	
-	PRIMARY KEY (id),
+
 	CONSTRAINT FK_MeetingTeacher FOREIGN KEY (teacher_id) REFERENCES users(id),
 	CONSTRAINT FK_MeetingSubject FOREIGN KEY (subject_id) REFERENCES subject(id)
 );
@@ -69,8 +63,7 @@ CREATE TABLE IF NOT EXISTS absence (
 	teacher_id              INTEGER,
 	absence_type            VARCHAR(200),
 	is_excused              BOOLEAN,
-	
-	PRIMARY KEY (id),
+
 	CONSTRAINT FK_AbsenceUser    FOREIGN KEY (user_id) REFERENCES users(id),
 	CONSTRAINT FK_AbsenceMeeting FOREIGN KEY (meeting_id) REFERENCES meetings(id),
 	CONSTRAINT FK_AbsenceTeacher FOREIGN KEY (teacher_id) REFERENCES users(id)
@@ -86,8 +79,7 @@ CREATE TABLE IF NOT EXISTS grades (
 	period                  INTEGER,
 	is_final                BOOLEAN,
 	description             VARCHAR(200),
-	
-	PRIMARY KEY (id),
+
 	CONSTRAINT FK_GradesUser    FOREIGN KEY (user_id)    REFERENCES users(id),
 	CONSTRAINT FK_GradesTeacher FOREIGN KEY (teacher_id) REFERENCES users(id),
 	CONSTRAINT FK_GradesSubject FOREIGN KEY (subject_id) REFERENCES subject(id)
@@ -104,8 +96,7 @@ CREATE TABLE IF NOT EXISTS subject (
 	students                JSON            DEFAULT('[]'),
 	selected_hours          FLOAT           DEFAULT(1.0),
 	color                   VARCHAR(10),
-	
-	PRIMARY KEY (id),
+
 	CONSTRAINT FK_SubjectTeacher FOREIGN KEY (teacher_id) REFERENCES users(id),
 	CONSTRAINT FK_SubjectClass   FOREIGN KEY (class_id)   REFERENCES classes(id)
 );
@@ -114,8 +105,7 @@ CREATE TABLE IF NOT EXISTS student_homework (
 	user_id                 INTEGER,
 	homework_id             INTEGER,
 	status                  VARCHAR(200),
-	
-	PRIMARY KEY (id),
+
 	CONSTRAINT FK_StudentHomeworkUser     FOREIGN KEY (user_id)     REFERENCES users(id),
 	CONSTRAINT FK_StudentHomeworkHomework FOREIGN KEY (homework_id) REFERENCES homework(id)
 );
@@ -127,8 +117,7 @@ CREATE TABLE IF NOT EXISTS homework (
 	description             VARCHAR(1000),
 	from_date               VARCHAR(200),
 	to_date                 VARCHAR(200),
-	
-	PRIMARY KEY (id),
+
     CONSTRAINT FK_HomeworkSubject FOREIGN KEY (subject_id) REFERENCES subject(id),
     CONSTRAINT FK_HomeworkTeacher FOREIGN KEY (teacher_id) REFERENCES users(id)
 );
@@ -136,9 +125,7 @@ CREATE TABLE IF NOT EXISTS communication (
 	id                      INTEGER         PRIMARY KEY,
 	people                  JSON            DEFAULT('[]'),
 	title                   VARCHAR(200),
-	date_created            VARCHAR(200),
-	
-	PRIMARY KEY (id)
+	date_created            VARCHAR(200)
 );
 CREATE TABLE IF NOT EXISTS message (
 	id                      INTEGER         PRIMARY KEY,
@@ -147,8 +134,7 @@ CREATE TABLE IF NOT EXISTS message (
 	body                    VARCHAR(3000),
 	seen                    JSON,
 	date_created            VARCHAR(200),
-	
-    PRIMARY KEY (id),
+    
     CONSTRAINT FK_MessageCommunication FOREIGN KEY (communication_id) REFERENCES communication(id),
     CONSTRAINT FK_MessageUser          FOREIGN KEY (user_id)          REFERENCES users(id)
 );
@@ -164,15 +150,11 @@ CREATE TABLE IF NOT EXISTS meals (
 	is_vegan                BOOLEAN,
 	is_vegetarian           BOOLEAN,
 	is_lactose_free         BOOLEAN,
-	block_orders            BOOLEAN,
-	
-	PRIMARY KEY (id)
+	block_orders            BOOLEAN
 );
 CREATE TABLE IF NOT EXISTS notifications (
 	id                      INTEGER         PRIMARY KEY,
-	notification            VARCHAR(3000),
-	
-	PRIMARY KEY (id)
+	notification            VARCHAR(3000)
 );
 CREATE TABLE IF NOT EXISTS improvements (
 	id                      INTEGER         PRIMARY KEY,
@@ -180,8 +162,7 @@ CREATE TABLE IF NOT EXISTS improvements (
 	student_id              INTEGER,
     meeting_id              INTEGER,
 	teacher_id              INTEGER,
-	
-	PRIMARY KEY (id),
+    
 	CONSTRAINT FK_ImprovementsStudent FOREIGN KEY (student_id) REFERENCES users(id),
 	CONSTRAINT FK_ImprovementsMeeting FOREIGN KEY (meeting_id) REFERENCES meetings(id),
 	CONSTRAINT FK_ImprovementsTeacher FOREIGN KEY (teacher_id) REFERENCES users(id)
@@ -193,7 +174,6 @@ CREATE TABLE IF NOT EXISTS documents (
     timestamp               BIGINT          NOT NULL,
     is_signed               BOOLEAN         NOT NULL,
     
-    PRIMARY KEY (id),
     CONSTRAINT FK_DocumentsExporter FOREIGN KEY (exported_by) REFERENCES users(id)
 );
 `

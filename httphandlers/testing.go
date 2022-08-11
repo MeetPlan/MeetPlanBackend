@@ -17,36 +17,29 @@ import (
 	"time"
 )
 
-type Response struct {
-	Error   interface{} `json:"error"`
-	Success bool        `json:"success"`
-	Data    interface{} `json:"data"`
-}
-
 func (server *httpImpl) GetSelfTestingTeacher(w http.ResponseWriter, r *http.Request) {
 	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST {
-		classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
-		if err != nil {
-			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
-			return
-		}
-		dt := time.Now()
-		date := dt.Format("02-01-2006")
-		results, err := server.db.GetTestingResults(date, classId)
-		if err != nil {
-			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
-			return
-		}
-		WriteJSON(w, Response{Success: true, Data: results}, http.StatusOK)
-	} else {
+	if !(user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST) {
 		WriteForbiddenJWT(w)
 		return
 	}
+	classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
+	if err != nil {
+		WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+		return
+	}
+	dt := time.Now()
+	date := dt.Format("02-01-2006")
+	results, err := server.db.GetTestingResults(date, classId)
+	if err != nil {
+		WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+		return
+	}
+	WriteJSON(w, Response{Success: true, Data: results}, http.StatusOK)
 }
 
 func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request) {
@@ -55,64 +48,81 @@ func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 		WriteForbiddenJWT(w)
 		return
 	}
-	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST {
-		studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
+	if !(user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST) {
+		WriteForbiddenJWT(w)
+		return
+	}
+	studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
 
-		classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
+	student, err := server.db.GetUser(studentId)
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed while fetching student from the database", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
 
-		dt := time.Now()
-		date := dt.Format("02-01-2006")
+	if student.Role != STUDENT {
+		WriteJSON(w, Response{Data: "Student isn't really a student", Success: false}, http.StatusBadRequest)
+		return
+	}
 
-		results, err := server.db.GetTestingResult(date, studentId)
-		if err != nil {
-			server.logger.Debug(err)
-			if err.Error() == "sql: no rows in result set" {
-				results = sql.Testing{
-					Date:      date,
-					ID:        server.db.GetLastTestingID(),
-					UserID:    studentId,
-					TeacherID: user.ID,
-					ClassID:   classId,
-					Result:    r.FormValue("result"),
-				}
-				err := server.db.InsertTestingResult(results)
-				if err != nil {
-					WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
-					return
-				}
-				WriteJSON(w, Response{Success: true, Data: results}, http.StatusOK)
-				return
-			} else {
+	classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+
+	class, err := server.db.GetClass(classId)
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed while fetching student from the database", Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+
+	dt := time.Now()
+	date := dt.Format("02-01-2006")
+
+	results, err := server.db.GetTestingResult(date, studentId)
+	if err != nil {
+		server.logger.Debug(err)
+		if err.Error() == "sql: no rows in result set" {
+			results = sql.Testing{
+				Date:      date,
+				ID:        server.db.GetLastTestingID(),
+				UserID:    studentId,
+				TeacherID: user.ID,
+				ClassID:   class.ID,
+				Result:    r.FormValue("result"),
+			}
+			err := server.db.InsertTestingResult(results)
+			if err != nil {
 				WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
 				return
 			}
+			WriteJSON(w, Response{Success: true, Data: results}, http.StatusOK)
+			return
 		} else {
-			newr := r.FormValue("result")
-			if newr == results.Result {
-				results.Result = ""
-			} else {
-				results.Result = newr
-			}
-		}
-		results.TeacherID = user.ID
-		err = server.db.UpdateTestingResult(results)
-		if err != nil {
 			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
 			return
 		}
-
-		WriteJSON(w, Response{Success: true, Data: results}, http.StatusOK)
 	} else {
-		WriteForbiddenJWT(w)
+		newr := r.FormValue("result")
+		if newr == results.Result {
+			results.Result = ""
+		} else {
+			results.Result = newr
+		}
 	}
+	results.TeacherID = user.ID
+	err = server.db.UpdateTestingResult(results)
+	if err != nil {
+		WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	WriteJSON(w, Response{Success: true, Data: results}, http.StatusOK)
 }
 
 func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r *http.Request) {

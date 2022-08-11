@@ -17,6 +17,7 @@ func (server *httpImpl) ExcuseAbsence(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
+
 	studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
 	if err != nil {
 		WriteBadRequest(w)

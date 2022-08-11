@@ -31,31 +31,31 @@ func (server *httpImpl) NewImprovement(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
-		meeting, err := server.db.GetMeeting(meetingId)
-		if err != nil {
-			return
-		}
-		subject, err := server.db.GetSubject(meeting.SubjectID)
-		if err != nil {
-			return
-		}
-		if user.Role == TEACHER && !(meeting.TeacherID == user.ID || subject.TeacherID == user.ID) {
-			WriteForbiddenJWT(w)
-			return
-		}
-		improvement := sql.Improvement{
-			ID:        server.db.GetLastImprovementID(),
-			StudentID: studentId,
-			MeetingID: meetingId,
-			Message:   r.FormValue("message"),
-			TeacherID: user.ID,
-		}
-		server.db.InsertImprovement(improvement)
-		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
-	} else {
+	if !(user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST) {
 		WriteForbiddenJWT(w)
+		return
 	}
+	meeting, err := server.db.GetMeeting(meetingId)
+	if err != nil {
+		return
+	}
+	subject, err := server.db.GetSubject(meeting.SubjectID)
+	if err != nil {
+		return
+	}
+	if user.Role == TEACHER && !(meeting.TeacherID == user.ID || subject.TeacherID == user.ID) {
+		WriteForbiddenJWT(w)
+		return
+	}
+	improvement := sql.Improvement{
+		ID:        server.db.GetLastImprovementID(),
+		StudentID: studentId,
+		MeetingID: meetingId,
+		Message:   r.FormValue("message"),
+		TeacherID: user.ID,
+	}
+	server.db.InsertImprovement(improvement)
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Request) {
@@ -65,55 +65,50 @@ func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Re
 		return
 	}
 	var studentId int
-	if user.Role == STUDENT {
-		studentId = user.ID
-	} else {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == PARENT || user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST {
 		studentId, err = strconv.Atoi(r.URL.Query().Get("studentId"))
-	}
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-
-	if err != nil {
-		return
-	}
-	if user.Role == PARENT {
-		var students []int
-		err := json.Unmarshal([]byte(user.Users), &students)
 		if err != nil {
-			return
-		}
-		if !helpers.Contains(students, studentId) {
 			WriteForbiddenJWT(w)
 			return
 		}
-	} else if user.Role == TEACHER {
-		classes, err := server.db.GetClasses()
-		if err != nil {
-			return
-		}
-		var ok = false
-		for i := 0; i < len(classes); i++ {
-			class := classes[i]
-			if class.Teacher != user.ID {
-				continue
-			}
+		if user.Role == PARENT {
 			var students []int
-			err := json.Unmarshal([]byte(class.Students), &students)
+			err := json.Unmarshal([]byte(user.Users), &students)
 			if err != nil {
 				return
 			}
 			if !helpers.Contains(students, studentId) {
-				continue
+				WriteForbiddenJWT(w)
+				return
 			}
-			ok = true
+		} else if user.Role == TEACHER {
+			classes, err := server.db.GetClasses()
+			if err != nil {
+				return
+			}
+			var ok = false
+			for i := 0; i < len(classes); i++ {
+				class := classes[i]
+				if class.Teacher != user.ID {
+					continue
+				}
+				var students []int
+				err := json.Unmarshal([]byte(class.Students), &students)
+				if err != nil {
+					return
+				}
+				if !helpers.Contains(students, studentId) {
+					continue
+				}
+				ok = true
+			}
+			if !ok {
+				WriteForbiddenJWT(w)
+				return
+			}
 		}
-		if !ok {
-			WriteForbiddenJWT(w)
-			return
-		}
-	} else if user.Role == PRINCIPAL_ASSISTANT || user.Role == PRINCIPAL || user.Role == ADMIN || user.Role == STUDENT || user.Role == SCHOOL_PSYCHOLOGIST {
+	} else if user.Role == STUDENT {
+		studentId = user.ID
 	} else {
 		WriteForbiddenJWT(w)
 		return

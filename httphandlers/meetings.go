@@ -289,108 +289,108 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
-		dates := make([]string, 0)
-
-		date := r.FormValue("date")
-		dates = append(dates, date)
-
-		hour, err := strconv.Atoi(r.FormValue("hour"))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-		subjectId, err := strconv.Atoi(r.FormValue("subjectId"))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-		name := r.FormValue("name")
-
-		isMandatoryString := r.FormValue("is_mandatory")
-		var isMandatory = true
-		if isMandatoryString == "false" {
-			isMandatory = false
-		}
-
-		url := r.FormValue("url")
-		details := r.FormValue("details")
-
-		isGradingString := r.FormValue("is_grading")
-		var isGrading = false
-		if isGradingString == "true" {
-			isGrading = true
-		}
-
-		isWrittenAssessmentString := r.FormValue("is_written_assessment")
-		var isWrittenAssessment = false
-		if isWrittenAssessmentString == "true" {
-			isWrittenAssessment = true
-		}
-
-		isTestString := r.FormValue("is_test")
-		var isTest = false
-		if isTestString == "true" {
-			isTest = true
-		}
-
-		if r.FormValue("last_date") != "" {
-			repeatCycle, err := strconv.Atoi(r.FormValue("repeat_cycle"))
-			if err != nil {
-				WriteJSON(w, Response{Error: err.Error(), Data: "Failed at converting repeat_cycle to int", Success: false}, http.StatusBadRequest)
-				return
-			}
-			lastDate, err := time.Parse("02-01-2006", r.FormValue("last_date"))
-			if err != nil {
-				WriteJSON(w, Response{Error: err.Error(), Data: "Failed at converting last_date to Time", Success: false}, http.StatusBadRequest)
-				return
-			}
-			date, err := time.Parse("02-01-2006", date)
-			if err != nil {
-				WriteJSON(w, Response{Error: err.Error(), Data: "Failed at converting date to Time", Success: false}, http.StatusBadRequest)
-				return
-			}
-			for {
-				m := 24 * 7 * repeatCycle
-				date = date.Add(time.Hour * time.Duration(m))
-				if date.After(lastDate) {
-					break
-				}
-				dates = append(dates, date.Format("02-01-2006"))
-			}
-		}
-
-		for i := 0; i < len(dates); i++ {
-			date := dates[i]
-
-			meeting := sql.Meeting{
-				ID:                  server.db.GetLastMeetingID(),
-				MeetingName:         name,
-				TeacherID:           user.ID,
-				SubjectID:           subjectId,
-				Hour:                hour,
-				Date:                date,
-				IsMandatory:         isMandatory,
-				URL:                 url,
-				Details:             details,
-				Location:            r.FormValue("location"),
-				IsGrading:           isGrading,
-				IsWrittenAssessment: isWrittenAssessment,
-				IsTest:              isTest,
-				IsSubstitution:      false,
-				IsBeta:              false,
-			}
-
-			err = server.db.InsertMeeting(meeting)
-			if err != nil {
-				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-				return
-			}
-		}
-		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
-	} else {
+	if !(user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST) {
 		WriteForbiddenJWT(w)
+		return
 	}
+	dates := make([]string, 0)
+
+	date := r.FormValue("date")
+	dates = append(dates, date)
+
+	hour, err := strconv.Atoi(r.FormValue("hour"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	subjectId, err := strconv.Atoi(r.FormValue("subjectId"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	name := r.FormValue("name")
+
+	isMandatoryString := r.FormValue("is_mandatory")
+	var isMandatory = true
+	if isMandatoryString == "false" {
+		isMandatory = false
+	}
+
+	url := r.FormValue("url")
+	details := r.FormValue("details")
+
+	isGradingString := r.FormValue("is_grading")
+	var isGrading = false
+	if isGradingString == "true" {
+		isGrading = true
+	}
+
+	isWrittenAssessmentString := r.FormValue("is_written_assessment")
+	var isWrittenAssessment = false
+	if isWrittenAssessmentString == "true" {
+		isWrittenAssessment = true
+	}
+
+	isTestString := r.FormValue("is_test")
+	var isTest = false
+	if isTestString == "true" {
+		isTest = true
+	}
+
+	if r.FormValue("last_date") != "" {
+		repeatCycle, err := strconv.Atoi(r.FormValue("repeat_cycle"))
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Data: "Failed at converting repeat_cycle to int", Success: false}, http.StatusBadRequest)
+			return
+		}
+		lastDate, err := time.Parse("02-01-2006", r.FormValue("last_date"))
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Data: "Failed at converting last_date to Time", Success: false}, http.StatusBadRequest)
+			return
+		}
+		date, err := time.Parse("02-01-2006", date)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Data: "Failed at converting date to Time", Success: false}, http.StatusBadRequest)
+			return
+		}
+		for {
+			m := 24 * 7 * repeatCycle
+			date = date.Add(time.Hour * time.Duration(m))
+			if date.After(lastDate) {
+				break
+			}
+			dates = append(dates, date.Format("02-01-2006"))
+		}
+	}
+
+	for i := 0; i < len(dates); i++ {
+		date := dates[i]
+
+		meeting := sql.Meeting{
+			ID:                  server.db.GetLastMeetingID(),
+			MeetingName:         name,
+			TeacherID:           user.ID,
+			SubjectID:           subjectId,
+			Hour:                hour,
+			Date:                date,
+			IsMandatory:         isMandatory,
+			URL:                 url,
+			Details:             details,
+			Location:            r.FormValue("location"),
+			IsGrading:           isGrading,
+			IsWrittenAssessment: isWrittenAssessment,
+			IsTest:              isTest,
+			IsSubstitution:      false,
+			IsBeta:              false,
+		}
+
+		err = server.db.InsertMeeting(meeting)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+	}
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
@@ -399,98 +399,98 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
-		id, err := strconv.Atoi(mux.Vars(r)["id"])
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-		date := r.FormValue("date")
-		hour, err := strconv.Atoi(r.FormValue("hour"))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-		teacherId := user.ID
-		name := r.FormValue("name")
-
-		isMandatoryString := r.FormValue("is_mandatory")
-		var isMandatory = true
-		if isMandatoryString == "false" {
-			isMandatory = false
-		}
-
-		url := r.FormValue("url")
-		details := r.FormValue("details")
-
-		isGradingString := r.FormValue("is_grading")
-		var isGrading = false
-		if isGradingString == "true" {
-			isGrading = true
-		}
-
-		isWrittenAssessmentString := r.FormValue("is_written_assessment")
-		var isWrittenAssessment = false
-		if isWrittenAssessmentString == "true" {
-			isWrittenAssessment = true
-		}
-
-		isSubstitutionString := r.FormValue("is_substitution")
-		var isSubstitution = false
-		if (user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) && isSubstitutionString == "true" {
-			isSubstitution = true
-			teacherId, err = strconv.Atoi(r.FormValue("teacherId"))
-			if err != nil {
-				WriteBadRequest(w)
-				return
-			}
-		}
-
-		isTestString := r.FormValue("is_test")
-		var isTest = false
-		if isTestString == "true" {
-			isTest = true
-		}
-
-		originalmeeting, err := server.db.GetMeeting(id)
-
-		subject, err := server.db.GetSubject(originalmeeting.SubjectID)
-		if err != nil {
-			return
-		}
-
-		if !(subject.TeacherID == teacherId || originalmeeting.TeacherID == teacherId) && user.Role == TEACHER {
-			WriteForbiddenJWT(w)
-			return
-		}
-
-		meeting := sql.Meeting{
-			ID:                  id,
-			MeetingName:         name,
-			TeacherID:           teacherId,
-			SubjectID:           subject.ID,
-			Hour:                hour,
-			Date:                date,
-			IsMandatory:         isMandatory,
-			URL:                 url,
-			Details:             details,
-			IsGrading:           isGrading,
-			IsWrittenAssessment: isWrittenAssessment,
-			IsTest:              isTest,
-			IsSubstitution:      isSubstitution,
-			IsBeta:              originalmeeting.IsBeta,
-			Location:            r.FormValue("location"),
-		}
-
-		err = server.db.UpdateMeeting(meeting)
-		if err != nil {
-			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-			return
-		}
-		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
-	} else {
+	if !(user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST) {
 		WriteForbiddenJWT(w)
+		return
 	}
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	date := r.FormValue("date")
+	hour, err := strconv.Atoi(r.FormValue("hour"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	teacherId := user.ID
+	name := r.FormValue("name")
+
+	isMandatoryString := r.FormValue("is_mandatory")
+	var isMandatory = true
+	if isMandatoryString == "false" {
+		isMandatory = false
+	}
+
+	url := r.FormValue("url")
+	details := r.FormValue("details")
+
+	isGradingString := r.FormValue("is_grading")
+	var isGrading = false
+	if isGradingString == "true" {
+		isGrading = true
+	}
+
+	isWrittenAssessmentString := r.FormValue("is_written_assessment")
+	var isWrittenAssessment = false
+	if isWrittenAssessmentString == "true" {
+		isWrittenAssessment = true
+	}
+
+	isSubstitutionString := r.FormValue("is_substitution")
+	var isSubstitution = false
+	if (user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) && isSubstitutionString == "true" {
+		isSubstitution = true
+		teacherId, err = strconv.Atoi(r.FormValue("teacherId"))
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
+	}
+
+	isTestString := r.FormValue("is_test")
+	var isTest = false
+	if isTestString == "true" {
+		isTest = true
+	}
+
+	originalmeeting, err := server.db.GetMeeting(id)
+
+	subject, err := server.db.GetSubject(originalmeeting.SubjectID)
+	if err != nil {
+		return
+	}
+
+	if !(subject.TeacherID == teacherId || originalmeeting.TeacherID == teacherId) && (user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST) {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	meeting := sql.Meeting{
+		ID:                  id,
+		MeetingName:         name,
+		TeacherID:           teacherId,
+		SubjectID:           subject.ID,
+		Hour:                hour,
+		Date:                date,
+		IsMandatory:         isMandatory,
+		URL:                 url,
+		Details:             details,
+		IsGrading:           isGrading,
+		IsWrittenAssessment: isWrittenAssessment,
+		IsTest:              isTest,
+		IsSubstitution:      isSubstitution,
+		IsBeta:              originalmeeting.IsBeta,
+		Location:            r.FormValue("location"),
+	}
+
+	err = server.db.UpdateMeeting(meeting)
+	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) DeleteMeeting(w http.ResponseWriter, r *http.Request) {
@@ -499,28 +499,28 @@ func (server *httpImpl) DeleteMeeting(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
-		id, err := strconv.Atoi(mux.Vars(r)["id"])
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-
-		originalmeeting, err := server.db.GetMeeting(id)
-		if originalmeeting.TeacherID != user.ID && user.Role == TEACHER {
-			WriteForbiddenJWT(w)
-			return
-		}
-
-		err = server.db.DeleteMeeting(id)
-		if err != nil {
-			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-			return
-		}
-		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
-	} else {
+	if !(user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST) {
 		WriteForbiddenJWT(w)
+		return
 	}
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+
+	originalmeeting, err := server.db.GetMeeting(id)
+	if originalmeeting.TeacherID != user.ID && (user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST) {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	err = server.db.DeleteMeeting(id)
+	if err != nil {
+		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
@@ -538,7 +538,7 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	if user.Role == STUDENT {
+	if user.Role == STUDENT || user.Role == PARENT {
 		subjects, err := server.db.GetAllSubjects()
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -566,19 +566,48 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 						return
 					}
 				}
-				var isIn = false
-				for n := 0; n < len(users); n++ {
-					if users[n] == user.ID {
-						isIn = true
-						break
+				if user.Role == STUDENT {
+					var isIn = false
+					for n := 0; n < len(users); n++ {
+						if users[n] == user.ID {
+							isIn = true
+							break
+						}
 					}
-				}
-				if !isIn {
+					if !isIn {
+						WriteForbiddenJWT(w)
+						return
+					}
+				} else if user.Role == PARENT {
+					var students []int
+
+					err := json.Unmarshal([]byte(user.Users), &students)
+					if err != nil {
+						return
+					}
+
+					var ok = false
+
+					for i := 0; i < len(users); i++ {
+						if helpers.Contains(students, users[i]) {
+							ok = true
+							break
+						}
+					}
+
+					if !ok {
+						WriteForbiddenJWT(w)
+						return
+					}
+				} else {
 					WriteForbiddenJWT(w)
 					return
 				}
 			}
 		}
+	} else if !(user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == ADMIN || user.Role == SCHOOL_PSYCHOLOGIST || user.Role == TEACHER) {
+		WriteForbiddenJWT(w)
+		return
 	}
 	teacher, err := server.db.GetUser(meeting.TeacherID)
 	if err != nil {
@@ -608,81 +637,81 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 		WriteForbiddenJWT(w)
 		return
 	}
-	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
-		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+	if !(user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST) {
+		WriteForbiddenJWT(w)
+		return
+	}
+	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	meeting, err := server.db.GetMeeting(meetingId)
+	if err != nil {
+		return
+	}
+	subject, err := server.db.GetSubject(meeting.SubjectID)
+	if err != nil {
+		return
+	}
+	if (user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST) && !(subject.TeacherID == user.ID || meeting.TeacherID == user.ID) {
+		WriteForbiddenJWT(w)
+		return
+	}
+	var users []int
+	if subject.InheritsClass {
+		class, err := server.db.GetClass(subject.ClassID)
 		if err != nil {
-			WriteBadRequest(w)
 			return
 		}
-		meeting, err := server.db.GetMeeting(meetingId)
+		err = json.Unmarshal([]byte(class.Students), &users)
 		if err != nil {
 			return
 		}
-		subject, err := server.db.GetSubject(meeting.SubjectID)
+	} else {
+		err = json.Unmarshal([]byte(subject.Students), &users)
 		if err != nil {
 			return
 		}
-		if user.Role == TEACHER && !(subject.TeacherID == user.ID || meeting.TeacherID == user.ID) {
-			WriteForbiddenJWT(w)
+	}
+	var absences = make([]Absence, 0)
+	for i := 0; i < len(users); i++ {
+		userId := users[i]
+		currentUser, err := server.db.GetUser(userId)
+		if err != nil {
 			return
 		}
-		var users []int
-		if subject.InheritsClass {
-			class, err := server.db.GetClass(subject.ClassID)
-			if err != nil {
-				return
-			}
-			err = json.Unmarshal([]byte(class.Students), &users)
-			if err != nil {
-				return
-			}
-		} else {
-			err = json.Unmarshal([]byte(subject.Students), &users)
-			if err != nil {
-				return
-			}
-		}
-		var absences = make([]Absence, 0)
-		for i := 0; i < len(users); i++ {
-			userId := users[i]
-			currentUser, err := server.db.GetUser(userId)
-			if err != nil {
-				return
-			}
-			absence, err := server.db.GetAbsenceForUserMeeting(meetingId, userId)
-			if err != nil {
-				if err.Error() == "sql: no rows in result set" {
-					absence := sql.Absence{
-						ID:          server.db.GetLastAbsenceID(),
-						UserID:      userId,
-						TeacherID:   user.ID,
-						MeetingID:   meetingId,
-						AbsenceType: "UNMANAGED",
-					}
-					err := server.db.InsertAbsence(absence)
-					if err != nil {
-						return
-					}
-					absences = append(absences, Absence{
-						Absence:     absence,
-						TeacherName: user.Name,
-						UserName:    currentUser.Name,
-					})
-				} else {
+		absence, err := server.db.GetAbsenceForUserMeeting(meetingId, userId)
+		if err != nil {
+			if err.Error() == "sql: no rows in result set" {
+				absence := sql.Absence{
+					ID:          server.db.GetLastAbsenceID(),
+					UserID:      userId,
+					TeacherID:   user.ID,
+					MeetingID:   meetingId,
+					AbsenceType: "UNMANAGED",
+				}
+				err := server.db.InsertAbsence(absence)
+				if err != nil {
 					return
 				}
-			} else {
 				absences = append(absences, Absence{
 					Absence:     absence,
 					TeacherName: user.Name,
 					UserName:    currentUser.Name,
 				})
+			} else {
+				return
 			}
+		} else {
+			absences = append(absences, Absence{
+				Absence:     absence,
+				TeacherName: user.Name,
+				UserName:    currentUser.Name,
+			})
 		}
-		WriteJSON(w, Response{Success: true, Data: absences}, http.StatusOK)
-	} else {
-		WriteForbiddenJWT(w)
 	}
+	WriteJSON(w, Response{Success: true, Data: absences}, http.StatusOK)
 }
 
 func (server *httpImpl) PatchAbsence(w http.ResponseWriter, r *http.Request) {
@@ -691,38 +720,38 @@ func (server *httpImpl) PatchAbsence(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
-		absenceId, err := strconv.Atoi(mux.Vars(r)["absence_id"])
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-		absence, err := server.db.GetAbsence(absenceId)
-		if err != nil {
-			return
-		}
-		meeting, err := server.db.GetMeeting(absence.MeetingID)
-		if err != nil {
-			return
-		}
-		subject, err := server.db.GetSubject(meeting.SubjectID)
-		if err != nil {
-			return
-		}
-		if user.Role == TEACHER && !(subject.TeacherID == user.ID || meeting.TeacherID == user.ID) {
-			WriteForbiddenJWT(w)
-			return
-		}
-		absence.TeacherID = user.ID
-		absence.AbsenceType = r.FormValue("absence_type")
-		err = server.db.UpdateAbsence(absence)
-		if err != nil {
-			return
-		}
-		WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusOK)
-	} else {
+	if !(user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST) {
 		WriteForbiddenJWT(w)
+		return
 	}
+	absenceId, err := strconv.Atoi(mux.Vars(r)["absence_id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	absence, err := server.db.GetAbsence(absenceId)
+	if err != nil {
+		return
+	}
+	meeting, err := server.db.GetMeeting(absence.MeetingID)
+	if err != nil {
+		return
+	}
+	subject, err := server.db.GetSubject(meeting.SubjectID)
+	if err != nil {
+		return
+	}
+	if (user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST) && !(subject.TeacherID == user.ID || meeting.TeacherID == user.ID) {
+		WriteForbiddenJWT(w)
+		return
+	}
+	absence.TeacherID = user.ID
+	absence.AbsenceType = r.FormValue("absence_type")
+	err = server.db.UpdateAbsence(absence)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusOK)
 }
 
 func (server *httpImpl) GetUsersForMeeting(w http.ResponseWriter, r *http.Request) {
@@ -731,56 +760,56 @@ func (server *httpImpl) GetUsersForMeeting(w http.ResponseWriter, r *http.Reques
 		WriteForbiddenJWT(w)
 		return
 	}
-	if user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
-		meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-		meeting, err := server.db.GetMeeting(meetingId)
-		if err != nil {
-			return
-		}
-		subject, err := server.db.GetSubject(meeting.SubjectID)
-		if err != nil {
-			return
-		}
-		if user.Role == TEACHER && !(subject.TeacherID == user.ID || meeting.TeacherID == user.ID) {
-			WriteForbiddenJWT(w)
-			return
-		}
-		var students []int
-		if subject.InheritsClass {
-			class, err := server.db.GetClass(subject.ClassID)
-			if err != nil {
-				return
-			}
-			err = json.Unmarshal([]byte(class.Students), &students)
-			if err != nil {
-				return
-			}
-		} else {
-			err = json.Unmarshal([]byte(subject.Students), &students)
-			if err != nil {
-				return
-			}
-		}
-		users := make([]UserJSON, 0)
-		for i := 0; i < len(students); i++ {
-			student := students[i]
-			studentUser, err := server.db.GetUser(student)
-			if err != nil {
-				return
-			}
-			users = append(users, UserJSON{
-				Name: studentUser.Name,
-				ID:   studentUser.ID,
-			})
-		}
-		WriteJSON(w, Response{Data: users, Success: true}, http.StatusOK)
-	} else {
+	if !(user.Role == TEACHER || user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST) {
 		WriteForbiddenJWT(w)
+		return
 	}
+	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	meeting, err := server.db.GetMeeting(meetingId)
+	if err != nil {
+		return
+	}
+	subject, err := server.db.GetSubject(meeting.SubjectID)
+	if err != nil {
+		return
+	}
+	if (user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST) && !(subject.TeacherID == user.ID || meeting.TeacherID == user.ID) {
+		WriteForbiddenJWT(w)
+		return
+	}
+	var students []int
+	if subject.InheritsClass {
+		class, err := server.db.GetClass(subject.ClassID)
+		if err != nil {
+			return
+		}
+		err = json.Unmarshal([]byte(class.Students), &students)
+		if err != nil {
+			return
+		}
+	} else {
+		err = json.Unmarshal([]byte(subject.Students), &students)
+		if err != nil {
+			return
+		}
+	}
+	users := make([]UserJSON, 0)
+	for i := 0; i < len(students); i++ {
+		student := students[i]
+		studentUser, err := server.db.GetUser(student)
+		if err != nil {
+			return
+		}
+		users = append(users, UserJSON{
+			Name: studentUser.Name,
+			ID:   studentUser.ID,
+		})
+	}
+	WriteJSON(w, Response{Data: users, Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) MigrateBetaMeetings(w http.ResponseWriter, r *http.Request) {

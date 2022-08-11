@@ -14,11 +14,11 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 		WriteForbiddenJWT(w)
 		return
 	}
-	if user.Role != ADMIN {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)[PARENT])
+	userId, err := strconv.Atoi(mux.Vars(r)["parent"])
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -31,7 +31,7 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 		WriteJSON(w, Response{Data: "User isn't a parent", Success: false}, http.StatusConflict)
 		return
 	}
-	studentId, err := strconv.Atoi(mux.Vars(r)[STUDENT])
+	studentId, err := strconv.Atoi(mux.Vars(r)["student"])
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -73,43 +73,43 @@ func (server *httpImpl) GetMyChildren(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if user.Role == ADMIN || user.Role == PARENT {
-		var parentId int
-		if user.Role == ADMIN {
-			parentId, err = strconv.Atoi(r.URL.Query().Get("parentId"))
-			if err != nil {
-				return
-			}
-		} else {
-			parentId = user.ID
-		}
-		parent, err := server.db.GetUser(parentId)
-		if err != nil {
-			return
-		}
-		var children []int
-		err = json.Unmarshal([]byte(parent.Users), &children)
-		if err != nil {
-			return
-		}
-		var childrenJson = make([]UserJSON, 0)
-		for i := 0; i < len(children); i++ {
-			user, err := server.db.GetUser(children[i])
-			if err != nil {
-				return
-			}
-			childrenJson = append(childrenJson, UserJSON{
-				Name:     user.Name,
-				ID:       user.ID,
-				Email:    user.Email,
-				Role:     user.Role,
-				Birthday: user.Birthday,
-			})
-		}
-		WriteJSON(w, Response{Data: childrenJson, Success: true}, http.StatusOK)
-	} else {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == PARENT) {
 		WriteForbiddenJWT(w)
+		return
 	}
+	var parentId int
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
+		parentId, err = strconv.Atoi(r.URL.Query().Get("parentId"))
+		if err != nil {
+			return
+		}
+	} else {
+		parentId = user.ID
+	}
+	parent, err := server.db.GetUser(parentId)
+	if err != nil {
+		return
+	}
+	var children []int
+	err = json.Unmarshal([]byte(parent.Users), &children)
+	if err != nil {
+		return
+	}
+	var childrenJson = make([]UserJSON, 0)
+	for i := 0; i < len(children); i++ {
+		user, err := server.db.GetUser(children[i])
+		if err != nil {
+			return
+		}
+		childrenJson = append(childrenJson, UserJSON{
+			Name:     user.Name,
+			ID:       user.ID,
+			Email:    user.Email,
+			Role:     user.Role,
+			Birthday: user.Birthday,
+		})
+	}
+	WriteJSON(w, Response{Data: childrenJson, Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Request) {
@@ -118,11 +118,11 @@ func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Requ
 		WriteForbiddenJWT(w)
 		return
 	}
-	if user.Role != ADMIN {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)[PARENT])
+	userId, err := strconv.Atoi(mux.Vars(r)["parent"])
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -135,7 +135,7 @@ func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Requ
 		WriteJSON(w, Response{Data: "User isn't a parent", Success: false}, http.StatusConflict)
 		return
 	}
-	studentId, err := strconv.Atoi(mux.Vars(r)[STUDENT])
+	studentId, err := strconv.Atoi(mux.Vars(r)["student"])
 	if err != nil {
 		WriteBadRequest(w)
 		return

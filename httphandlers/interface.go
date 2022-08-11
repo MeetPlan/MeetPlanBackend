@@ -8,6 +8,12 @@ import (
 	"net/http"
 )
 
+type Response struct {
+	Error   interface{} `json:"error"`
+	Success bool        `json:"success"`
+	Data    interface{} `json:"data"`
+}
+
 type httpImpl struct {
 	logger *zap.SugaredLogger
 	db     sql.SQL

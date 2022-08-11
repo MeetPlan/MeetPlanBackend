@@ -10,6 +10,7 @@ import (
 const SPRICEVALO = 0
 const POTRDILO_O_SOLANJU = 1
 const RESETIRANJE_GESLA = 2
+const POTRDILO_O_SAMOTESTIRANJU = 3
 
 type Document struct {
 	sql.Document
@@ -17,12 +18,12 @@ type Document struct {
 }
 
 func (server *httpImpl) FetchAllDocuments(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -45,12 +46,12 @@ func (server *httpImpl) FetchAllDocuments(w http.ResponseWriter, r *http.Request
 }
 
 func (server *httpImpl) DeleteDocument(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if !(jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant") {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}

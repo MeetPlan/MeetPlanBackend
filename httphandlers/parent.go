@@ -2,21 +2,19 @@ package httphandlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
-	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 )
 
 func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -25,11 +23,11 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 		WriteBadRequest(w)
 		return
 	}
-	user, err := server.db.GetUser(userId)
+	parent, err := server.db.GetUser(userId)
 	if err != nil {
 		return
 	}
-	if user.Role != "parent" {
+	if parent.Role != PARENT {
 		WriteJSON(w, Response{Data: "User isn't a parent", Success: false}, http.StatusConflict)
 		return
 	}
@@ -42,12 +40,12 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return
 	}
-	if student.Role != "student" {
+	if student.Role != STUDENT {
 		WriteJSON(w, Response{Data: "User isn't a student", Success: false}, http.StatusConflict)
 		return
 	}
 	var users []int
-	err = json.Unmarshal([]byte(user.Users), &users)
+	err = json.Unmarshal([]byte(parent.Users), &users)
 	if err != nil {
 		return
 	}
@@ -59,8 +57,8 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return
 	}
-	user.Users = string(marshal)
-	err = server.db.UpdateUser(user)
+	parent.Users = string(marshal)
+	err = server.db.UpdateUser(parent)
 	if err != nil {
 		return
 	}
@@ -70,60 +68,57 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 }
 
 func (server *httpImpl) GetMyChildren(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "parent" {
-		var parentId int
-		if jwt["role"] == "admin" {
-			parentId, err = strconv.Atoi(r.URL.Query().Get("parentId"))
-			if err != nil {
-				return
-			}
-		} else {
-			parentId, err = strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-			if err != nil {
-				return
-			}
-		}
-		parent, err := server.db.GetUser(parentId)
-		if err != nil {
-			return
-		}
-		var children []int
-		err = json.Unmarshal([]byte(parent.Users), &children)
-		if err != nil {
-			return
-		}
-		var childrenJson = make([]UserJSON, 0)
-		for i := 0; i < len(children); i++ {
-			user, err := server.db.GetUser(children[i])
-			if err != nil {
-				return
-			}
-			childrenJson = append(childrenJson, UserJSON{
-				Name:     user.Name,
-				ID:       user.ID,
-				Email:    user.Email,
-				Role:     user.Role,
-				Birthday: user.Birthday,
-			})
-		}
-		WriteJSON(w, Response{Data: childrenJson, Success: true}, http.StatusOK)
-	} else {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == PARENT) {
 		WriteForbiddenJWT(w)
+		return
 	}
+	var parentId int
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
+		parentId, err = strconv.Atoi(r.URL.Query().Get("parentId"))
+		if err != nil {
+			return
+		}
+	} else {
+		parentId = user.ID
+	}
+	parent, err := server.db.GetUser(parentId)
+	if err != nil {
+		return
+	}
+	var children []int
+	err = json.Unmarshal([]byte(parent.Users), &children)
+	if err != nil {
+		return
+	}
+	var childrenJson = make([]UserJSON, 0)
+	for i := 0; i < len(children); i++ {
+		user, err := server.db.GetUser(children[i])
+		if err != nil {
+			return
+		}
+		childrenJson = append(childrenJson, UserJSON{
+			Name:     user.Name,
+			ID:       user.ID,
+			Email:    user.Email,
+			Role:     user.Role,
+			Birthday: user.Birthday,
+		})
+	}
+	WriteJSON(w, Response{Data: childrenJson, Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] != "admin" {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -132,11 +127,11 @@ func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Requ
 		WriteBadRequest(w)
 		return
 	}
-	user, err := server.db.GetUser(userId)
+	parent, err := server.db.GetUser(userId)
 	if err != nil {
 		return
 	}
-	if user.Role != "parent" {
+	if user.Role != PARENT {
 		WriteJSON(w, Response{Data: "User isn't a parent", Success: false}, http.StatusConflict)
 		return
 	}
@@ -146,7 +141,7 @@ func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	var users []int
-	err = json.Unmarshal([]byte(user.Users), &users)
+	err = json.Unmarshal([]byte(parent.Users), &users)
 	if err != nil {
 		return
 	}
@@ -159,8 +154,8 @@ func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return
 	}
-	user.Users = string(marshal)
-	err = server.db.UpdateUser(user)
+	parent.Users = string(marshal)
+	err = server.db.UpdateUser(parent)
 	if err != nil {
 		return
 	}

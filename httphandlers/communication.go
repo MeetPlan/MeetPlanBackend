@@ -22,12 +22,7 @@ type CommunicationJson struct {
 }
 
 func (server *httpImpl) GetCommunications(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -46,7 +41,7 @@ func (server *httpImpl) GetCommunications(w http.ResponseWriter, r *http.Request
 		if err != nil {
 			return
 		}
-		if helpers.Contains(people, userId) {
+		if helpers.Contains(people, user.ID) {
 			communicationsJson = append(communicationsJson, communication)
 		}
 	}
@@ -54,12 +49,7 @@ func (server *httpImpl) GetCommunications(w http.ResponseWriter, r *http.Request
 }
 
 func (server *httpImpl) GetCommunication(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -78,7 +68,7 @@ func (server *httpImpl) GetCommunication(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return
 	}
-	if !helpers.Contains(people, userId) {
+	if !helpers.Contains(people, user.ID) {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -92,21 +82,21 @@ func (server *httpImpl) GetCommunication(w http.ResponseWriter, r *http.Request)
 	var messagesJson = make([]MessageJson, 0)
 	for i := 0; i < len(messages); i++ {
 		message := messages[i]
-		user, err := server.db.GetUser(message.UserID)
+		currentUser, err := server.db.GetUser(message.UserID)
 		if err != nil {
 			return
 		}
 		messagesJson = append(messagesJson, MessageJson{
 			Message:  message,
-			UserName: user.Name,
+			UserName: currentUser.Name,
 		})
 		var users []int
 		err = json.Unmarshal([]byte(message.Seen), &users)
 		if err != nil {
 			return
 		}
-		if !helpers.Contains(users, userId) {
-			users = append(users, userId)
+		if !helpers.Contains(users, user.ID) {
+			users = append(users, user.ID)
 			marshal, err := json.Marshal(users)
 			if err != nil {
 				return
@@ -125,12 +115,7 @@ func (server *httpImpl) GetCommunication(w http.ResponseWriter, r *http.Request)
 }
 
 func (server *httpImpl) NewMessage(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -149,16 +134,16 @@ func (server *httpImpl) NewMessage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	if !helpers.Contains(people, userId) {
+	if !helpers.Contains(people, user.ID) {
 		WriteForbiddenJWT(w)
 		return
 	}
 	message := sql.Message{
 		ID:              server.db.GetLastMessageID(),
 		CommunicationID: communicationId,
-		UserID:          userId,
+		UserID:          user.ID,
 		Body:            r.FormValue("body"),
-		Seen:            fmt.Sprintf("[%s]", fmt.Sprint(userId)),
+		Seen:            fmt.Sprintf("[%s]", fmt.Sprint(user.ID)),
 		DateCreated:     time.Now().String(),
 	}
 	err = server.db.InsertMessage(message)
@@ -169,12 +154,7 @@ func (server *httpImpl) NewMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) NewCommunication(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -184,8 +164,8 @@ func (server *httpImpl) NewCommunication(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return
 	}
-	if !helpers.Contains(people, userId) {
-		people = append(people, userId)
+	if !helpers.Contains(people, user.ID) {
+		people = append(people, user.ID)
 	}
 	users, err := json.Marshal(people)
 	if err != nil {
@@ -205,17 +185,12 @@ func (server *httpImpl) NewCommunication(w http.ResponseWriter, r *http.Request)
 }
 
 func (server *httpImpl) GetUnreadMessages(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	messages, err := server.db.GetAllUnreadMessages(userId)
+	messages, err := server.db.GetAllUnreadMessages(user.ID)
 	if err != nil {
 		return
 	}
@@ -223,12 +198,7 @@ func (server *httpImpl) GetUnreadMessages(w http.ResponseWriter, r *http.Request
 }
 
 func (server *httpImpl) DeleteMessage(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -242,7 +212,7 @@ func (server *httpImpl) DeleteMessage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	if message.UserID != userId {
+	if message.UserID != user.ID {
 		WriteForbiddenJWT(w)
 		return
 	}
@@ -254,12 +224,7 @@ func (server *httpImpl) DeleteMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) EditMessage(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -273,7 +238,7 @@ func (server *httpImpl) EditMessage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	if message.UserID != userId {
+	if message.UserID != user.ID {
 		WriteForbiddenJWT(w)
 		return
 	}

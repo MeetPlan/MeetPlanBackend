@@ -1,7 +1,6 @@
 package httphandlers
 
 import (
-	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -10,19 +9,9 @@ import (
 )
 
 func (server *httpImpl) GetSystemNotifications(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
-		return
-	}
-	userId, err := strconv.Atoi(fmt.Sprint(jwt["user_id"]))
-	if err != nil {
-		WriteForbiddenJWT(w)
-		return
-	}
-	user, err := server.db.GetUser(userId)
-	if err != nil {
-		WriteJSON(w, Response{Data: "Could not retrieve user", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
 	notifications, err := server.db.GetAllNotifications()
@@ -43,7 +32,7 @@ func (server *httpImpl) GetSystemNotifications(w http.ResponseWriter, r *http.Re
 		_, tm, td := currentTime.Date()
 		_, bm, bd := birthday.Date()
 		if tm-bm == 0 && td-bd == 0 {
-			if jwt["role"] == "student" {
+			if user.Role == STUDENT {
 				notifications = append(notifications, sql.NotificationSQL{Notification: "\U0001F973 Kdo pa ima danes rojstni dan? Odgovor: Ti. Čeprav ne moremo urediti, da danes nimaš šole, ti ekipa MeetPlan sistema želi vse najboljše in čim boljše ocene v tem šolskem letu."})
 			} else {
 				notifications = append(notifications, sql.NotificationSQL{Notification: "\U0001F973 Kdo pa ima danes rojstni dan? Odgovor: Vi. Čeprav ne moremo urediti, da danes nimate službe, vam ekipa MeetPlan sistema želi vse najboljše. Biti učitelj je zelo plemenito delo in zato se vam zahvaljujemo. Še naprej širite svoje znanje na nove generacije."})
@@ -54,46 +43,43 @@ func (server *httpImpl) GetSystemNotifications(w http.ResponseWriter, r *http.Re
 }
 
 func (server *httpImpl) NewNotification(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-
-		notification := sql.NotificationSQL{
-			ID:           server.db.GetLastNotificationID(),
-			Notification: r.FormValue("body"),
-		}
-		err = server.db.InsertNotification(notification)
-		if err != nil {
-			return
-		}
-		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
-	} else {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}
+	notification := sql.NotificationSQL{
+		ID:           server.db.GetLastNotificationID(),
+		Notification: r.FormValue("body"),
+	}
+	err = server.db.InsertNotification(notification)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) DeleteNotification(w http.ResponseWriter, r *http.Request) {
-	jwt, err := sql.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	if jwt["role"] == "admin" || jwt["role"] == "principal" || jwt["role"] == "principal assistant" {
-		atoi, err := strconv.Atoi(mux.Vars(r)["notification_id"])
-		if err != nil {
-			return
-		}
-		err = server.db.DeleteNotification(atoi)
-		if err != nil {
-			return
-		}
-		WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
-	} else {
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
 		WriteForbiddenJWT(w)
 		return
 	}
+	atoi, err := strconv.Atoi(mux.Vars(r)["notification_id"])
+	if err != nil {
+		return
+	}
+	err = server.db.DeleteNotification(atoi)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
 }

@@ -217,7 +217,7 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var studentId int
-	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST || user.Role == TEACHER {
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST || user.Role == TEACHER || user.Role == PARENT {
 		studentId, err = strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)

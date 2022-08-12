@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS grades (
 	grade                   INTEGER,
 	period                  INTEGER,
 	is_final                BOOLEAN,
+	can_patch               BOOLEAN,
 	description             VARCHAR(200),
 
 	CONSTRAINT FK_GradesUser    FOREIGN KEY (user_id)    REFERENCES users(id),

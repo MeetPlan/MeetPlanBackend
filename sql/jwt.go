@@ -78,6 +78,12 @@ func (db *sqlImpl) CheckJWT(tokenString string) (user User, err error) {
 			return user, err
 		}
 		user, err = db.GetUser(userId)
+		if err != nil {
+			return user, err
+		}
+		if user.Role == "unverified" {
+			return user, errors.New("user is unverified")
+		}
 		return user, err
 	} else {
 		return user, err

@@ -18,7 +18,7 @@ jobs:
       - name: Set env
         run: go env -w GOFLAGS=-mod=mod
       - name: Change commit name in the code
-        run: sed -i 's/const COMMIT_HASH = ""/const COMMIT_HASH = "$GITHUB_SHA"/g' sql/config.go
+        run: sed -i 's/const COMMIT_HASH = ""/const COMMIT_HASH = "${{ github.sha }}"/g' sql/config.go
       - name: Go get
         run: go get .
       - name: Build app
@@ -43,7 +43,7 @@ jobs:
         run: go env -w GOFLAGS=-mod=mod
       - name: Change commit name in the code
         shell: pwsh
-        run: (Get-Content -path sql\config.go -Raw) -replace 'const COMMIT_HASH = ""','const COMMIT_HASH = "$GITHUB_SHA"'
+        run: (Get-Content -path sql\config.go -Raw) -replace 'const COMMIT_HASH = ""','const COMMIT_HASH = "${{ github.sha }}"'
       - name: Go get
         run: go get .
       - name: Build app
@@ -69,6 +69,8 @@ jobs:
       - name: Downcase repository owner
         run: |
           echo REPO=$(echo ${{github.repository_owner}} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+      - name: Change commit name in the code
+        run: sed -i 's/const COMMIT_HASH = ""/const COMMIT_HASH = "${{ github.sha }}"/g' sql/config.go
       - name: Build Docker image
         uses: docker/build-push-action@v2
         with:

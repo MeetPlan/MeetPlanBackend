@@ -9,7 +9,6 @@ RUN apk add build-base
 
 RUN go mod download && \
     go env -w GOFLAGS=-mod=mod && \
-    sed -i 's/const COMMIT_HASH = ""/const COMMIT_HASH = "$GITHUB_SHA"/g' sql/config.go && \
     go get . && \
     go build -v .
 

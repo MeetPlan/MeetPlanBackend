@@ -74,6 +74,7 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v2
         with:
+          context: "{{defaultContext}}:."
           file: "./Dockerfile"
           tags: ghcr.io/${{env.REPO}}/backend:latest
           push: true

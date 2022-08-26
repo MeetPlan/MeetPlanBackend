@@ -5,11 +5,15 @@ import (
 	"os"
 )
 
+const COMMIT_HASH = ""
+
 type Config struct {
 	DatabaseName       string   `json:"database_name"`
 	DatabaseConfig     string   `json:"database_config"`
 	Debug              bool     `json:"debug"`
 	Host               string   `json:"host"`
+	CommitHash         string   `json:"commit_hash"`
+	RemoteRepository   string   `json:"remote_repository"`
 	SchoolName         string   `json:"school_name"`
 	SchoolAddress      string   `json:"school_address"`
 	SchoolCity         string   `json:"school_city"`
@@ -29,10 +33,12 @@ func GetConfig() (Config, error) {
 	file, err := os.ReadFile("config.json")
 	if err != nil {
 		marshal, err := json.Marshal(Config{
-			DatabaseName:   "sqlite3",
-			DatabaseConfig: "MeetPlanDB/meetplan.db",
-			Debug:          true,
-			Host:           "127.0.0.1:8000",
+			DatabaseName:     "sqlite3",
+			DatabaseConfig:   "MeetPlanDB/meetplan.db",
+			Debug:            true,
+			Host:             "127.0.0.1:8000",
+			CommitHash:       COMMIT_HASH,
+			RemoteRepository: "https://github.com/MeetPlan/MeetPlanBackend",
 		})
 		if err != nil {
 			return config, err

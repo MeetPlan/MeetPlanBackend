@@ -20,6 +20,7 @@ type SQL interface {
 	CheckJWT(tokenString string) (User, error)
 
 	Init()
+	Exec(query string) error
 
 	UpdateTestingResult(testing Testing) error
 	InsertTestingResult(testing Testing) error
@@ -170,4 +171,9 @@ func NewSQL(driver string, drivername string, logger *zap.SugaredLogger) (SQL, e
 		db:     db,
 		logger: logger,
 	}, err
+}
+
+func (db *sqlImpl) Exec(query string) error {
+	_, err := db.db.Exec(query)
+	return err
 }

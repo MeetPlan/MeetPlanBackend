@@ -17,6 +17,8 @@ jobs:
         run: go mod download
       - name: Set env
         run: go env -w GOFLAGS=-mod=mod
+      - name: Change commit name in the code
+        run: sed -i 's/const COMMIT_HASH = ""/const COMMIT_HASH = "$GITHUB_SHA"/g' sql/config.go
       - name: Go get
         run: go get .
       - name: Build app
@@ -39,6 +41,9 @@ jobs:
         run: go mod download
       - name: Set env
         run: go env -w GOFLAGS=-mod=mod
+      - name: Change commit name in the code
+        shell: pwsh
+        run: (Get-Content -path sql\config.go -Raw) -replace 'const COMMIT_HASH = ""','const COMMIT_HASH = "$GITHUB_SHA"'
       - name: Go get
         run: go get .
       - name: Build app
@@ -61,7 +66,7 @@ jobs:
           username: ${{github.actor}}
           password: ${{secrets.GITHUB_TOKEN}}
           registry: "ghcr.io"
-      - name: downcase repository owner
+      - name: Downcase repository owner
         run: |
           echo REPO=$(echo ${{github.repository_owner}} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - name: Build Docker image

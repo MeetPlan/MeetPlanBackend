@@ -65,6 +65,8 @@ func main() {
 
 	// MeetPlan Database automigration tool
 	if config.CommitHash != "" && sql.COMMIT_HASH != "" && config.CommitHash != sql.COMMIT_HASH {
+		sugared.Info("Attempting to do database automigration")
+
 		r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 			URL: config.RemoteRepository,
 		})

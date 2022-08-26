@@ -17,7 +17,8 @@ func (db *sqlImpl) Init() {
 }
 
 type SQL interface {
-	CheckJWT(tokenString string) (User, error)
+	CheckToken(loginToken string) (User, error)
+	GetRandomToken(currentUser User) (string, error)
 
 	Init()
 	Exec(query string) error
@@ -32,10 +33,11 @@ type SQL interface {
 	DeleteTeacherSelfTesting(teacherId int) error
 	DeleteUserSelfTesting(userId int) error
 
-	GetUser(id int) (message User, err error)
+	GetUser(id int) (user User, err error)
+	GetUserByLoginToken(loginToken string) (user User, err error)
 	InsertUser(user User) (err error)
 	GetLastUserID() (id int)
-	GetUserByEmail(email string) (message User, err error)
+	GetUserByEmail(email string) (user User, err error)
 	CheckIfAdminIsCreated() bool
 	GetAllUsers() (users []User, err error)
 	UpdateUser(user User) error

@@ -18,7 +18,7 @@ import (
 )
 
 func (server *httpImpl) GetSelfTestingTeacher(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -43,7 +43,7 @@ func (server *httpImpl) GetSelfTestingTeacher(w http.ResponseWriter, r *http.Req
 }
 
 func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -126,7 +126,7 @@ func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 }
 
 func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -175,10 +175,10 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 		return
 	}
 
-	jwt, err, expiration := sql.GetJWTForTestingResult(test.UserID, test.Result, test.ID, test.Date)
-	if err != nil {
-		return
-	}
+	//jwt, err, expiration := sql.GetJWTForTestingResult(test.UserID, test.Result, test.ID, test.Date)
+	//if err != nil {
+	//	return
+	//}
 
 	m := pdf.NewMaroto(consts.Portrait, consts.A4)
 
@@ -231,12 +231,12 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 			}
 		})
 		m.ColSpace(1)
-		m.Col(4, func() {
-			m.QrCode(jwt, props.Rect{
-				Center:  true,
-				Percent: 100,
-			})
-		})
+		//m.Col(4, func() {
+		//	m.QrCode(jwt, props.Rect{
+		//		Center:  true,
+		//		Percent: 100,
+		//	})
+		//})
 	})
 
 	m.Line(10)
@@ -253,10 +253,10 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 				Size: 15,
 				Top:  15,
 			})
-			m.Text(fmt.Sprintf(" Datum veljavnosti testa: %s", expiration), props.Text{
-				Size: 15,
-				Top:  25,
-			})
+			//m.Text(fmt.Sprintf(" Datum veljavnosti testa: %s", expiration), props.Text{
+			//	Size: 15,
+			//	Top:  25,
+			//})
 			m.Text(fmt.Sprintf(" Oseba: %s", student.Name), props.Text{
 				Size: 15,
 				Top:  35,
@@ -370,7 +370,7 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 }
 
 func (server *httpImpl) GetTestingResults(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

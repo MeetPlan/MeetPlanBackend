@@ -11,17 +11,23 @@ type User struct {
 	CityOfBirth            string `db:"city_of_birth"`
 	CountryOfBirth         string `db:"country_of_birth"`
 	Users                  string
-	IsPassing              bool `db:"is_passing"`
+	LoginToken             string `db:"login_token"`
+	IsPassing              bool   `db:"is_passing"`
 }
 
-func (db *sqlImpl) GetUser(id int) (message User, err error) {
-	err = db.db.Get(&message, "SELECT * FROM users WHERE id=$1", id)
-	return message, err
+func (db *sqlImpl) GetUser(id int) (user User, err error) {
+	err = db.db.Get(&user, "SELECT * FROM users WHERE id=$1", id)
+	return user, err
 }
 
-func (db *sqlImpl) GetTeachers() (message []User, err error) {
-	err = db.db.Select(&message, "SELECT * FROM users WHERE role='teacher' ORDER BY id ASC")
-	return message, err
+func (db *sqlImpl) GetUserByLoginToken(loginToken string) (user User, err error) {
+	err = db.db.Get(&user, "SELECT * FROM users WHERE login_token=$1", loginToken)
+	return user, err
+}
+
+func (db *sqlImpl) GetTeachers() (user []User, err error) {
+	err = db.db.Select(&user, "SELECT * FROM users WHERE role='teacher' ORDER BY id ASC")
+	return user, err
 }
 
 func (db *sqlImpl) GetPrincipal() (principal User, err error) {
@@ -34,14 +40,14 @@ func (db *sqlImpl) GetStudents() (message []User, err error) {
 	return message, err
 }
 
-func (db *sqlImpl) GetUserByEmail(email string) (message User, err error) {
-	err = db.db.Get(&message, "SELECT * FROM users WHERE email=$1", email)
-	return message, err
+func (db *sqlImpl) GetUserByEmail(email string) (user User, err error) {
+	err = db.db.Get(&user, "SELECT * FROM users WHERE email=$1", email)
+	return user, err
 }
 
 func (db *sqlImpl) InsertUser(user User) (err error) {
 	_, err = db.db.NamedExec(
-		"INSERT INTO users (id, email, pass, role, name, birth_certificate_number, city_of_birth, country_of_birth, birthday, users, is_passing) VALUES (:id, :email, :pass, :role, :name, :birth_certificate_number, :city_of_birth, :country_of_birth, :birthday, :users, :is_passing)",
+		"INSERT INTO users (id, email, pass, role, name, birth_certificate_number, city_of_birth, country_of_birth, birthday, users, is_passing, login_token) VALUES (:id, :email, :pass, :role, :name, :birth_certificate_number, :city_of_birth, :country_of_birth, :birthday, :users, :is_passing, :login_token)",
 		user)
 	return err
 }
@@ -75,7 +81,7 @@ func (db *sqlImpl) GetAllUsers() (users []User, err error) {
 
 func (db *sqlImpl) UpdateUser(user User) error {
 	_, err := db.db.NamedExec(
-		"UPDATE users SET pass=:pass, name=:name, role=:role, email=:email, birth_certificate_number=:birth_certificate_number, city_of_birth=:city_of_birth, country_of_birth=:country_of_birth, birthday=:birthday, users=:users, is_passing=:is_passing WHERE id=:id",
+		"UPDATE users SET pass=:pass, name=:name, role=:role, email=:email, birth_certificate_number=:birth_certificate_number, city_of_birth=:city_of_birth, country_of_birth=:country_of_birth, birthday=:birthday, users=:users, is_passing=:is_passing, login_token=:login_token WHERE id=:id",
 		user)
 	return err
 }

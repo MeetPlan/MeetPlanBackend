@@ -28,7 +28,7 @@ type HomeworkPerDate struct {
 }
 
 func (server *httpImpl) NewHomework(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -71,7 +71,7 @@ func (server *httpImpl) NewHomework(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetAllHomeworksForSpecificSubject(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -119,7 +119,7 @@ func (server *httpImpl) GetAllHomeworksForSpecificSubject(w http.ResponseWriter,
 
 // GetHomeworkData TODO: Not used yet
 func (server *httpImpl) GetHomeworkData(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -151,7 +151,7 @@ func (server *httpImpl) GetHomeworkData(w http.ResponseWriter, r *http.Request) 
 }
 
 func (server *httpImpl) PatchHomeworkForStudent(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -211,7 +211,7 @@ func (server *httpImpl) PatchHomeworkForStudent(w http.ResponseWriter, r *http.R
 
 // GetUserHomework TODO: Restrict teachers from retrieving just anybody's homework
 func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

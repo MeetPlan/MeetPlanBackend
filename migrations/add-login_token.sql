@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN login_token VARCHAR(400) DEFAULT '';

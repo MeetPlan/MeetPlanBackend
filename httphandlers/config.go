@@ -15,7 +15,7 @@ type ParentConfig struct {
 }
 
 func (server *httpImpl) GetConfig(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -28,7 +28,7 @@ func (server *httpImpl) GetConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) UpdateConfiguration(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -99,7 +99,7 @@ func (server *httpImpl) UpdateConfiguration(w http.ResponseWriter, r *http.Reque
 }
 
 func (server *httpImpl) ParentConfig(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

@@ -8,7 +8,7 @@ import (
 )
 
 func (server *httpImpl) ExcuseAbsence(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		return
 	}

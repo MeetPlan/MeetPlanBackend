@@ -22,7 +22,7 @@ type ClassJSON struct {
 }
 
 func (server *httpImpl) NewClass(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -53,7 +53,7 @@ func (server *httpImpl) NewClass(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetClasses(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -74,7 +74,7 @@ func (server *httpImpl) GetClasses(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) PatchClass(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -120,7 +120,7 @@ func (server *httpImpl) PatchClass(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetClass(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -179,7 +179,7 @@ func (server *httpImpl) GetClass(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) AssignUserToClass(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -244,7 +244,7 @@ func (server *httpImpl) AssignUserToClass(w http.ResponseWriter, r *http.Request
 }
 
 func (server *httpImpl) RemoveUserFromClass(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -299,7 +299,7 @@ func (server *httpImpl) RemoveUserFromClass(w http.ResponseWriter, r *http.Reque
 }
 
 func (server *httpImpl) DeleteClass(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

@@ -18,11 +18,22 @@ import (
 	"time"
 )
 
+type TokenResponse struct {
+	UserID int    `json:"user_id"`
+	Token  string `json:"token"`
+	Role   string `json:"role"`
+	Email  string `json:"email"`
+}
+
 func (server *httpImpl) Login(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	pass := r.FormValue("pass")
 	// Check if password is valid
 	user, err := server.db.GetUserByEmail(email)
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed while retrieving the user", Success: false, Error: err.Error()}, http.StatusInternalServerError)
+		return
+	}
 
 	if user.Role == UNVERIFIED {
 		WriteJSON(w, Response{Data: "You are unverified. You cannot login until the school administrator confirms you.", Success: false}, http.StatusForbidden)
@@ -35,14 +46,19 @@ func (server *httpImpl) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract JWT
-	jwt, err := sql.GetJWTFromUserPass(email, user.Role, user.ID)
-	if err != nil {
-		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-		return
+	var token string
+
+	if user.LoginToken == "" {
+		token, err = server.db.GetRandomToken(user)
+		if err != nil {
+			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+			return
+		}
+	} else {
+		token = user.LoginToken
 	}
 
-	WriteJSON(w, Response{Data: jwt, Success: true}, http.StatusOK)
+	WriteJSON(w, Response{Data: TokenResponse{Token: token, Role: user.Role, UserID: user.ID, Email: user.Email}, Success: true}, http.StatusOK)
 }
 
 func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +68,7 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 			WriteForbiddenJWT(w)
 			return
 		}
-		user, err := server.db.CheckJWT(j)
+		user, err := server.db.CheckToken(j)
 		if err != nil {
 			WriteForbiddenJWT(w)
 			return
@@ -108,6 +124,7 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 		Birthday:               "",
 		CityOfBirth:            "",
 		CountryOfBirth:         "",
+		LoginToken:             "",
 		Users:                  "[]",
 	}
 
@@ -121,7 +138,7 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) PatchUser(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -176,7 +193,7 @@ func (server *httpImpl) PatchUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) HasClass(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -200,7 +217,7 @@ func (server *httpImpl) HasClass(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetUserData(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		return
 	}
@@ -251,7 +268,7 @@ func (server *httpImpl) GetUserData(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -355,7 +372,7 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 }
 
 func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		return
 	}
@@ -438,7 +455,7 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetStudents(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -469,7 +486,7 @@ func (server *httpImpl) GetStudents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) HasBirthday(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -490,7 +507,7 @@ func (server *httpImpl) HasBirthday(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -824,7 +841,7 @@ func (server *httpImpl) GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopd
 }
 
 func (server *httpImpl) ResetPassword(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -895,7 +912,7 @@ func (server *httpImpl) ResetPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) ChangePassword(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

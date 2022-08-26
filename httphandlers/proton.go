@@ -16,7 +16,7 @@ import (
 )
 
 func (server *httpImpl) ManageTeacherAbsences(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -60,7 +60,7 @@ func (server *httpImpl) PostProcessTimetable(classes []sql.Class, stableTimetabl
 }
 
 func (server *httpImpl) NewProtonRule(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -186,7 +186,7 @@ func (server *httpImpl) NewProtonRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetProtonRules(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -230,7 +230,7 @@ func GenerateBeforeAfterHour(stackedSubjects []int, subject sql.Subject) int {
 }
 
 func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -550,7 +550,7 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 }
 
 func (server *httpImpl) ManualPostProcessRepeat(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -589,7 +589,7 @@ func (server *httpImpl) ManualPostProcessRepeat(w http.ResponseWriter, r *http.R
 }
 
 func (server *httpImpl) AcceptAssembledTimetable(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -625,7 +625,7 @@ func (server *httpImpl) AcceptAssembledTimetable(w http.ResponseWriter, r *http.
 }
 
 func (server *httpImpl) DeleteProtonRule(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

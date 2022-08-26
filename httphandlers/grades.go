@@ -47,7 +47,7 @@ type GradeTableResponse struct {
 }
 
 func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -178,7 +178,7 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 }
 
 func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -290,7 +290,7 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) PatchGrade(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -362,7 +362,7 @@ func (server *httpImpl) PatchGrade(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) DeleteGrade(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -409,7 +409,7 @@ func (server *httpImpl) DeleteGrade(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -538,7 +538,7 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckJWT(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
 	birthday                 VARCHAR(200),
 	country_of_birth         VARCHAR(200),
 	city_of_birth            VARCHAR(200),
+	login_token              VARCHAR(400),
 	users                    VARCHAR(200)   DEFAULT('[]'),
 	is_passing               BOOLEAN
 );

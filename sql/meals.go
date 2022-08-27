@@ -13,6 +13,9 @@ type Meal struct {
 	IsVegetarian  bool `db:"is_vegetarian"`
 	IsLactoseFree bool `db:"is_lactose_free"`
 	BlockOrders   bool `db:"block_orders"`
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetMeal(id int) (meal Meal, err error) {

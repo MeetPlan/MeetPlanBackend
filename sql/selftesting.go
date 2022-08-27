@@ -11,6 +11,9 @@ type Testing struct {
 	TeacherID int `db:"teacher_id"`
 	ClassID   int `db:"class_id"`
 	Result    string
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 type TestingJSON struct {

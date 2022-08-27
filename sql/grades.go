@@ -12,6 +12,9 @@ type Grade struct {
 	Period      int
 	Description string
 	CanPatch    bool `db:"can_patch"`
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetLastGradeID() int {

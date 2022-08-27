@@ -7,6 +7,9 @@ type StudentHomework struct {
 	UserID     int `db:"user_id"`
 	HomeworkID int `db:"homework_id"`
 	Status     string
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 type StudentHomeworkJSON struct {

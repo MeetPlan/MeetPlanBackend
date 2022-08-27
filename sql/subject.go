@@ -17,6 +17,9 @@ type Subject struct {
 	SelectedHours float32 `db:"selected_hours"`
 	Color         string
 	Location      string `db:"location"`
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetLastSubjectID() int {

@@ -12,6 +12,9 @@ type Message struct {
 	Body            string
 	Seen            string
 	DateCreated     string `db:"date_created"`
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetMessage(id int) (message Message, err error) {

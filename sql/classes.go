@@ -16,6 +16,9 @@ type Class struct {
 	SOK            int
 	EOK            int
 	LastSchoolDate int `db:"last_school_date"`
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetClass(id int) (class Class, err error) {

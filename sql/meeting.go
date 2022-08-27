@@ -22,6 +22,9 @@ type Meeting struct {
 	// Če učitelji ne bodo zadovoljni, se z enim klikom izbriše ta srečanja in se ustvari nov urnik z Proton layerjem, drugače pa se jih z enim klikom spremeni v normalna srečanja,
 	// vidna tudi učencem
 	IsBeta bool `db:"is_beta"`
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetMeeting(id int) (meeting Meeting, err error) {

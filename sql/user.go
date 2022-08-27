@@ -13,6 +13,9 @@ type User struct {
 	Users                  string
 	LoginToken             string `db:"login_token"`
 	IsPassing              bool   `db:"is_passing"`
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetUser(id int) (user User, err error) {

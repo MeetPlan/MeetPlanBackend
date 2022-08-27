@@ -6,6 +6,9 @@ type Improvement struct {
 	MeetingID int `db:"meeting_id"`
 	TeacherID int `db:"teacher_id"`
 	Message   string
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetLastImprovementID() int {

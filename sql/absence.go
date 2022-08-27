@@ -7,6 +7,9 @@ type Absence struct {
 	MeetingID   int    `db:"meeting_id"`
 	AbsenceType string `db:"absence_type"`
 	IsExcused   bool   `db:"is_excused"`
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetLastAbsenceID() int {

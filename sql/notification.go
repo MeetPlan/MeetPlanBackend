@@ -3,6 +3,9 @@ package sql
 type NotificationSQL struct {
 	ID           int
 	Notification string
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetNotification(id int) (notification NotificationSQL, err error) {

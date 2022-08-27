@@ -6,6 +6,9 @@ type Document struct {
 	DocumentType int  `db:"document_type"`
 	Timestamp    int  // Unix timestamp
 	IsSigned     bool `db:"is_signed"`
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetDocument(id string) (document Document, err error) {

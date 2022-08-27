@@ -10,6 +10,9 @@ type Communication struct {
 	People      string
 	DateCreated string `db:"date_created"`
 	Title       string
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetCommunication(id int) (communication Communication, err error) {

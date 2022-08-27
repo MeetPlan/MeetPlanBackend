@@ -8,6 +8,9 @@ type Homework struct {
 	Description string
 	ToDate      string `db:"to_date"`
 	FromDate    string `db:"from_date"`
+
+	CreatedAt string `db:"created_at"`
+	UpdatedAt string `db:"updated_at"`
 }
 
 func (db *sqlImpl) GetLastHomeworkID() int {

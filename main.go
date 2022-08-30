@@ -211,6 +211,7 @@ func main() {
 	r.HandleFunc("/order/new/{meal_id}", httphandler.NewOrder).Methods("POST")
 	r.HandleFunc("/order/get/{meal_id}/block_unblock", httphandler.BlockUnblockOrder).Methods("PATCH")
 	r.HandleFunc("/order/get/{meal_id}", httphandler.RemoveOrder).Methods("DELETE")
+	r.HandleFunc("/order/get/{meal_id}/{user_id}", httphandler.RemoveSpecificOrder).Methods("DELETE")
 
 	r.HandleFunc("/my/grades", httphandler.GetMyGrades).Methods("GET")
 	r.HandleFunc("/my/gradings", httphandler.GetMyGradings).Methods("GET")

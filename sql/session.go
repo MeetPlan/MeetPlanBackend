@@ -25,13 +25,16 @@ func (db *sqlImpl) GetRandomToken(currentUser User) (string, error) {
 
 func (db *sqlImpl) CheckToken(loginToken string) (user User, err error) {
 	if loginToken == "" {
+		db.logger.Debug("invalid token")
 		return user, errors.New("invalid token")
 	}
 	user, err = db.GetUserByLoginToken(loginToken)
 	if err != nil {
+		db.logger.Debug(err.Error())
 		return user, err
 	}
 	if user.Role == "unverified" {
+		db.logger.Debug("unverified")
 		return user, errors.New("user is unverified")
 	}
 	return user, err

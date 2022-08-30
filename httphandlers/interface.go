@@ -112,6 +112,7 @@ type HTTP interface {
 	DeleteMeal(w http.ResponseWriter, r *http.Request)
 	BlockUnblockOrder(w http.ResponseWriter, r *http.Request)
 	RemoveOrder(w http.ResponseWriter, r *http.Request)
+	RemoveSpecificOrder(w http.ResponseWriter, r *http.Request)
 	MealsBlocked(w http.ResponseWriter, r *http.Request)
 
 	// parent.go

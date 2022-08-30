@@ -375,6 +375,60 @@ func (server *httpImpl) RemoveOrder(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusOK)
 }
 
+func (server *httpImpl) RemoveSpecificOrder(w http.ResponseWriter, r *http.Request) {
+	if server.config.BlockMeals {
+		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
+		return
+	}
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == FOOD_ORGANIZER) {
+		WriteForbiddenJWT(w)
+		return
+	}
+	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+	meal, err := server.db.GetMeal(mealId)
+	if err != nil {
+		return
+	}
+	var orders []int
+	err = json.Unmarshal([]byte(meal.Orders), &orders)
+	if err != nil {
+		return
+	}
+	if !helpers.Contains(orders, userId) {
+		WriteJSON(w, Response{Data: "Order doesn't exist", Success: false}, http.StatusInternalServerError)
+		return
+	}
+	for i := 0; i < len(orders); i++ {
+		if orders[i] == userId {
+			orders = helpers.Remove(orders, i)
+		}
+	}
+	marshal, err := json.Marshal(orders)
+	if err != nil {
+		return
+	}
+	meal.Orders = string(marshal)
+	err = server.db.UpdateMeal(meal)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Success: true, Data: "OK"}, http.StatusOK)
+}
+
 func (server *httpImpl) MealsBlocked(w http.ResponseWriter, r *http.Request) {
 	_, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {

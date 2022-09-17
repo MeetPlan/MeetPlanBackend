@@ -6,7 +6,6 @@ import (
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -37,7 +36,7 @@ func (server *httpImpl) NewHomework(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+	meetingId := mux.Vars(r)["meeting_id"]
 	if err != nil {
 		return
 	}
@@ -55,7 +54,7 @@ func (server *httpImpl) NewHomework(w http.ResponseWriter, r *http.Request) {
 	}
 	currentTime := time.Now()
 	homework := sql.Homework{
-		ID:          server.db.GetLastHomeworkID(),
+
 		TeacherID:   user.ID,
 		SubjectID:   meeting.SubjectID,
 		Name:        r.FormValue("name"),
@@ -80,7 +79,7 @@ func (server *httpImpl) GetAllHomeworksForSpecificSubject(w http.ResponseWriter,
 		WriteForbiddenJWT(w)
 		return
 	}
-	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+	meetingId := mux.Vars(r)["meeting_id"]
 	if err != nil {
 		return
 	}
@@ -128,7 +127,7 @@ func (server *httpImpl) GetHomeworkData(w http.ResponseWriter, r *http.Request) 
 		WriteForbiddenJWT(w)
 		return
 	}
-	homeworkId, err := strconv.Atoi(mux.Vars(r)["homework_id"])
+	homeworkId := mux.Vars(r)["homework_id"]
 	if err != nil {
 		return
 	}
@@ -140,7 +139,7 @@ func (server *httpImpl) GetHomeworkData(w http.ResponseWriter, r *http.Request) 
 		WriteForbiddenJWT(w)
 		return
 	}
-	h, err := server.db.GetStudentsHomeworkByHomeworkID(homeworkId, -1)
+	h, err := server.db.GetStudentsHomeworkByHomeworkID(homeworkId, "")
 	if err != nil {
 		return
 	}
@@ -161,15 +160,15 @@ func (server *httpImpl) PatchHomeworkForStudent(w http.ResponseWriter, r *http.R
 		return
 	}
 	// Maybe we will use it sometime, you never know
-	_, err = strconv.Atoi(mux.Vars(r)["meeting_id"])
+	_ = mux.Vars(r)["meeting_id"]
 	if err != nil {
 		return
 	}
-	homeworkId, err := strconv.Atoi(mux.Vars(r)["homework_id"])
+	homeworkId := mux.Vars(r)["homework_id"]
 	if err != nil {
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)["student_id"])
+	userId := mux.Vars(r)["student_id"]
 	if err != nil {
 		return
 	}
@@ -189,7 +188,7 @@ func (server *httpImpl) PatchHomeworkForStudent(w http.ResponseWriter, r *http.R
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			h = sql.StudentHomework{
-				ID:         server.db.GetLastStudentHomeworkID(),
+
 				UserID:     userId,
 				HomeworkID: homeworkId,
 				Status:     r.FormValue("status"),
@@ -216,9 +215,9 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 		WriteForbiddenJWT(w)
 		return
 	}
-	var studentId int
+	var studentId string
 	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST || user.Role == TEACHER || user.Role == PARENT {
-		studentId, err = strconv.Atoi(mux.Vars(r)["id"])
+		studentId = mux.Vars(r)["id"]
 		if err != nil {
 			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
 			return
@@ -228,7 +227,7 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 				WriteForbiddenJWT(w)
 				return
 			}
-			var children []int
+			var children []string
 			err := json.Unmarshal([]byte(user.Users), &children)
 			if err != nil {
 				WriteJSON(w, Response{Data: "Failed while unmarshalling parent's students", Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -250,7 +249,7 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 				if class.Teacher != user.ID {
 					continue
 				}
-				var students []int
+				var students []string
 				err := json.Unmarshal([]byte(class.Students), &students)
 				if err != nil {
 					WriteJSON(w, Response{Data: "Failed while unmarshalling", Error: err.Error(), Success: false}, http.StatusInternalServerError)

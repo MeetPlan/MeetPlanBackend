@@ -3,9 +3,9 @@ package sql
 import "encoding/json"
 
 type StudentHomework struct {
-	ID         int
-	UserID     int `db:"user_id"`
-	HomeworkID int `db:"homework_id"`
+	ID         string
+	UserID     string `db:"user_id"`
+	HomeworkID string `db:"homework_id"`
 	Status     string
 
 	CreatedAt string `db:"created_at"`
@@ -18,30 +18,17 @@ type StudentHomeworkJSON struct {
 	TeacherName string
 }
 
-func (db *sqlImpl) GetLastStudentHomeworkID() int {
-	var id int
-	err := db.db.Get(&id, "SELECT id FROM student_homework WHERE id = (SELECT MAX(id) FROM student_homework)")
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return 0
-		}
-		db.logger.Info(err)
-		return -1
-	}
-	return id + 1
-}
-
-func (db *sqlImpl) GetStudentHomework(id int) (homework StudentHomework, err error) {
+func (db *sqlImpl) GetStudentHomework(id string) (homework StudentHomework, err error) {
 	err = db.db.Get(&homework, "SELECT * FROM student_homework WHERE id=$1", id)
 	return homework, err
 }
 
-func (db *sqlImpl) GetStudentHomeworkForUser(homeworkId int, userId int) (homework StudentHomework, err error) {
+func (db *sqlImpl) GetStudentHomeworkForUser(homeworkId string, userId string) (homework StudentHomework, err error) {
 	err = db.db.Get(&homework, "SELECT * FROM student_homework WHERE homework_id=$1 AND user_id=$2", homeworkId, userId)
 	return homework, err
 }
 
-func (db *sqlImpl) GetStudentsHomework(id int) (homework []StudentHomework, err error) {
+func (db *sqlImpl) GetStudentsHomework(id string) (homework []StudentHomework, err error) {
 	err = db.db.Select(&homework, "SELECT * FROM student_homework WHERE user_id=$1 ORDER BY id ASC", id)
 	if homework == nil {
 		homework = make([]StudentHomework, 0)
@@ -49,7 +36,7 @@ func (db *sqlImpl) GetStudentsHomework(id int) (homework []StudentHomework, err 
 	return homework, err
 }
 
-func (db *sqlImpl) GetStudentsHomeworkByHomeworkID(id int, meeetingId int) (homework []StudentHomeworkJSON, err error) {
+func (db *sqlImpl) GetStudentsHomeworkByHomeworkID(id string, meetingId string) (homework []StudentHomeworkJSON, err error) {
 	baseHomework, err := db.GetHomework(id)
 	if err != nil {
 		return make([]StudentHomeworkJSON, 0), err
@@ -58,9 +45,9 @@ func (db *sqlImpl) GetStudentsHomeworkByHomeworkID(id int, meeetingId int) (home
 	if err != nil {
 		return make([]StudentHomeworkJSON, 0), err
 	}
-	var students []int
+	var students []string
 	if subject.InheritsClass {
-		class, err := db.GetClass(subject.ClassID)
+		class, err := db.GetClass(*subject.ClassID)
 		if err != nil {
 			return make([]StudentHomeworkJSON, 0), err
 		}
@@ -90,7 +77,7 @@ func (db *sqlImpl) GetStudentsHomeworkByHomeworkID(id int, meeetingId int) (home
 		if err != nil {
 			if err.Error() == "sql: no rows in result set" {
 				var status = " "
-				absence, err := db.GetAbsenceForUserMeeting(meeetingId, students[i])
+				absence, err := db.GetAbsenceForUserMeeting(meetingId, students[i])
 				if err != nil {
 					if err.Error() != "sql: no rows in result set" {
 						return make([]StudentHomeworkJSON, 0), err
@@ -103,7 +90,7 @@ func (db *sqlImpl) GetStudentsHomeworkByHomeworkID(id int, meeetingId int) (home
 						status = "ABSENT"
 					}
 				}
-				studentHomework := StudentHomework{ID: db.GetLastStudentHomeworkID(), UserID: students[i], HomeworkID: id, Status: status}
+				studentHomework := StudentHomework{UserID: students[i], HomeworkID: id, Status: status}
 				homework = append(homework, StudentHomeworkJSON{
 					StudentHomework: studentHomework,
 					Name:            student.Name,
@@ -129,7 +116,7 @@ func (db *sqlImpl) GetStudentsHomeworkByHomeworkID(id int, meeetingId int) (home
 
 func (db *sqlImpl) InsertStudentHomework(homework StudentHomework) error {
 	_, err := db.db.NamedExec(
-		"INSERT INTO student_homework (id, user_id, homework_id, status) VALUES (:id, :user_id, :homework_id, :status)",
+		"INSERT INTO student_homework (user_id, homework_id, status) VALUES (:user_id, :homework_id, :status)",
 		homework)
 	return err
 }
@@ -141,17 +128,17 @@ func (db *sqlImpl) UpdateStudentHomework(homework StudentHomework) error {
 	return err
 }
 
-func (db *sqlImpl) DeleteStudentHomework(ID int) error {
+func (db *sqlImpl) DeleteStudentHomework(ID string) error {
 	_, err := db.db.Exec("DELETE FROM student_homework WHERE id=$1", ID)
 	return err
 }
 
-func (db *sqlImpl) DeleteStudentHomeworkByHomeworkID(ID int) error {
+func (db *sqlImpl) DeleteStudentHomeworkByHomeworkID(ID string) error {
 	_, err := db.db.Exec("DELETE FROM student_homework WHERE homework_id=$1", ID)
 	return err
 }
 
-func (db *sqlImpl) DeleteStudentHomeworkByStudentID(ID int) error {
+func (db *sqlImpl) DeleteStudentHomeworkByStudentID(ID string) error {
 	_, err := db.db.Exec("DELETE FROM student_homework WHERE user_id=$1", ID)
 	return err
 }

@@ -39,7 +39,7 @@ func (server *httpImpl) GetMeals(w http.ResponseWriter, r *http.Request) {
 	var mealJson = make([]MealDate, 0)
 	for i := 0; i < len(meals); i++ {
 		meal := meals[i]
-		var orders []int
+		var orders []string
 		err := json.Unmarshal([]byte(meal.Orders), &orders)
 		if err != nil {
 			WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
@@ -140,7 +140,7 @@ func (server *httpImpl) NewMeal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	meal := sql.Meal{
-		ID:            server.db.GetLastMealID(),
+
 		Meals:         r.FormValue("description"),
 		Date:          r.FormValue("date"),
 		MealTitle:     r.FormValue("title"),
@@ -171,7 +171,7 @@ func (server *httpImpl) NewOrder(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
+	mealId := mux.Vars(r)["meal_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -184,7 +184,7 @@ func (server *httpImpl) NewOrder(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Success: false, Data: "Orders are blocked."}, http.StatusConflict)
 		return
 	}
-	var orders []int
+	var orders []string
 	err = json.Unmarshal([]byte(meal.Orders), &orders)
 	if err != nil {
 		return
@@ -224,7 +224,7 @@ func (server *httpImpl) EditMeal(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
+	mealId := mux.Vars(r)["meal_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -287,7 +287,7 @@ func (server *httpImpl) DeleteMeal(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
+	mealId := mux.Vars(r)["meal_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -313,7 +313,7 @@ func (server *httpImpl) BlockUnblockOrder(w http.ResponseWriter, r *http.Request
 		WriteForbiddenJWT(w)
 		return
 	}
-	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
+	mealId := mux.Vars(r)["meal_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -340,7 +340,7 @@ func (server *httpImpl) RemoveOrder(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
+	mealId := mux.Vars(r)["meal_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -349,7 +349,7 @@ func (server *httpImpl) RemoveOrder(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	var orders []int
+	var orders []string
 	err = json.Unmarshal([]byte(meal.Orders), &orders)
 	if err != nil {
 		return
@@ -389,12 +389,12 @@ func (server *httpImpl) RemoveSpecificOrder(w http.ResponseWriter, r *http.Reque
 		WriteForbiddenJWT(w)
 		return
 	}
-	mealId, err := strconv.Atoi(mux.Vars(r)["meal_id"])
+	mealId := mux.Vars(r)["meal_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+	userId := mux.Vars(r)["user_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -403,7 +403,7 @@ func (server *httpImpl) RemoveSpecificOrder(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return
 	}
-	var orders []int
+	var orders []string
 	err = json.Unmarshal([]byte(meal.Orders), &orders)
 	if err != nil {
 		return

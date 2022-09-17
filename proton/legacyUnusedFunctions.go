@@ -29,7 +29,7 @@ package proton
 //
 //		class := classes[i]
 //
-//		var classStudents []int
+//		var classStudents []string
 //		err := json.Unmarshal([]byte(class.Students), &classStudents)
 //		if err != nil {
 //			return nil, err
@@ -85,7 +85,7 @@ package proton
 //			hole := holes[h]
 //			meeting := nonNormal[n]
 //
-//			var subjectGroup = make([]int, 0)
+//			var subjectGroup = make([]string, 0)
 //
 //			// TODO: Migriraj blok ure
 //			for x := 0; x < len(subjectGroups); x++ {

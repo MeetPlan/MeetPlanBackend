@@ -22,7 +22,7 @@ type PeriodGrades struct {
 }
 
 type UserGradeTable struct {
-	ID      int
+	ID      string
 	Name    string
 	Average float64
 	Final   int
@@ -56,7 +56,7 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 		WriteForbiddenJWT(w)
 		return
 	}
-	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+	meetingId := mux.Vars(r)["meeting_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -75,9 +75,9 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 		WriteForbiddenJWT(w)
 		return
 	}
-	var users []int
+	var users []string
 	if subject.InheritsClass {
-		class, err := server.db.GetClass(subject.ClassID)
+		class, err := server.db.GetClass(*subject.ClassID)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
@@ -187,7 +187,7 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+	meetingId := mux.Vars(r)["meeting_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -207,7 +207,7 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, err := strconv.Atoi(r.FormValue("user_id"))
+	userId := r.FormValue("user_id")
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
@@ -268,7 +268,6 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 	}
 
 	g := sql.Grade{
-		ID:          server.db.GetLastGradeID(),
 		UserID:      userId,
 		TeacherID:   user.ID,
 		SubjectID:   subject.ID,
@@ -299,7 +298,7 @@ func (server *httpImpl) PatchGrade(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	gradeId, err := strconv.Atoi(mux.Vars(r)["grade_id"])
+	gradeId := mux.Vars(r)["grade_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -371,7 +370,7 @@ func (server *httpImpl) DeleteGrade(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	gradeId, err := strconv.Atoi(mux.Vars(r)["grade_id"])
+	gradeId := mux.Vars(r)["grade_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -420,8 +419,8 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var studentId int
-	var teacherId int
+	var studentId string
+	var teacherId string
 	if user.Role == TEACHER || user.Role == PARENT || user.Role == PRINCIPAL ||
 		user.Role == PRINCIPAL_ASSISTANT || user.Role == ADMIN || user.Role == SCHOOL_PSYCHOLOGIST {
 		if user.Role == PARENT {
@@ -430,7 +429,7 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		studentId, err = strconv.Atoi(r.URL.Query().Get("studentId"))
+		studentId = r.URL.Query().Get("studentId")
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -447,7 +446,7 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 		var valid = false
 		for i := 0; i < len(classes); i++ {
 			class := classes[i]
-			var users []int
+			var users []string
 			err := json.Unmarshal([]byte(class.Students), &users)
 			if err != nil {
 				return
@@ -466,7 +465,7 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		var children []int
+		var children []string
 		json.Unmarshal([]byte(parent.Users), &children)
 		if !helpers.Contains(children, studentId) {
 			WriteForbiddenJWT(w)
@@ -699,7 +698,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		return
 	}
 
-	studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
+	studentId := mux.Vars(r)["student_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -714,7 +713,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		if user.Role == TEACHER && classes[i].Teacher != user.ID {
 			continue
 		}
-		var users []int
+		var users []string
 		err := json.Unmarshal([]byte(classes[i].Students), &users)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -734,7 +733,7 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		var valid = false
 		for i := 0; i < len(classes); i++ {
 			class := classes[i]
-			var users []int
+			var users []string
 			err := json.Unmarshal([]byte(class.Students), &users)
 			if err != nil {
 				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -938,12 +937,10 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		return
 	}
 
-	currentTime := time.Now().UnixMilli()
 	document := sql.Document{
 		ID:           UUID,
 		ExportedBy:   user.ID,
 		DocumentType: SPRICEVALO,
-		Timestamp:    int(currentTime),
 		IsSigned:     true,
 	}
 	err = server.db.InsertDocument(document)

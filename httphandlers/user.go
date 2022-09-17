@@ -19,7 +19,7 @@ import (
 )
 
 type TokenResponse struct {
-	UserID int    `json:"user_id"`
+	UserID string `json:"user_id"`
 	Token  string `json:"token"`
 	Role   string `json:"role"`
 	Email  string `json:"email"`
@@ -115,7 +115,7 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := sql.User{
-		ID:                     server.db.GetLastUserID(),
+
 		Email:                  email,
 		Password:               password,
 		Role:                   role,
@@ -147,7 +147,7 @@ func (server *httpImpl) PatchUser(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+	userId := mux.Vars(r)["user_id"]
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -221,15 +221,15 @@ func (server *httpImpl) GetUserData(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	var userId int
+	var userId string
 	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST || user.Role == TEACHER || user.Role == PARENT {
-		userId, err = strconv.Atoi(mux.Vars(r)["id"])
+		userId = mux.Vars(r)["id"]
 		if err != nil {
 			WriteBadRequest(w)
 			return
 		}
 		if user.Role == PARENT {
-			var students []int
+			var students []string
 			err := json.Unmarshal([]byte(user.Users), &students)
 			if err != nil {
 				WriteJSON(w, Response{Data: "Failed while unmarshalling parent's students into a slice", Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -273,9 +273,9 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 		WriteForbiddenJWT(w)
 		return
 	}
-	var studentId int
+	var studentId string
 	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST || user.Role == PARENT {
-		studentId, err = strconv.Atoi(mux.Vars(r)["id"])
+		studentId = mux.Vars(r)["id"]
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -290,7 +290,7 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 			var valid = false
 			for i := 0; i < len(classes); i++ {
 				class := classes[i]
-				var users []int
+				var users []string
 				err := json.Unmarshal([]byte(class.Students), &users)
 				if err != nil {
 					WriteJSON(w, Response{Data: "Could not unmarshal students", Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -315,7 +315,7 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 				WriteForbiddenJWT(w)
 				return
 			}
-			var students []int
+			var students []string
 			err = json.Unmarshal([]byte(user.Users), &students)
 			if err != nil {
 				WriteJSON(w, Response{Data: "Could not unmarshal students", Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -377,7 +377,7 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var userId = make([]int, 0)
+	var userId = make([]string, 0)
 	var isTeacher = false
 	if user.Role == ADMIN || user.Role == TEACHER || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
 		uid := r.URL.Query().Get("id")
@@ -385,12 +385,7 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 			userId = append(userId, user.ID)
 			isTeacher = true
 		} else {
-			u, err := strconv.Atoi(uid)
-			if err != nil {
-				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-				return
-			}
-			userId = append(userId, u)
+			userId = append(userId, uid)
 		}
 	} else if user.Role == PARENT {
 		err = json.Unmarshal([]byte(user.Users), &userId)
@@ -411,7 +406,7 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var myclasses = make([]sql.Class, 0)
-	var myClassesInt = make([]int, 0)
+	var myClassesInt = make([]string, 0)
 
 	for i := 0; i < len(classes); i++ {
 		class := classes[i]
@@ -422,7 +417,7 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		} else {
-			var students []int
+			var students []string
 			err := json.Unmarshal([]byte(class.Students), &students)
 			if err != nil {
 				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -518,7 +513,7 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+	userId := mux.Vars(r)["user_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -538,11 +533,11 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	var classId = -1
+	var classId = ""
 
 	for i := 0; i < len(classes); i++ {
 		class := classes[i]
-		var students []int
+		var students []string
 		err := json.Unmarshal([]byte(class.Students), &students)
 		if err != nil {
 			return
@@ -553,7 +548,7 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 		}
 	}
 
-	if classId == -1 {
+	if classId == "" {
 		return
 	}
 
@@ -562,7 +557,7 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	var students []int
+	var students []string
 	err = json.Unmarshal([]byte(class.Students), &students)
 	if err != nil {
 		return
@@ -683,13 +678,10 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	currentTime := time.Now().UnixMilli()
-
 	document := sql.Document{
 		ID:           UUID,
 		ExportedBy:   user.ID,
 		DocumentType: POTRDILO_O_SOLANJU,
-		Timestamp:    int(currentTime),
 		IsSigned:     true,
 	}
 
@@ -708,7 +700,7 @@ func (server *httpImpl) CertificateOfSchooling(w http.ResponseWriter, r *http.Re
 	w.Write(file)
 }
 
-func (server *httpImpl) GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopdf.GoPdf, string, error) {
+func (server *httpImpl) GenerateNewUserCert(pdf *gopdf.GoPdf, userId string) (*gopdf.GoPdf, string, error) {
 	user, err := server.db.GetUser(userId)
 	if err != nil {
 		return pdf, "", err
@@ -848,7 +840,7 @@ func (server *httpImpl) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
-		id, err := strconv.Atoi(mux.Vars(r)["user_id"])
+		id := mux.Vars(r)["user_id"]
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -883,13 +875,10 @@ func (server *httpImpl) ResetPassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		currentTime := time.Now().UnixMilli()
-
 		document := sql.Document{
 			ID:           UUID,
 			ExportedBy:   user.ID,
 			DocumentType: RESETIRANJE_GESLA,
-			Timestamp:    int(currentTime),
 			IsSigned:     true,
 		}
 

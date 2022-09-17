@@ -25,7 +25,7 @@ func (server *httpImpl) ManageTeacherAbsences(w http.ResponseWriter, r *http.Req
 		WriteForbiddenJWT(w)
 		return
 	}
-	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+	meetingId := mux.Vars(r)["meeting_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -85,14 +85,14 @@ func (server *httpImpl) NewProtonRule(w http.ResponseWriter, r *http.Request) {
 		// Required arguments:
 		// - days - Array/[] of numbers/int corresponding to days in the week (Monday = 0, Sunday = 6)
 		// - teacherId - number/int corresponding ID of the teacher in the database
-		var days []int
+		var days []string
 		err := json.Unmarshal([]byte(r.FormValue("days")), &days)
 		if err != nil {
 			WriteBadRequest(w)
 			return
 		}
 
-		teacherId, err := strconv.Atoi(r.FormValue("teacherId"))
+		teacherId := r.FormValue("teacherId")
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -116,21 +116,21 @@ func (server *httpImpl) NewProtonRule(w http.ResponseWriter, r *http.Request) {
 		// - days - Array/[] of numbers/int corresponding to days in the week (Monday = 0, Sunday = 6)
 		// - hours - Array/[] of numbers/int corresponding to hours of the school day (0th hour = 0, 6th hour = 6)
 		// - teacherId - number/int corresponding ID of the teacher in the database
-		var days []int
+		var days []string
 		err := json.Unmarshal([]byte(r.FormValue("days")), &days)
 		if err != nil {
 			WriteBadRequest(w)
 			return
 		}
 
-		var hours []int
+		var hours []string
 		err = json.Unmarshal([]byte(r.FormValue("hours")), &hours)
 		if err != nil {
 			WriteBadRequest(w)
 			return
 		}
 
-		teacherId, err := strconv.Atoi(r.FormValue("teacherId"))
+		teacherId := r.FormValue("teacherId")
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -161,7 +161,7 @@ func (server *httpImpl) NewProtonRule(w http.ResponseWriter, r *http.Request) {
 		//
 		// Required arguments:
 		// - subjects - Array/[] of numbers/int corresponding to ID(s) of subject(s) in the database
-		var subjects []int
+		var subjects []string
 		err := json.Unmarshal([]byte(r.FormValue("subjects")), &subjects)
 		if err != nil {
 			WriteBadRequest(w)
@@ -214,7 +214,7 @@ func GenerateRandomHourForBeforeAfterSubjects() int {
 	return rand.Intn(proton.PROTON_MAX_AFTER_CLASS_HOUR-proton.PROTON_MIN_AFTER_CLASS_HOUR) + proton.PROTON_MIN_AFTER_CLASS_HOUR
 }
 
-func GenerateBeforeAfterHour(stackedSubjects []int, subject sql.Subject) int {
+func GenerateBeforeAfterHour(stackedSubjects []string, subject sql.Subject) int {
 	var hour int
 
 	k := rand.Intn(2)
@@ -253,7 +253,7 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 
 	// Before & After class subjects will be treated differently
 	beforeAfterSubjects := server.proton.GetSubjectsBeforeOrAfterClass()
-	//beforeAfterSubjects := make([]int, 0)
+	//beforeAfterSubjects := make([]string, 0)
 	stackedSubjects := server.proton.GetSubjectsWithStackedHours()
 
 	k := float32(0)
@@ -291,11 +291,13 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 
 			stableTimetable = make([]proton.ProtonMeeting, 0)
 
+			//server.logger.Debug(stableTimetable)
+
 			failResetCount++
 		}
 
 		if depth >= proton.PROTON_ALLOWED_WHILE_DEPTH {
-			WriteJSON(w, Response{Data: "Failed to make a timetable", Success: false}, http.StatusInternalServerError)
+			WriteJSON(w, Response{Error: "Failed to make a timetable", Data: stableTimetable, Success: false}, http.StatusInternalServerError)
 			return
 		}
 
@@ -334,7 +336,7 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 		timetable := make([]proton.ProtonMeeting, 0)
 		timetable = append(timetable, stableTimetable...)
 
-		var subjectGroup = make([]int, 0)
+		var subjectGroup = make([]string, 0)
 
 		for i := 0; i < len(subjectGroups); i++ {
 			group := subjectGroups[i]
@@ -363,8 +365,6 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 		if len(subjectGroup) == 0 {
 			subjectGroup = append(subjectGroup, subject.ID)
 		}
-
-		//server.logger.Info(subjectGroup, subjectGroups)
 
 		// S tem bomo preverili, če so vsi predmeti v skupini predmetov kompatibilni med seboj, tj. imajo isto število ur na teden.
 		// V nasprotnem primeru ne moremo ustvariti urnika in javimo "fatal" napako.
@@ -422,17 +422,17 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 				}
 			}
 
-			var classId = make([]int, 0)
+			var classId = make([]string, 0)
 			if currentSubject.InheritsClass {
-				classId = append(classId, currentSubject.ClassID)
+				classId = append(classId, *currentSubject.ClassID)
 			} else {
-				var students []int
+				var students []string
 				err := json.Unmarshal([]byte(currentSubject.Students), &students)
 				if err != nil {
 					return
 				}
 				for i := 0; i < len(classes); i++ {
-					var classStudents []int
+					var classStudents []string
 					err := json.Unmarshal([]byte(classes[i].Students), &classStudents)
 					if err != nil {
 						return
@@ -526,11 +526,7 @@ func (server *httpImpl) AssembleTimetable(w http.ResponseWriter, r *http.Request
 
 			failRate = 0
 		} else {
-			if err.Error() == "exceeded maximum allowed repeat depth" {
-				WriteJSON(w, Response{Data: "Failed to make a timetable. Exceeded maximum repeat depth within CheckIfProtonConfigIsOk function", Error: err.Error(), Success: false}, http.StatusInternalServerError)
-				return
-			}
-			server.logger.Debugw("fail while trying to make a timetable using proton", "error", err.Error())
+			server.logger.Debugw("fail while trying to make a timetable using proton", "error", err.Error(), "ttlen", len(stableTimetable), "k", k)
 
 			failRate++
 		}

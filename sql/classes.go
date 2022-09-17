@@ -1,16 +1,14 @@
 package sql
 
-import "encoding/json"
-
-func remove(s []int, i int) []int {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
-}
+import (
+	"encoding/json"
+	"github.com/MeetPlan/MeetPlanBackend/helpers"
+)
 
 type Class struct {
-	ID             int
+	ID             string
 	Name           string
-	Teacher        int
+	Teacher        string
 	Students       string
 	ClassYear      string `db:"class_year"`
 	SOK            int
@@ -21,14 +19,14 @@ type Class struct {
 	UpdatedAt string `db:"updated_at"`
 }
 
-func (db *sqlImpl) GetClass(id int) (class Class, err error) {
+func (db *sqlImpl) GetClass(id string) (class Class, err error) {
 	err = db.db.Get(&class, "SELECT * FROM classes WHERE id=$1", id)
 	return class, err
 }
 
 func (db *sqlImpl) InsertClass(class Class) (err error) {
 	_, err = db.db.NamedExec(
-		"INSERT INTO classes (id, teacher, name, class_year, sok, eok, last_school_date) VALUES (:id, :teacher, :name, :class_year, :sok, :eok, :last_school_date)",
+		"INSERT INTO classes (teacher, name, class_year, sok, eok, last_school_date) VALUES (:teacher, :name, :class_year, :sok, :eok, :last_school_date)",
 		class)
 	return err
 }
@@ -40,29 +38,17 @@ func (db *sqlImpl) UpdateClass(class Class) error {
 	return err
 }
 
-func (db *sqlImpl) GetLastClassID() (id int) {
-	err := db.db.Get(&id, "SELECT id FROM classes WHERE id = (SELECT MAX(id) FROM classes)")
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return 0
-		}
-		db.logger.Info(err)
-		return -1
-	}
-	return id + 1
-}
-
 func (db *sqlImpl) GetClasses() (classes []Class, err error) {
 	err = db.db.Select(&classes, "SELECT * FROM classes ORDER BY id ASC")
 	return classes, err
 }
 
-func (db *sqlImpl) DeleteClass(ID int) error {
+func (db *sqlImpl) DeleteClass(ID string) error {
 	_, err := db.db.Exec("DELETE FROM classes WHERE id=$1", ID)
 	return err
 }
 
-func (db *sqlImpl) DeleteTeacherClasses(teacherId int) error {
+func (db *sqlImpl) DeleteTeacherClasses(teacherId string) error {
 	classes, err := db.GetClasses()
 	if err != nil {
 		return err
@@ -74,7 +60,7 @@ func (db *sqlImpl) DeleteTeacherClasses(teacherId int) error {
 				return err
 			}
 			for n := 0; n < len(subjects); n++ {
-				if subjects[n].InheritsClass && subjects[n].ClassID == classes[i].ID {
+				if subjects[n].InheritsClass && *subjects[n].ClassID == classes[i].ID {
 					db.DeleteMeetingsForSubject(subjects[n].ID)
 					db.DeleteSubject(subjects[n])
 				}
@@ -85,15 +71,15 @@ func (db *sqlImpl) DeleteTeacherClasses(teacherId int) error {
 	return nil
 }
 
-func (db *sqlImpl) DeleteUserClasses(userId int) {
+func (db *sqlImpl) DeleteUserClasses(userId string) {
 	classes, _ := db.GetClasses()
 	for i := 0; i < len(classes); i++ {
 		class := classes[i]
-		var users []int
+		var users []string
 		json.Unmarshal([]byte(class.Students), &users)
 		for n := 0; n < len(users); n++ {
 			if users[n] == userId {
-				users = remove(users, n)
+				users = helpers.Remove(users, n)
 			}
 		}
 		marshal, _ := json.Marshal(users)

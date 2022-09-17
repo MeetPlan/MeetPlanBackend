@@ -19,7 +19,7 @@ const SubjectObjectType = "Subject"
 const ProtonConfigVersion = "1.0"
 
 type ProtonObject struct {
-	ObjectID int    `json:"object_id"`
+	ObjectID string `json:"object_id"`
 	Type     string `json:"type"`
 }
 

@@ -4,12 +4,11 @@ import (
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/gorilla/mux"
 	"net/http"
-	"strconv"
 )
 
 type UserJSON struct {
 	Name                   string
-	ID                     int
+	ID                     string
 	Email                  string
 	Role                   string
 	BirthCertificateNumber string
@@ -53,7 +52,7 @@ func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, err := strconv.Atoi(mux.Vars(r)["id"])
+	userId := mux.Vars(r)["id"]
 	if err != nil {
 		return
 	}
@@ -163,7 +162,7 @@ func (server *httpImpl) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, err := strconv.Atoi(mux.Vars(r)["id"])
+	userId := mux.Vars(r)["id"]
 	if err != nil {
 		return
 	}

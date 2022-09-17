@@ -25,141 +25,135 @@ type SQL interface {
 
 	UpdateTestingResult(testing Testing) error
 	InsertTestingResult(testing Testing) error
-	GetTestingResults(date string, classId int) ([]TestingJSON, error)
-	GetAllTestingsForUser(id int) (testing []Testing, err error)
-	GetTestingResult(date string, id int) (Testing, error)
-	GetTestingResultByID(id int) (Testing, error)
-	GetLastTestingID() int
-	DeleteTeacherSelfTesting(teacherId int) error
-	DeleteUserSelfTesting(userId int) error
+	GetTestingResults(date string, classId string) ([]TestingJSON, error)
+	GetAllTestingsForUser(id string) (testing []Testing, err error)
+	GetTestingResult(date string, id string) (Testing, error)
+	GetTestingResultByID(id string) (Testing, error)
 
-	GetUser(id int) (user User, err error)
+	DeleteTeacherSelfTesting(teacherId string) error
+	DeleteUserSelfTesting(userId string) error
+
+	GetUser(id string) (user User, err error)
 	GetUserByLoginToken(loginToken string) (user User, err error)
 	InsertUser(user User) (err error)
-	GetLastUserID() (id int)
+
 	GetUserByEmail(email string) (user User, err error)
 	CheckIfAdminIsCreated() bool
 	GetAllUsers() (users []User, err error)
 	UpdateUser(user User) error
-	DeleteUser(ID int) error
+	DeleteUser(ID string) error
 	GetTeachers() ([]User, error)
 	GetPrincipal() (principal User, err error)
 
-	GetClass(id int) (Class, error)
+	GetClass(id string) (Class, error)
 	InsertClass(class Class) (err error)
-	GetLastClassID() (id int)
+
 	UpdateClass(class Class) error
 	GetClasses() ([]Class, error)
-	DeleteClass(ID int) error
-	DeleteTeacherClasses(teacherId int) error
-	DeleteUserClasses(userId int)
+	DeleteClass(ID string) error
+	DeleteTeacherClasses(teacherId string) error
+	DeleteUserClasses(userId string)
 
-	GetMeeting(id int) (meeting Meeting, err error)
+	GetMeeting(id string) (meeting Meeting, err error)
 	GetMeetingsOnSpecificTime(date string, hour int) (meetings []Meeting, err error)
-	GetMeetingsForSubject(subjectId int) (meetings []Meeting, err error)
-	GetMeetingsForTeacherOnSpecificDate(teacherId int, date string) (meetings []Meeting, err error)
+	GetMeetingsForSubject(subjectId string) (meetings []Meeting, err error)
+	GetMeetingsForTeacherOnSpecificDate(teacherId string, date string) (meetings []Meeting, err error)
 	InsertMeeting(meeting Meeting) (err error)
 	UpdateMeeting(meeting Meeting) error
-	GetLastMeetingID() (id int)
+
 	GetMeetings() (meetings []Meeting, err error)
-	GetMeetingsForSubjectWithIDLower(id int, subjectId int) (meetings []Meeting, err error)
-	DeleteMeeting(ID int) error
+	GetMeetingsForSubjectWithIDLower(id string, subjectId string) (meetings []Meeting, err error)
+	DeleteMeeting(ID string) error
 	GetMeetingsOnSpecificDate(date string, includeBeta bool) (meetings []Meeting, err error)
-	DeleteMeetingsForTeacher(ID int) error
-	DeleteMeetingsForSubject(ID int) error
+	DeleteMeetingsForTeacher(ID string) error
+	DeleteMeetingsForSubject(ID string) error
 	MigrateBetaMeetingsToNonBeta() error
 	DeleteBetaMeetings() error
 
-	GetLastAbsenceID() int
-	GetAbsence(id int) (absence Absence, err error)
-	GetAllAbsences(id int) (absences []Absence, err error)
+	GetAbsence(id string) (absence Absence, err error)
+	GetAllAbsences(id string) (absences []Absence, err error)
 	InsertAbsence(absence Absence) error
 	UpdateAbsence(absence Absence) error
-	GetAbsenceForUserMeeting(meeting_id int, user_id int) (absence Absence, err error)
-	GetAbsencesForUser(user_id int) (absence []Absence, err error)
-	DeleteAbsencesForTeacher(userId int)
-	DeleteAbsencesForUser(userId int)
+	GetAbsenceForUserMeeting(meeting_id string, user_id string) (absence Absence, err error)
+	GetAbsencesForUser(user_id string) (absence []Absence, err error)
+	DeleteAbsencesForTeacher(userId string)
+	DeleteAbsencesForUser(userId string)
 
-	GetLastSubjectID() int
-	GetSubject(id int) (subject Subject, err error)
-	GetAllSubjectsForTeacher(id int) (subject []Subject, err error)
-	GetAllSubjectsForUser(id int) (subject []Subject, err error)
+	GetSubject(id string) (subject Subject, err error)
+	GetAllSubjectsForTeacher(id string) (subject []Subject, err error)
+	GetAllSubjectsForUser(id string) (subject []Subject, err error)
 	GetSubjectsWithSpecificLongName(longName string) (subject []Subject, err error)
 	InsertSubject(subject Subject) error
 	UpdateSubject(subject Subject) error
 	GetAllSubjects() (subject []Subject, err error)
 	GetStudents() (message []User, err error)
 	DeleteSubject(subject Subject) error
-	DeleteStudentSubject(userId int)
+	DeleteStudentSubject(userId string)
 
-	GetLastGradeID() int
-	GetGrade(id int) (grade Grade, err error)
-	GetGradesForUser(userId int) (grades []Grade, err error)
-	GetGradesForUserInSubject(userId int, subjectId int) (grades []Grade, err error)
-	CheckIfFinal(userId int, subjectId int) (grade Grade, err error)
+	GetGrade(id string) (grade Grade, err error)
+	GetGradesForUser(userId string) (grades []Grade, err error)
+	GetGradesForUserInSubject(userId string, subjectId string) (grades []Grade, err error)
+	CheckIfFinal(userId string, subjectId string) (grade Grade, err error)
 	InsertGrade(grade Grade) error
 	UpdateGrade(grade Grade) error
-	DeleteGrade(ID int) error
-	DeleteGradesByTeacherID(ID int) error
-	DeleteGradesByUserID(ID int) error
+	DeleteGrade(ID string) error
+	DeleteGradesByTeacherID(ID string) error
+	DeleteGradesByUserID(ID string) error
 
-	GetLastHomeworkID() int
-	GetHomework(id int) (homework Homework, err error)
-	GetHomeworkForSubject(id int) (homework []Homework, err error)
+	GetHomework(id string) (homework Homework, err error)
+	GetHomeworkForSubject(id string) (homework []Homework, err error)
 	InsertHomework(homework Homework) error
 	UpdateHomework(homework Homework) error
-	DeleteHomework(ID int) error
+	DeleteHomework(ID string) error
 
-	GetLastStudentHomeworkID() int
-	GetStudentHomework(id int) (homework StudentHomework, err error)
-	GetStudentHomeworkForUser(homeworkId int, userId int) (homework StudentHomework, err error)
-	DeleteStudentHomeworkByStudentID(ID int) error
-	GetHomeworkForTeacher(teacherId int) (homework []Homework, err error)
-	GetStudentsHomeworkByHomeworkID(id int, meetingId int) (homework []StudentHomeworkJSON, err error)
-	GetStudentsHomework(id int) (homework []StudentHomework, err error)
+	GetStudentHomework(id string) (homework StudentHomework, err error)
+	GetStudentHomeworkForUser(homeworkId string, userId string) (homework StudentHomework, err error)
+	DeleteStudentHomeworkByStudentID(ID string) error
+	GetHomeworkForTeacher(teacherId string) (homework []Homework, err error)
+	GetStudentsHomeworkByHomeworkID(id string, meetingId string) (homework []StudentHomeworkJSON, err error)
+	GetStudentsHomework(id string) (homework []StudentHomework, err error)
 	InsertStudentHomework(homework StudentHomework) error
 	UpdateStudentHomework(homework StudentHomework) error
-	DeleteStudentHomework(ID int) error
-	DeleteStudentHomeworkByHomeworkID(ID int) error
-	DeleteAllTeacherHomeworks(ID int)
+	DeleteStudentHomework(ID string) error
+	DeleteStudentHomeworkByHomeworkID(ID string) error
+	DeleteAllTeacherHomeworks(ID string)
 
-	GetCommunication(id int) (communication Communication, err error)
+	GetCommunication(id string) (communication Communication, err error)
 	InsertCommunication(communication Communication) (err error)
 	UpdateCommunication(communication Communication) error
-	GetLastCommunicationID() (id int)
-	GetCommunications() (communication []Communication, err error)
-	DeleteCommunication(ID int) error
-	DeleteUserCommunications(userId int)
 
-	GetMessage(id int) (message Message, err error)
-	GetCommunicationMessages(communicationId int) (messages []Message, err error)
-	GetAllUnreadMessages(userId int) (messages []Message, err error)
+	GetCommunications() (communication []Communication, err error)
+	DeleteCommunication(ID string) error
+	DeleteUserCommunications(userId string)
+
+	GetMessage(id string) (message Message, err error)
+	GetCommunicationMessages(communicationId string) (messages []Message, err error)
+	GetAllUnreadMessages(userId string) (messages []Message, err error)
 	InsertMessage(message Message) (err error)
 	UpdateMessage(message Message) error
-	GetLastMessageID() (id int)
-	GetAllMessages() (messages []Message, err error)
-	DeleteMessage(ID int) error
 
-	GetMeal(id int) (meal Meal, err error)
+	GetAllMessages() (messages []Message, err error)
+	DeleteMessage(ID string) error
+
+	GetMeal(id string) (meal Meal, err error)
 	InsertMeal(meal Meal) (err error)
 	UpdateMeal(meal Meal) error
-	GetLastMealID() (id int)
-	GetMeals() (meals []Meal, err error)
-	DeleteMeal(ID int) error
 
-	GetNotification(id int) (notification NotificationSQL, err error)
+	GetMeals() (meals []Meal, err error)
+	DeleteMeal(ID string) error
+
+	GetNotification(id string) (notification NotificationSQL, err error)
 	GetAllNotifications() (notifications []NotificationSQL, err error)
 	InsertNotification(notification NotificationSQL) (err error)
 	UpdateNotification(notification NotificationSQL) error
-	GetLastNotificationID() (id int)
-	DeleteNotification(ID int) error
 
-	GetLastImprovementID() int
-	GetImprovement(id int) (improvement Improvement, err error)
-	GetImprovementsForStudent(studentId int) (improvements []Improvement, err error)
+	DeleteNotification(ID string) error
+
+	GetImprovement(id string) (improvement Improvement, err error)
+	GetImprovementsForStudent(studentId string) (improvements []Improvement, err error)
 	InsertImprovement(improvement Improvement) error
 	UpdateImprovement(homework Homework) error
-	DeleteImprovement(ID int) error
+	DeleteImprovement(ID string) error
 
 	GetDocument(id string) (document Document, err error)
 	GetAllDocuments() (documents []Document, err error)

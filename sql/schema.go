@@ -10,7 +10,7 @@ END;
 $$ language 'plpgsql';
 
 CREATE TABLE IF NOT EXISTS users (
-	id                       INTEGER        PRIMARY KEY,
+	id                       UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
 	email                    VARCHAR(250)   NOT NULL,
 	pass                     VARCHAR(250)   NOT NULL,
 	name                     VARCHAR(250)   NOT NULL,
@@ -27,24 +27,45 @@ CREATE TABLE IF NOT EXISTS users (
 	updated_at               TIMESTAMP      NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS classes (
-	id                       INTEGER        PRIMARY KEY,
+	id                       UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
 	students                 JSON           DEFAULT('[]'),
 	name                     VARCHAR(100)   NOT NULL,
 	class_year               VARCHAR(20)    DEFAULT(''),
 	last_school_date         INTEGER,
-	teacher                  INTEGER,
+	teacher                  UUID,
 	sok                      INTEGER,
 	eok                      INTEGER,
 	
 	created_at               TIMESTAMP      NOT NULL DEFAULT now(),
-	updated_at               TIMESTAMP      NOT NULL DEFAULT now()
+	updated_at               TIMESTAMP      NOT NULL DEFAULT now(),
+                                   
+    CONSTRAINT FK_ClassesTeacher FOREIGN KEY (teacher) REFERENCES users(id)
+);
+CREATE TABLE IF NOT EXISTS subject (
+	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
+	teacher_id              UUID,
+	name                    VARCHAR(200),
+	long_name               VARCHAR(200),
+	inherits_class          BOOLEAN,
+	realization             FLOAT,
+	location                VARCHAR(100)    NOT NULL,
+	class_id                UUID,
+	students                JSON            DEFAULT('[]'),
+	selected_hours          FLOAT           DEFAULT(1.0),
+	color                   VARCHAR(10),
+	
+	created_at              TIMESTAMP      NOT NULL DEFAULT now(),
+	updated_at              TIMESTAMP      NOT NULL DEFAULT now(),
+
+	CONSTRAINT FK_SubjectTeacher FOREIGN KEY (teacher_id) REFERENCES users(id),
+	CONSTRAINT FK_SubjectClass   FOREIGN KEY (class_id)   REFERENCES classes(id)
 );
 CREATE TABLE IF NOT EXISTS testing (
-	id                       INTEGER        PRIMARY KEY,
-	user_id                  INTEGER        NOT NULL,
+	id                       UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
+	user_id                  UUID           NOT NULL,
 	date                     VARCHAR(250)   NOT NULL,
-	teacher_id               INTEGER        NOT NULL,
-	class_id                 INTEGER        NOT NULL,
+	teacher_id               UUID           NOT NULL,
+	class_id                 UUID           NOT NULL,
 	result                   VARCHAR(250)   NOT NULL,
 	
 	created_at               TIMESTAMP      NOT NULL DEFAULT now(),
@@ -55,12 +76,12 @@ CREATE TABLE IF NOT EXISTS testing (
 	CONSTRAINT FK_TestingClass   FOREIGN KEY (class_id) REFERENCES classes(id)
 );
 CREATE TABLE IF NOT EXISTS meetings (
-	id                      INTEGER         PRIMARY KEY,
+	id                      UUID            PRIMARY KEY     DEFAULT gen_random_uuid(),
 	meeting_name            VARCHAR(200)    NOT NULL,
 	url                     VARCHAR(300)    NOT NULL,
 	details                 VARCHAR(1000)   NOT NULL,
-	teacher_id              INTEGER         NOT NULL,
-	subject_id              INTEGER         NOT NULL,
+	teacher_id              UUID            NOT NULL,
+	subject_id              UUID            NOT NULL,
 	hour                    INTEGER         NOT NULL,
 	date                    VARCHAR(20)     NOT NULL,
 	location                VARCHAR(100)    NOT NULL,
@@ -78,10 +99,10 @@ CREATE TABLE IF NOT EXISTS meetings (
 	CONSTRAINT FK_MeetingSubject FOREIGN KEY (subject_id) REFERENCES subject(id)
 );
 CREATE TABLE IF NOT EXISTS absence (
-	id                      INTEGER         PRIMARY KEY,
-	user_id                 INTEGER,
-	meeting_id              INTEGER,
-	teacher_id              INTEGER,
+	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
+	user_id                 UUID,
+	meeting_id              UUID,
+	teacher_id              UUID,
 	absence_type            VARCHAR(200),
 	is_excused              BOOLEAN,
 	
@@ -93,10 +114,10 @@ CREATE TABLE IF NOT EXISTS absence (
 	CONSTRAINT FK_AbsenceTeacher FOREIGN KEY (teacher_id) REFERENCES users(id)
 );
 CREATE TABLE IF NOT EXISTS grades (
-	id                      INTEGER         PRIMARY KEY,
-	user_id                 INTEGER,
-	teacher_id              INTEGER,
-	subject_id              INTEGER,
+	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
+	user_id                 UUID,
+	teacher_id              UUID,
+	subject_id              UUID,
 	date                    VARCHAR(200),
 	is_written              BOOLEAN,
 	grade                   INTEGER,
@@ -112,41 +133,10 @@ CREATE TABLE IF NOT EXISTS grades (
 	CONSTRAINT FK_GradesTeacher FOREIGN KEY (teacher_id) REFERENCES users(id),
 	CONSTRAINT FK_GradesSubject FOREIGN KEY (subject_id) REFERENCES subject(id)
 );
-CREATE TABLE IF NOT EXISTS subject (
-	id                      INTEGER         PRIMARY KEY,
-	teacher_id              INTEGER,
-	name                    VARCHAR(200),
-	long_name               VARCHAR(200),
-	inherits_class          BOOLEAN,
-	realization             FLOAT,
-	location                VARCHAR(100)    NOT NULL,
-	class_id                INTEGER         DEFAULT(-1),
-	students                JSON            DEFAULT('[]'),
-	selected_hours          FLOAT           DEFAULT(1.0),
-	color                   VARCHAR(10),
-	
-	created_at              TIMESTAMP      NOT NULL DEFAULT now(),
-	updated_at              TIMESTAMP      NOT NULL DEFAULT now(),
-
-	CONSTRAINT FK_SubjectTeacher FOREIGN KEY (teacher_id) REFERENCES users(id),
-	CONSTRAINT FK_SubjectClass   FOREIGN KEY (class_id)   REFERENCES classes(id)
-);
-CREATE TABLE IF NOT EXISTS student_homework (
-	id                      INTEGER,
-	user_id                 INTEGER,
-	homework_id             INTEGER,
-	status                  VARCHAR(200),
-	
-	created_at              TIMESTAMP      NOT NULL DEFAULT now(),
-	updated_at              TIMESTAMP      NOT NULL DEFAULT now(),
-
-	CONSTRAINT FK_StudentHomeworkUser     FOREIGN KEY (user_id)     REFERENCES users(id),
-	CONSTRAINT FK_StudentHomeworkHomework FOREIGN KEY (homework_id) REFERENCES homework(id)
-);
 CREATE TABLE IF NOT EXISTS homework (
-	id                      INTEGER         PRIMARY KEY,
-	teacher_id              INTEGER,
-	subject_id              INTEGER,
+	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
+	teacher_id              UUID,
+	subject_id              UUID,
 	name                    VARCHAR(200),
 	description             VARCHAR(1000),
 	from_date               VARCHAR(200),
@@ -158,8 +148,20 @@ CREATE TABLE IF NOT EXISTS homework (
     CONSTRAINT FK_HomeworkSubject FOREIGN KEY (subject_id) REFERENCES subject(id),
     CONSTRAINT FK_HomeworkTeacher FOREIGN KEY (teacher_id) REFERENCES users(id)
 );
+CREATE TABLE IF NOT EXISTS student_homework (
+	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
+	user_id                 UUID,
+	homework_id             UUID,
+	status                  VARCHAR(200),
+	
+	created_at              TIMESTAMP      NOT NULL DEFAULT now(),
+	updated_at              TIMESTAMP      NOT NULL DEFAULT now(),
+
+	CONSTRAINT FK_StudentHomeworkUser     FOREIGN KEY (user_id)     REFERENCES users(id),
+	CONSTRAINT FK_StudentHomeworkHomework FOREIGN KEY (homework_id) REFERENCES homework(id)
+);
 CREATE TABLE IF NOT EXISTS communication (
-	id                      INTEGER         PRIMARY KEY,
+	id                      UUID            PRIMARY KEY     DEFAULT gen_random_uuid(),
 	people                  JSON            DEFAULT('[]'),
 	title                   VARCHAR(200),
 	date_created            VARCHAR(200),
@@ -168,9 +170,9 @@ CREATE TABLE IF NOT EXISTS communication (
 	updated_at              TIMESTAMP      NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS message (
-	id                      INTEGER         PRIMARY KEY,
-	communication_id        INTEGER,
-	user_id                 INTEGER,
+	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
+	communication_id        UUID,
+	user_id                 UUID,
 	body                    VARCHAR(3000),
 	seen                    JSON,
 	date_created            VARCHAR(200),
@@ -182,7 +184,7 @@ CREATE TABLE IF NOT EXISTS message (
     CONSTRAINT FK_MessageUser          FOREIGN KEY (user_id)          REFERENCES users(id)
 );
 CREATE TABLE IF NOT EXISTS meals (
-	id                      INTEGER         PRIMARY KEY,
+	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
 	meals                   VARCHAR(3000),
 	date                    VARCHAR(200),
 	meal_title              VARCHAR(3000),
@@ -199,18 +201,18 @@ CREATE TABLE IF NOT EXISTS meals (
 	updated_at              TIMESTAMP      NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS notifications (
-	id                      INTEGER         PRIMARY KEY,
+	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
 	notification            VARCHAR(3000),
 	
 	created_at              TIMESTAMP      NOT NULL DEFAULT now(),
 	updated_at              TIMESTAMP      NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS improvements (
-	id                      INTEGER         PRIMARY KEY,
+	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
 	message                 VARCHAR(3000),
-	student_id              INTEGER,
-    meeting_id              INTEGER,
-	teacher_id              INTEGER,
+	student_id              UUID,
+    meeting_id              UUID,
+	teacher_id              UUID,
 	
 	created_at              TIMESTAMP      NOT NULL DEFAULT now(),
 	updated_at              TIMESTAMP      NOT NULL DEFAULT now(),
@@ -219,11 +221,12 @@ CREATE TABLE IF NOT EXISTS improvements (
 	CONSTRAINT FK_ImprovementsMeeting FOREIGN KEY (meeting_id) REFERENCES meetings(id),
 	CONSTRAINT FK_ImprovementsTeacher FOREIGN KEY (teacher_id) REFERENCES users(id)
 );
+
+-- Documents are special and don't use UUID type due to small space on some documents
 CREATE TABLE IF NOT EXISTS documents (
     id                      VARCHAR(50)     PRIMARY KEY,
-    exported_by             INTEGER         NOT NULL,
+    exported_by             UUID            NOT NULL,
     document_type           INTEGER         NOT NULL,
-    timestamp               BIGINT          NOT NULL,
     is_signed               BOOLEAN         NOT NULL,
     
     created_at              TIMESTAMP      NOT NULL DEFAULT now(),

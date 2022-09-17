@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -24,8 +23,8 @@ func (server *httpImpl) GetMyGradings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var studentId int
-	var teacherId int
+	var studentId string
+	var teacherId string
 	if user.Role == TEACHER || user.Role == PARENT || user.Role == ADMIN || user.Role == PRINCIPAL_ASSISTANT || user.Role == PRINCIPAL || user.Role == SCHOOL_PSYCHOLOGIST {
 		if user.Role == PARENT {
 			if !server.config.ParentViewGradings {
@@ -33,7 +32,7 @@ func (server *httpImpl) GetMyGradings(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		studentId, err = strconv.Atoi(r.URL.Query().Get("studentId"))
+		studentId = r.URL.Query().Get("studentId")
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -55,7 +54,7 @@ func (server *httpImpl) GetMyGradings(w http.ResponseWriter, r *http.Request) {
 		var valid = false
 		for i := 0; i < len(classes); i++ {
 			class := classes[i]
-			var users []int
+			var users []string
 			err := json.Unmarshal([]byte(class.Students), &users)
 			if err != nil {
 				WriteJSON(w, Response{Error: err.Error(), Data: "Failed to unmarshal class users", Success: false}, http.StatusInternalServerError)
@@ -76,7 +75,7 @@ func (server *httpImpl) GetMyGradings(w http.ResponseWriter, r *http.Request) {
 			WriteJSON(w, Response{Error: err.Error(), Data: "Failed to retrieve parent", Success: false}, http.StatusInternalServerError)
 			return
 		}
-		var children []int
+		var children []string
 		err = json.Unmarshal([]byte(parent.Users), &children)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Data: "Failed to unmarshal parent's students", Success: false}, http.StatusInternalServerError)

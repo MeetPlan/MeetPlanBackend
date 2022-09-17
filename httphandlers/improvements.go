@@ -6,7 +6,6 @@ import (
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
-	"strconv"
 )
 
 type Improvement struct {
@@ -21,12 +20,12 @@ func (server *httpImpl) NewImprovement(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
+	studentId := mux.Vars(r)["student_id"]
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
 	}
-	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+	meetingId := mux.Vars(r)["meeting_id"]
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -48,7 +47,7 @@ func (server *httpImpl) NewImprovement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	improvement := sql.Improvement{
-		ID:        server.db.GetLastImprovementID(),
+
 		StudentID: studentId,
 		MeetingID: meetingId,
 		Message:   r.FormValue("message"),
@@ -64,15 +63,15 @@ func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Re
 		WriteForbiddenJWT(w)
 		return
 	}
-	var studentId int
+	var studentId string
 	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == PARENT || user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST {
-		studentId, err = strconv.Atoi(r.URL.Query().Get("studentId"))
+		studentId = r.URL.Query().Get("studentId")
 		if err != nil {
 			WriteForbiddenJWT(w)
 			return
 		}
 		if user.Role == PARENT {
-			var students []int
+			var students []string
 			err := json.Unmarshal([]byte(user.Users), &students)
 			if err != nil {
 				return
@@ -92,7 +91,7 @@ func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Re
 				if class.Teacher != user.ID {
 					continue
 				}
-				var students []int
+				var students []string
 				err := json.Unmarshal([]byte(class.Students), &students)
 				if err != nil {
 					return

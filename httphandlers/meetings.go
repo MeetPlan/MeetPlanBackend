@@ -37,11 +37,11 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var users []int
+	var users []string
 	myMeetings := false
 
 	if r.URL.Query().Get("classId") != "" {
-		classId, err := strconv.Atoi(r.URL.Query().Get("classId"))
+		classId := r.URL.Query().Get("classId")
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -57,7 +57,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else if r.URL.Query().Get("subjectId") != "" {
-		subjectId, err := strconv.Atoi(r.URL.Query().Get("subjectId"))
+		subjectId := r.URL.Query().Get("subjectId")
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -68,7 +68,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if subject.InheritsClass {
-			class, err := server.db.GetClass(subject.ClassID)
+			class, err := server.db.GetClass(*subject.ClassID)
 			if err != nil {
 				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 				return
@@ -87,7 +87,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 		}
 	} else if r.URL.Query().Get("studentId") != "" {
 		if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == PARENT || user.Role == SCHOOL_PSYCHOLOGIST {
-			users = make([]int, 0)
+			users = make([]string, 0)
 			// TODO: This doesn't seem right
 			users = append(users, user.ID)
 			myMeetings = true
@@ -97,12 +97,12 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 		}
 	} else if r.URL.Query().Get("teacherId") != "" {
 		if user.Role == ADMIN || user.Role == PRINCIPAL_ASSISTANT || user.Role == PRINCIPAL {
-			teacherId, err := strconv.Atoi(r.URL.Query().Get("teacherId"))
+			teacherId := r.URL.Query().Get("teacherId")
 			if err != nil {
 				WriteBadRequest(w)
 				return
 			}
-			users = make([]int, 0)
+			users = make([]string, 0)
 			users = append(users, teacherId)
 			myMeetings = true
 		} else {
@@ -111,7 +111,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// my user
-		users = make([]int, 0)
+		users = make([]string, 0)
 		users = append(users, user.ID)
 		myMeetings = true
 	}
@@ -177,9 +177,9 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return
 			}
-			var u []int
+			var u []string
 			if subject.InheritsClass {
-				class, err := server.db.GetClass(subject.ClassID)
+				class, err := server.db.GetClass(*subject.ClassID)
 				if err != nil {
 					return
 				}
@@ -198,7 +198,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return
 			}
-			var studentsParent []int
+			var studentsParent []string
 			err = json.Unmarshal([]byte(currentUser2.Users), &studentsParent)
 			if err != nil {
 				return
@@ -303,7 +303,7 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 		WriteBadRequest(w)
 		return
 	}
-	subjectId, err := strconv.Atoi(r.FormValue("subjectId"))
+	subjectId := r.FormValue("subjectId")
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -367,7 +367,7 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 		date := dates[i]
 
 		meeting := sql.Meeting{
-			ID:                  server.db.GetLastMeetingID(),
+
 			MeetingName:         name,
 			TeacherID:           user.ID,
 			SubjectID:           subjectId,
@@ -403,7 +403,7 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	id := mux.Vars(r)["id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -442,7 +442,7 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 	var isSubstitution = false
 	if (user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) && isSubstitutionString == "true" {
 		isSubstitution = true
-		teacherId, err = strconv.Atoi(r.FormValue("teacherId"))
+		teacherId = r.FormValue("teacherId")
 		if err != nil {
 			WriteBadRequest(w)
 			return
@@ -503,7 +503,7 @@ func (server *httpImpl) DeleteMeeting(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	id := mux.Vars(r)["id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -529,7 +529,7 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+	meetingId := mux.Vars(r)["meeting_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -547,9 +547,9 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < len(subjects); i++ {
 			subject := subjects[i]
 			if subject.ID == meeting.SubjectID {
-				var users []int
+				var users []string
 				if subject.InheritsClass {
-					class, err := server.db.GetClass(subject.ClassID)
+					class, err := server.db.GetClass(*subject.ClassID)
 					if err != nil {
 						WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 						return
@@ -579,7 +579,7 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 						return
 					}
 				} else if user.Role == PARENT {
-					var students []int
+					var students []string
 
 					err := json.Unmarshal([]byte(user.Users), &students)
 					if err != nil {
@@ -641,7 +641,7 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 		WriteForbiddenJWT(w)
 		return
 	}
-	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+	meetingId := mux.Vars(r)["meeting_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -658,9 +658,9 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 		WriteForbiddenJWT(w)
 		return
 	}
-	var users []int
+	var users []string
 	if subject.InheritsClass {
-		class, err := server.db.GetClass(subject.ClassID)
+		class, err := server.db.GetClass(*subject.ClassID)
 		if err != nil {
 			return
 		}
@@ -685,7 +685,7 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 		if err != nil {
 			if err.Error() == "sql: no rows in result set" {
 				absence := sql.Absence{
-					ID:          server.db.GetLastAbsenceID(),
+
 					UserID:      userId,
 					TeacherID:   user.ID,
 					MeetingID:   meetingId,
@@ -724,7 +724,7 @@ func (server *httpImpl) PatchAbsence(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	absenceId, err := strconv.Atoi(mux.Vars(r)["absence_id"])
+	absenceId := mux.Vars(r)["absence_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -764,7 +764,7 @@ func (server *httpImpl) GetUsersForMeeting(w http.ResponseWriter, r *http.Reques
 		WriteForbiddenJWT(w)
 		return
 	}
-	meetingId, err := strconv.Atoi(mux.Vars(r)["meeting_id"])
+	meetingId := mux.Vars(r)["meeting_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -781,9 +781,9 @@ func (server *httpImpl) GetUsersForMeeting(w http.ResponseWriter, r *http.Reques
 		WriteForbiddenJWT(w)
 		return
 	}
-	var students []int
+	var students []string
 	if subject.InheritsClass {
-		class, err := server.db.GetClass(subject.ClassID)
+		class, err := server.db.GetClass(*subject.ClassID)
 		if err != nil {
 			return
 		}

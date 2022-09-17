@@ -18,6 +18,7 @@ import (
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"go.uber.org/zap"
+	"strconv"
 	"time"
 )
 
@@ -39,16 +40,16 @@ type protonImpl struct {
 }
 
 type Proton interface {
-	ManageAbsences(meetingId int) ([]TeacherTier, error)
+	ManageAbsences(meetingId string) ([]TeacherTier, error)
 
 	NewProtonRule(rule ProtonRule) error
 	GetProtonConfig() ProtonConfig
 
 	// Suita funkcij, ki skrbijo za pravila
 
-	GetAllRulesForTeacher(teacherId int) []ProtonRule
+	GetAllRulesForTeacher(teacherId string) []ProtonRule
 	GetSubjectGroups() []ProtonRule
-	SubjectHasDoubleHours(subjectId int) bool
+	SubjectHasDoubleHours(subjectId string) bool
 	CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, error)
 
 	// FillGapsInTimetable(timetable []ProtonMeeting) ([]ProtonMeeting, error)
@@ -58,9 +59,9 @@ type Proton interface {
 	TimetablePostProcessing(stableTimetable []ProtonMeeting, class sql.Class, cancelPostProcessingBeforeDone bool) ([]ProtonMeeting, error)
 
 	PatchTheHoles(timetable []ProtonMeeting, fullTimetable []ProtonMeeting) ([]ProtonMeeting, []ProtonMeeting)
-	GetSubjectsOfClass(timetable []ProtonMeeting, classStudents []int, class sql.Class) ([]ProtonMeeting, error)
-	GetSubjectsBeforeOrAfterClass() []int
-	GetSubjectsWithStackedHours() []int
+	GetSubjectsOfClass(timetable []ProtonMeeting, classStudents []string, class sql.Class) ([]ProtonMeeting, error)
+	GetSubjectsBeforeOrAfterClass() []string
+	GetSubjectsWithStackedHours() []string
 	FindNonNormalHours(timetable []ProtonMeeting) []ProtonMeeting
 	PostProcessHolesAndNonNormalHours(classTimetable []ProtonMeeting, stableTimetable []ProtonMeeting) ([]ProtonMeeting, []ProtonMeeting)
 	FindHoles(timetable []ProtonMeeting) [][]ProtonMeeting
@@ -82,7 +83,7 @@ func NewProton(db sql.SQL, logger *zap.SugaredLogger) (Proton, error) {
 }
 
 type TierGradingList struct {
-	TeacherID          int
+	TeacherID          string
 	HasMeetingBefore   bool
 	HasMeetingLater    bool
 	HasMeeting2HBefore bool
@@ -92,13 +93,13 @@ type TierGradingList struct {
 }
 
 type TeacherTier struct {
-	TeacherID   int
+	TeacherID   string
 	Tier        int
 	Name        string
 	GradingList TierGradingList
 }
 
-func (p *protonImpl) ManageAbsences(meetingId int) ([]TeacherTier, error) {
+func (p *protonImpl) ManageAbsences(meetingId string) ([]TeacherTier, error) {
 	teachers, err := p.db.GetTeachers()
 	if err != nil {
 		return make([]TeacherTier, 0), err
@@ -115,7 +116,7 @@ func (p *protonImpl) ManageAbsences(meetingId int) ([]TeacherTier, error) {
 	if err != nil {
 		return make([]TeacherTier, 0), err
 	}
-	var preferredTeachers = make([]int, 0)
+	var preferredTeachers = make([]string, 0)
 	for i := 0; i < len(similarSubjects); i++ {
 		subject := similarSubjects[i]
 		if !helpers.Contains(preferredTeachers, subject.TeacherID) {
@@ -210,7 +211,7 @@ func (p *protonImpl) ManageAbsences(meetingId int) ([]TeacherTier, error) {
 	return recommendation, err
 }
 
-func (p *protonImpl) GetAllRulesForTeacher(teacherId int) []ProtonRule {
+func (p *protonImpl) GetAllRulesForTeacher(teacherId string) []ProtonRule {
 	protonRules := make([]ProtonRule, 0)
 
 	for i := 0; i < len(p.config.Rules); i++ {
@@ -239,7 +240,7 @@ func (p *protonImpl) GetSubjectGroups() []ProtonRule {
 }
 
 // SubjectHasDoubleHours preverja, če ima predmet blok ure.
-func (p *protonImpl) SubjectHasDoubleHours(subjectId int) bool {
+func (p *protonImpl) SubjectHasDoubleHours(subjectId string) bool {
 	for i := 0; i < len(p.config.Rules); i++ {
 		rule := p.config.Rules[i]
 		if rule.RuleType == 4 {
@@ -254,7 +255,7 @@ func (p *protonImpl) SubjectHasDoubleHours(subjectId int) bool {
 	return false
 }
 
-func (p *protonImpl) GetSubjectsOfClass(timetable []ProtonMeeting, classStudents []int, class sql.Class) ([]ProtonMeeting, error) {
+func (p *protonImpl) GetSubjectsOfClass(timetable []ProtonMeeting, classStudents []string, class sql.Class) ([]ProtonMeeting, error) {
 	var classTimetable = make([]ProtonMeeting, 0)
 
 	for n := 0; n < len(timetable); n++ {
@@ -263,10 +264,10 @@ func (p *protonImpl) GetSubjectsOfClass(timetable []ProtonMeeting, classStudents
 		if err != nil {
 			return nil, err
 		}
-		if subject.InheritsClass && class.ID == subject.ClassID {
+		if subject.InheritsClass && class.ID == *subject.ClassID {
 			classTimetable = append(classTimetable, meeting)
 		} else {
-			var students []int
+			var students []string
 			err := json.Unmarshal([]byte(subject.Students), &students)
 			if err != nil {
 				return nil, err
@@ -291,8 +292,8 @@ func (p *protonImpl) GetSubjectsOfClass(timetable []ProtonMeeting, classStudents
 }
 
 // GetSubjectsBeforeOrAfterClass retrieves all subjects, that are before or after the class (according to rule #3)
-func (p *protonImpl) GetSubjectsBeforeOrAfterClass() []int {
-	var subjects = make([]int, 0)
+func (p *protonImpl) GetSubjectsBeforeOrAfterClass() []string {
+	var subjects = make([]string, 0)
 	rules := p.config.Rules
 	for i := 0; i < len(rules); i++ {
 		rule := rules[i]
@@ -309,8 +310,8 @@ func (p *protonImpl) GetSubjectsBeforeOrAfterClass() []int {
 }
 
 // GetSubjectsWithStackedHours retrieves all subjects, that have stacked hours (according to rule #4)
-func (p *protonImpl) GetSubjectsWithStackedHours() []int {
-	var subjects = make([]int, 0)
+func (p *protonImpl) GetSubjectsWithStackedHours() []string {
+	var subjects = make([]string, 0)
 	rules := p.config.Rules
 	for i := 0; i < len(rules); i++ {
 		rule := rules[i]
@@ -900,12 +901,12 @@ func (p *protonImpl) PostProcessHolesAndNonNormalHours(classTimetable []ProtonMe
 //
 // Napake, katere ta funkcija odpravlja in popravlja:
 //
-// - V enemu izmed tednov sta predmeta, ki bi morala biti v skupini srečanj, na popolnoma drugih lokacijah v urniku.
-//		Primer:
+//   - V enemu izmed tednov sta predmeta, ki bi morala biti v skupini srečanj, na popolnoma drugih lokacijah v urniku.
+//     Primer:
 //
-// 		TJA9a je 5. uro na ponedeljek,
-// 		TJA9b je 6. uro na petek
-// 		(obe srečanji sta v 2. tednu)
+//     TJA9a je 5. uro na ponedeljek,
+//     TJA9b je 6. uro na petek
+//     (obe srečanji sta v 2. tednu)
 func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []ProtonMeeting) ([]ProtonMeeting, []ProtonMeeting) {
 	stableFullTimetable := make([]ProtonMeeting, 0)
 	stableFullTimetable = append(stableFullTimetable, fullTimetable...)
@@ -921,7 +922,7 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 		return stableClassTimetable, stableFullTimetable
 	}
 
-	subjectsNotInSubjectGroups := make([]int, 0)
+	subjectsNotInSubjectGroups := make([]string, 0)
 
 	for i := 0; i < len(subjects); i++ {
 		subject := subjects[i]
@@ -953,7 +954,7 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 
 	for i := 0; i < len(subjectGroups); i++ {
 		subjectGroup := subjectGroups[i]
-		subjects := make([]int, 0)
+		subjects := make([]string, 0)
 		for n := 0; n < len(subjectGroup.Objects); n++ {
 			if subjectGroup.Objects[n].Type != "subject" {
 				continue
@@ -1286,7 +1287,7 @@ func (p *protonImpl) PatchMistakes(timetable []ProtonMeeting, fullTimetable []Pr
 //
 // - PatchMistakes (Stage 4), skrbi za popravljanje napak pri generaciji in post-procesiranju urnika.
 func (p *protonImpl) TimetablePostProcessing(stableTimetable []ProtonMeeting, class sql.Class, cancelPostProcessingBeforeDone bool) ([]ProtonMeeting, error) {
-	var students []int
+	var students []string
 	err := json.Unmarshal([]byte(class.Students), &students)
 	if err != nil {
 		return nil, err
@@ -1343,11 +1344,11 @@ type ProtonMeeting struct {
 	Hour         int
 	DayOfTheWeek int
 	SubjectName  string
-	SubjectID    int
+	SubjectID    string
 	ID           string
-	TeacherID    int
+	TeacherID    string
 	Week         int
-	ClassID      []int
+	ClassID      []string
 	IsHalfHour   bool
 }
 
@@ -1369,18 +1370,54 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 			// Pojdimo čez vse ure in preverimo, če se kaka ujema z učiteljem. Če se, nadaljujemo s postopkom.
 			meeting := timetable[t]
 
-			subject1, err := p.db.GetSubject(meeting.SubjectID)
-			if err != nil {
-				return false, err
-			}
-
 			if meeting.TeacherID != teacher.ID {
 				continue
 			}
 
-			var subjectsInGroup = make([]int, 0)
+			var subjectsInGroup = make([]string, 0)
 
 			var hoursToday = 1
+
+			//for x := 0; x < len(subjectGroups); x++ {
+			//	var ok = false
+			//
+			//	group := subjectGroups[x]
+			//	for y := 0; y < len(group.Objects); y++ {
+			//		if group.Objects[y].Type != "subject" {
+			//			continue
+			//		}
+			//
+			//		if group.Objects[y].ObjectID == meeting.SubjectID {
+			//			ok = true
+			//			break
+			//		}
+			//	}
+			//
+			//	if !ok {
+			//		continue
+			//	}
+			//
+			//	for y := 0; y < len(group.Objects); y++ {
+			//		fObject := group.Objects[y]
+			//
+			//		if fObject.Type != "subject" {
+			//			continue
+			//		}
+			//
+			//		if !helpers.Contains(subjectsInGroup, fObject.ObjectID) {
+			//			subjectsInGroup = append(subjectsInGroup, fObject.ObjectID)
+			//		}
+			//	}
+			//}
+
+			//if len(subjectsInGroup) != 0 {
+			//	p.logger.Debug("tttttt", subjectsInGroup)
+			//}
+
+			subject1, err := p.db.GetSubject(meeting.SubjectID)
+			if err != nil {
+				return false, err
+			}
 
 			// Preverimo, če se kake ure prekrivajo.
 			for n := 0; n < len(timetable); n++ {
@@ -1392,6 +1429,23 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 
 				if meeting2.DayOfTheWeek == meeting.DayOfTheWeek && meeting.SubjectID == meeting2.SubjectID && meeting.Week == meeting2.Week {
 					hoursToday++
+				}
+
+				if meeting.SubjectID == meeting2.SubjectID &&
+					meeting.DayOfTheWeek == meeting2.DayOfTheWeek &&
+					meeting.Week == meeting2.Week &&
+					meeting.Hour == meeting2.Hour {
+					return false, errors.New(
+						fmt.Sprintf(
+							"srečanja %s (%s %s) in pa %s (%s %s) se prekrivata zaradi skupnega predmeta - ne morem ustvariti urnika.",
+							helpers.FmtSanitize(meeting),
+							helpers.FmtSanitize(meeting.Hour),
+							helpers.FmtSanitize(meeting.DayOfTheWeek),
+							helpers.FmtSanitize(meeting2),
+							helpers.FmtSanitize(meeting2.Hour),
+							helpers.FmtSanitize(meeting2.DayOfTheWeek),
+						),
+					)
 				}
 
 				// Seveda moramo preveriti, če sta srečanji v isti proton skupini srečanj.
@@ -1420,8 +1474,7 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 				}
 
 				if meeting2.DayOfTheWeek == meeting.DayOfTheWeek && meeting2.Hour == meeting.Hour && meeting.Week == meeting2.Week {
-					// Preverimo, da se učencem ne prekriva
-
+					// Preverimo, da se učencem in učiteljem ne prekriva
 					subject2, err := p.db.GetSubject(meeting2.SubjectID)
 					if err != nil {
 						return false, err
@@ -1438,9 +1491,9 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 						continue
 					}
 
-					var students1 []int
+					var students1 []string
 					if subject1.InheritsClass {
-						class, err := p.db.GetClass(subject1.ClassID)
+						class, err := p.db.GetClass(*subject1.ClassID)
 						if err != nil {
 							return false, err
 						}
@@ -1455,9 +1508,9 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 						}
 					}
 
-					var students2 []int
+					var students2 []string
 					if subject2.InheritsClass {
-						class, err := p.db.GetClass(subject2.ClassID)
+						class, err := p.db.GetClass(*subject2.ClassID)
 						if err != nil {
 							return false, err
 						}
@@ -1505,7 +1558,7 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 
 			//p.logger.Debugw("subjects in group", "group", subjectsInGroup, "subjectGroups", subjectGroups, "meeting", meeting)
 
-			mmap := make(map[int]bool)
+			mmap := make(map[string]bool)
 
 			for s := 0; s < len(subjectsInGroup); s++ {
 				subject, err := p.db.GetSubject(subjectsInGroup[s])
@@ -1523,7 +1576,7 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 						// Polni dnevi učitelja na šoli
 						for n := 0; n < len(rule.Objects); n++ {
 							object := rule.Objects[n]
-							if object.Type == "day" && object.ObjectID == meeting.DayOfTheWeek {
+							if object.Type == "day" && object.ObjectID == fmt.Sprint(meeting.DayOfTheWeek) {
 								mmap[subjectsInGroup[s]] = true
 								break
 							}
@@ -1537,7 +1590,11 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 						for k := 0; k < len(rule.Objects); k++ {
 							object := rule.Objects[k]
 							if object.Type == "day" {
-								day = object.ObjectID
+								day, err = strconv.Atoi(object.ObjectID)
+								if err != nil {
+									p.logger.Error(err.Error())
+									break
+								}
 							}
 						}
 						if day == -1 {
@@ -1551,7 +1608,7 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 						for n := 0; n < len(rule.Objects); n++ {
 							object := rule.Objects[n]
 
-							if object.Type == "hour" && object.ObjectID == meeting.Hour {
+							if object.Type == "hour" && object.ObjectID == fmt.Sprint(meeting.Hour) {
 								mmap[subjectsInGroup[s]] = true
 								break
 							}
@@ -1625,7 +1682,7 @@ func (p *protonImpl) SwapMeetings(timetable []ProtonMeeting, fullTimetable []Pro
 					}
 				}
 
-				var subjectsInSubjectGroup = make([]int, 0)
+				var subjectsInSubjectGroup = make([]string, 0)
 
 				for y := 0; y < len(currSubjectGroups); y++ {
 					subjectGroup := currSubjectGroups[y]
@@ -1637,7 +1694,7 @@ func (p *protonImpl) SwapMeetings(timetable []ProtonMeeting, fullTimetable []Pro
 				}
 
 				var replace1 = make([]ProtonMeeting, 0)
-				var students1 = make([]int, 0)
+				var students1 = make([]string, 0)
 				for y := 0; y < len(timetable); y++ {
 					meeting := timetable[y]
 
@@ -1655,9 +1712,9 @@ func (p *protonImpl) SwapMeetings(timetable []ProtonMeeting, fullTimetable []Pro
 						return stableClassTimetable, stableFullTimetable
 					}
 
-					var s []int
+					var s []string
 					if subject.InheritsClass {
-						class, err := p.db.GetClass(subject.ClassID)
+						class, err := p.db.GetClass(*subject.ClassID)
 						if err != nil {
 							return stableClassTimetable, stableFullTimetable
 						}
@@ -1699,9 +1756,9 @@ func (p *protonImpl) SwapMeetings(timetable []ProtonMeeting, fullTimetable []Pro
 						return stableClassTimetable, stableFullTimetable
 					}
 
-					var s []int
+					var s []string
 					if subject.InheritsClass {
-						class, err := p.db.GetClass(subject.ClassID)
+						class, err := p.db.GetClass(*subject.ClassID)
 						if err != nil {
 							return stableClassTimetable, stableFullTimetable
 						}
@@ -1813,7 +1870,7 @@ func (p *protonImpl) AssembleMeetingsFromProtonMeetings(timetable []ProtonMeetin
 		return nil, err
 	}
 
-	m := make(map[int]*time.Time)
+	m := make(map[string]*time.Time)
 
 	classes, err := p.db.GetClasses()
 	if err != nil {
@@ -1832,7 +1889,7 @@ func (p *protonImpl) AssembleMeetingsFromProtonMeetings(timetable []ProtonMeetin
 			}
 
 			if subject.InheritsClass {
-				class, err := p.db.GetClass(subject.ClassID)
+				class, err := p.db.GetClass(*subject.ClassID)
 				if err != nil {
 					return nil, err
 				}
@@ -1846,7 +1903,7 @@ func (p *protonImpl) AssembleMeetingsFromProtonMeetings(timetable []ProtonMeetin
 				continue
 			}
 
-			var subjectStudents []int
+			var subjectStudents []string
 			err = json.Unmarshal([]byte(subject.Students), &subjectStudents)
 			if err != nil {
 				return nil, err
@@ -1855,7 +1912,7 @@ func (p *protonImpl) AssembleMeetingsFromProtonMeetings(timetable []ProtonMeetin
 			for n := 0; n < len(classes); n++ {
 				class := classes[n]
 
-				var students []int
+				var students []string
 				err := json.Unmarshal([]byte(class.Students), &students)
 				if err != nil {
 					return nil, err
@@ -1891,8 +1948,6 @@ func (p *protonImpl) AssembleMeetingsFromProtonMeetings(timetable []ProtonMeetin
 	weeks := OrderMeetingsByWeek(timetable)
 
 	newTimetable := make([]sql.Meeting, 0)
-
-	id := p.db.GetLastMeetingID()
 
 	currentTime := time.Now()
 	firstSchoolDay, err := time.Parse("2006-01-02", fmt.Sprintf("%s-%s-%s", helpers.FmtSanitize(currentTime.Year()), "09", "01"))
@@ -1955,7 +2010,6 @@ func (p *protonImpl) AssembleMeetingsFromProtonMeetings(timetable []ProtonMeetin
 				}
 
 				newTimetable = append(newTimetable, sql.Meeting{
-					ID:                  id,
 					MeetingName:         meeting.SubjectName,
 					TeacherID:           meeting.TeacherID,
 					SubjectID:           meeting.SubjectID,
@@ -1971,7 +2025,6 @@ func (p *protonImpl) AssembleMeetingsFromProtonMeetings(timetable []ProtonMeetin
 					IsTest:              false,
 					IsBeta:              true,
 				})
-				id++
 			}
 			firstWeek = false
 			weekCount++

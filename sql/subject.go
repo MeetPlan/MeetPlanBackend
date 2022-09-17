@@ -6,11 +6,11 @@ import (
 )
 
 type Subject struct {
-	ID            int
-	TeacherID     int `db:"teacher_id"`
+	ID            string
+	TeacherID     string `db:"teacher_id"`
 	Name          string
-	InheritsClass bool `db:"inherits_class"`
-	ClassID       int  `db:"class_id"`
+	InheritsClass bool    `db:"inherits_class"`
+	ClassID       *string `db:"class_id"`
 	Students      string
 	LongName      string `db:"long_name"`
 	Realization   float32
@@ -22,20 +22,7 @@ type Subject struct {
 	UpdatedAt string `db:"updated_at"`
 }
 
-func (db *sqlImpl) GetLastSubjectID() int {
-	var id int
-	err := db.db.Get(&id, "SELECT id FROM subject WHERE id = (SELECT MAX(id) FROM subject)")
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return 0
-		}
-		db.logger.Info(err)
-		return -1
-	}
-	return id + 1
-}
-
-func (db *sqlImpl) GetSubject(id int) (subject Subject, err error) {
+func (db *sqlImpl) GetSubject(id string) (subject Subject, err error) {
 	err = db.db.Get(&subject, "SELECT * FROM subject WHERE id=$1", id)
 	return subject, err
 }
@@ -45,7 +32,7 @@ func (db *sqlImpl) GetSubjectsWithSpecificLongName(longName string) (subject []S
 	return subject, err
 }
 
-func (db *sqlImpl) GetAllSubjectsForTeacher(id int) (subject []Subject, err error) {
+func (db *sqlImpl) GetAllSubjectsForTeacher(id string) (subject []Subject, err error) {
 	err = db.db.Select(&subject, "SELECT * FROM subject WHERE teacher_id=$1 ORDER BY id ASC", id)
 	return subject, err
 }
@@ -55,7 +42,7 @@ func (db *sqlImpl) GetAllSubjects() (subject []Subject, err error) {
 	return subject, err
 }
 
-func (db *sqlImpl) GetAllSubjectsForUser(id int) (subjects []Subject, err error) {
+func (db *sqlImpl) GetAllSubjectsForUser(id string) (subjects []Subject, err error) {
 	subjectsAll, err := db.GetAllSubjects()
 	if err != nil {
 		return make([]Subject, 0), err
@@ -63,9 +50,9 @@ func (db *sqlImpl) GetAllSubjectsForUser(id int) (subjects []Subject, err error)
 	subjects = make([]Subject, 0)
 	for i := 0; i < len(subjectsAll); i++ {
 		subject := subjectsAll[i]
-		var users []int
+		var users []string
 		if subject.InheritsClass {
-			class, err := db.GetClass(subject.ClassID)
+			class, err := db.GetClass(*subject.ClassID)
 			if err != nil {
 				return make([]Subject, 0), err
 			}
@@ -88,7 +75,7 @@ func (db *sqlImpl) GetAllSubjectsForUser(id int) (subjects []Subject, err error)
 
 func (db *sqlImpl) InsertSubject(subject Subject) error {
 	_, err := db.db.NamedExec(
-		"INSERT INTO subject (id, teacher_id, name, inherits_class, class_id, students, long_name, realization, selected_hours, color, location) VALUES (:id, :teacher_id, :name, :inherits_class, :class_id, :students, :long_name, :realization, :selected_hours, :color, :location)",
+		"INSERT INTO subject (teacher_id, name, inherits_class, class_id, students, long_name, realization, selected_hours, color, location) VALUES (:teacher_id, :name, :inherits_class, :class_id, :students, :long_name, :realization, :selected_hours, :color, :location)",
 		subject)
 	return err
 }
@@ -107,16 +94,16 @@ func (db *sqlImpl) DeleteSubject(subject Subject) error {
 	return err
 }
 
-func (db *sqlImpl) DeleteStudentSubject(userId int) {
+func (db *sqlImpl) DeleteStudentSubject(userId string) {
 	subjects, _ := db.GetAllSubjects()
 	for i := 0; i < len(subjects); i++ {
 		subject := subjects[i]
-		var users []int
+		var users []string
 		json.Unmarshal([]byte(subject.Students), &users)
 		if subject.InheritsClass {
 			for n := 0; n < len(users); n++ {
 				if users[n] == userId {
-					users = remove(users, n)
+					users = helpers.Remove(users, n)
 				}
 			}
 			marshal, _ := json.Marshal(users)

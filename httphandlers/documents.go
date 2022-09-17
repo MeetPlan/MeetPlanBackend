@@ -29,6 +29,7 @@ func (server *httpImpl) FetchAllDocuments(w http.ResponseWriter, r *http.Request
 	}
 	documents, err := server.db.GetAllDocuments()
 	if err != nil {
+		WriteJSON(w, Response{Data: "Failed while fetching documents", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
 	documentsJson := make([]Document, 0)

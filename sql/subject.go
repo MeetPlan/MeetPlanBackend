@@ -17,6 +17,7 @@ type Subject struct {
 	SelectedHours float32 `db:"selected_hours"`
 	Color         string
 	Location      string `db:"location"`
+	IsGraded      bool   `db:"is_graded"`
 
 	CreatedAt string `db:"created_at"`
 	UpdatedAt string `db:"updated_at"`
@@ -75,14 +76,14 @@ func (db *sqlImpl) GetAllSubjectsForUser(id string) (subjects []Subject, err err
 
 func (db *sqlImpl) InsertSubject(subject Subject) error {
 	_, err := db.db.NamedExec(
-		"INSERT INTO subject (teacher_id, name, inherits_class, class_id, students, long_name, realization, selected_hours, color, location) VALUES (:teacher_id, :name, :inherits_class, :class_id, :students, :long_name, :realization, :selected_hours, :color, :location)",
+		"INSERT INTO subject (teacher_id, name, inherits_class, class_id, students, long_name, realization, selected_hours, color, location, is_graded) VALUES (:teacher_id, :name, :inherits_class, :class_id, :students, :long_name, :realization, :selected_hours, :color, :location, :is_graded)",
 		subject)
 	return err
 }
 
 func (db *sqlImpl) UpdateSubject(subject Subject) error {
 	_, err := db.db.NamedExec(
-		"UPDATE subject SET teacher_id=:teacher_id, name=:name, inherits_class=:inherits_class, class_id=:class_id, students=:students, long_name=:long_name, realization=:realization, selected_hours=:selected_hours, color=:color, location=:location WHERE id=:id",
+		"UPDATE subject SET teacher_id=:teacher_id, name=:name, inherits_class=:inherits_class, class_id=:class_id, students=:students, long_name=:long_name, realization=:realization, selected_hours=:selected_hours, color=:color, location=:location, is_graded=:is_graded WHERE id=:id",
 		subject)
 	return err
 }

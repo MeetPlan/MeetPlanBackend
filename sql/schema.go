@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS subject (
 	students                JSON            DEFAULT('[]'),
 	selected_hours          FLOAT           DEFAULT(1.0),
 	color                   VARCHAR(10),
+	is_graded               BOOLEAN,
 	
 	created_at              TIMESTAMP      NOT NULL DEFAULT now(),
 	updated_at              TIMESTAMP      NOT NULL DEFAULT now(),

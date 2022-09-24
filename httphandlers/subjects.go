@@ -69,6 +69,12 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	isGraded, err := strconv.ParseBool(r.FormValue("is_graded"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+
 	bytes := make([]byte, 3)
 	if _, err := rand.Read(bytes); err != nil {
 		WriteJSON(w, Response{Data: "failed while creating a random color for the subject", Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -88,6 +94,7 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 		SelectedHours: 1.0,
 		Color:         fmt.Sprintf("#%s", hex.EncodeToString(bytes)),
 		Location:      r.FormValue("location"),
+		IsGraded:      isGraded,
 	}
 	err = server.db.InsertSubject(nSubject)
 	if err != nil {
@@ -340,10 +347,16 @@ func (server *httpImpl) PatchSubjectName(w http.ResponseWriter, r *http.Request)
 		WriteJSON(w, Response{Data: "Failed to parse realization", Error: err.Error(), Success: false}, http.StatusBadRequest)
 		return
 	}
+	isGraded, err := strconv.ParseBool(r.FormValue("is_graded"))
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed to parse realization", Error: err.Error(), Success: false}, http.StatusBadRequest)
+		return
+	}
 	subject.LongName = r.FormValue("long_name")
 	subject.Realization = float32(realization)
 	subject.SelectedHours = float32(selectedHours)
 	subject.Location = r.FormValue("location")
+	subject.IsGraded = isGraded
 	err = server.db.UpdateSubject(subject)
 	if err != nil {
 		WriteJSON(w, Response{Data: "Failed to update subject", Error: err.Error(), Success: false}, http.StatusInternalServerError)

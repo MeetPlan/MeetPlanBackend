@@ -1,0 +1,1 @@
+ALTER TABLE subject ADD COLUMN is_graded BOOLEAN DEFAULT true;

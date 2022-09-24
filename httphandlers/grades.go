@@ -22,11 +22,12 @@ type PeriodGrades struct {
 }
 
 type UserGradeTable struct {
-	ID      string
-	Name    string
-	Average float64
-	Final   int
-	Periods []PeriodGrades
+	ID       string
+	Name     string
+	Average  float64
+	Final    int
+	IsGraded bool
+	Periods  []PeriodGrades
 }
 
 type SubjectPosition struct {
@@ -161,11 +162,12 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 			Average: secondAverage,
 		})
 		usergrades = append(usergrades, UserGradeTable{
-			ID:      user.ID,
-			Name:    user.Name,
-			Periods: periods,
-			Average: avg,
-			Final:   final,
+			ID:       user.ID,
+			Name:     user.Name,
+			Periods:  periods,
+			IsGraded: subject.IsGraded,
+			Average:  avg,
+			Final:    final,
 		})
 	}
 	WriteJSON(w, Response{
@@ -200,6 +202,10 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 	subject, err := server.db.GetSubject(meeting.SubjectID)
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+		return
+	}
+	if !subject.IsGraded {
+		WriteJSON(w, Response{Data: "Subject isn't graded. Cannot write any grades.", Success: false}, http.StatusConflict)
 		return
 	}
 	if user.Role == TEACHER && subject.TeacherID != user.ID {
@@ -523,11 +529,12 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 			avg = float64(total) / float64(gradesCount)
 		}
 		grades := UserGradeTable{
-			ID:      subject.ID,
-			Name:    subject.Name,
-			Average: avg,
-			Periods: periods,
-			Final:   final,
+			ID:       subject.ID,
+			Name:     subject.Name,
+			Average:  avg,
+			Periods:  periods,
+			IsGraded: subject.IsGraded,
+			Final:    final,
 		}
 		subjectsResponse = append(subjectsResponse, grades)
 	}
@@ -819,6 +826,9 @@ func (server *httpImpl) PrintCertificateOfEndingClass(w http.ResponseWriter, r *
 		var found = -1
 		var name = ""
 		for n := 0; n < len(subjects); n++ {
+			if !subjects[n].IsGraded {
+				continue
+			}
 			if subjectsPosition[i].IsThirdLanguage {
 				if subjects[n].LongName == "angleščina" || subjects[n].LongName == "madžarščina" || subjects[n].LongName == "italijanščina" {
 					name = subjects[n].LongName

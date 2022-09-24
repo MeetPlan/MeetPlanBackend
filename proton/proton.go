@@ -1473,7 +1473,7 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 					}
 				}
 
-				if meeting2.DayOfTheWeek == meeting.DayOfTheWeek && meeting2.Hour == meeting.Hour && meeting.Week == meeting2.Week {
+				if meeting.DayOfTheWeek == meeting2.DayOfTheWeek && meeting.Hour == meeting2.Hour && meeting.Week == meeting2.Week {
 					// Preverimo, da se učencem in učiteljem ne prekriva
 					subject2, err := p.db.GetSubject(meeting2.SubjectID)
 					if err != nil {
@@ -1484,7 +1484,7 @@ func (p *protonImpl) CheckIfProtonConfigIsOk(timetable []ProtonMeeting) (bool, e
 					}
 
 					if subject1.InheritsClass && subject2.InheritsClass {
-						if subject2.ClassID == subject1.ClassID {
+						if *subject2.ClassID == *subject1.ClassID {
 							return false, errors.New(fmt.Sprintf("subjects %s and %s inherit the same class and thus cannot be made at same time", helpers.FmtSanitize(subject1.ID), helpers.FmtSanitize(subject2.ID)))
 						}
 						// V tem primeru nista isti razred, posledično se ne prekrivata

@@ -98,8 +98,9 @@ func (db *sqlImpl) GetMeetings() (meetings []Meeting, err error) {
 	return meetings, err
 }
 
-func (db *sqlImpl) GetMeetingsForSubjectWithIDLower(id string, subjectId string) (meetings []Meeting, err error) {
-	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE id<=$1 AND subject_id=$2", id, subjectId)
+func (db *sqlImpl) GetMeetingsForSubjectWithIDLower(createdAt string, subjectId string) (meetings []Meeting, err error) {
+	// Ok, ja, to je tut ful bad, ampak približno isto, kakor smo prej določevali z ID-ji.
+	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE created_at<=$1 AND subject_id=$2", createdAt, subjectId)
 	return meetings, err
 }
 

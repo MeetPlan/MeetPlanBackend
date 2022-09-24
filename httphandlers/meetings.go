@@ -219,7 +219,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 
 			if cont {
 				if (currentUser.Role == TEACHER || currentUser.Role == SCHOOL_PSYCHOLOGIST) && myMeetings {
-					if meeting.TeacherID == user.ID || subject.TeacherID == user.ID {
+					if meeting.TeacherID == currentUser.ID {
 						m = append(m, meeting)
 					}
 				} else {
@@ -414,7 +414,7 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 		WriteBadRequest(w)
 		return
 	}
-	teacherId := user.ID
+
 	name := r.FormValue("name")
 
 	isMandatoryString := r.FormValue("is_mandatory")
@@ -438,17 +438,6 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 		isWrittenAssessment = true
 	}
 
-	isSubstitutionString := r.FormValue("is_substitution")
-	var isSubstitution = false
-	if (user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) && isSubstitutionString == "true" {
-		isSubstitution = true
-		teacherId = r.FormValue("teacherId")
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-	}
-
 	isTestString := r.FormValue("is_test")
 	var isTest = false
 	if isTestString == "true" {
@@ -460,6 +449,18 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 	subject, err := server.db.GetSubject(originalmeeting.SubjectID)
 	if err != nil {
 		return
+	}
+
+	teacherId := subject.TeacherID
+	isSubstitutionString := r.FormValue("is_substitution")
+	var isSubstitution = false
+	if (user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) && isSubstitutionString == "true" {
+		isSubstitution = true
+		teacherId = r.FormValue("teacherId")
+		if err != nil {
+			WriteBadRequest(w)
+			return
+		}
 	}
 
 	if !(subject.TeacherID == teacherId || originalmeeting.TeacherID == teacherId) && (user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST) {
@@ -617,7 +618,7 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	meetingsList, err := server.db.GetMeetingsForSubjectWithIDLower(meetingId, subject.ID)
+	meetingsList, err := server.db.GetMeetingsForSubjectWithIDLower(meeting.CreatedAt, subject.ID)
 	if err != nil {
 		return
 	}

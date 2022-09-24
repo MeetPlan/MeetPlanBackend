@@ -2023,6 +2023,7 @@ func (p *protonImpl) AssembleMeetingsFromProtonMeetings(timetable []ProtonMeetin
 					IsGrading:           false,
 					IsWrittenAssessment: false,
 					IsTest:              false,
+					IsCorrectionTest:    false,
 					IsBeta:              true,
 				})
 			}

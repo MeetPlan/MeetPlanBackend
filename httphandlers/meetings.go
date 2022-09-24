@@ -164,7 +164,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < len(dates); i++ {
 		date := dates[i]
 		meetings, err := server.db.GetMeetingsOnSpecificDate(date,
-			currentUser.Role == ADMIN || currentUser.Role == PRINCIPAL || currentUser.Role == PRINCIPAL_ASSISTANT || currentUser.Role == TEACHER || currentUser.Role == SCHOOL_PSYCHOLOGIST,
+			user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST,
 		)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -331,6 +331,12 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 		isWrittenAssessment = true
 	}
 
+	isCorrectionTest, err := strconv.ParseBool(r.FormValue("is_correction_test"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+
 	isTestString := r.FormValue("is_test")
 	var isTest = false
 	if isTestString == "true" {
@@ -367,7 +373,6 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 		date := dates[i]
 
 		meeting := sql.Meeting{
-
 			MeetingName:         name,
 			TeacherID:           user.ID,
 			SubjectID:           subjectId,
@@ -380,6 +385,7 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 			IsGrading:           isGrading,
 			IsWrittenAssessment: isWrittenAssessment,
 			IsTest:              isTest,
+			IsCorrectionTest:    isCorrectionTest,
 			IsSubstitution:      false,
 			IsBeta:              false,
 		}
@@ -444,6 +450,12 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 		isTest = true
 	}
 
+	isCorrectionTest, err := strconv.ParseBool(r.FormValue("is_correction_test"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+
 	originalmeeting, err := server.db.GetMeeting(id)
 
 	subject, err := server.db.GetSubject(originalmeeting.SubjectID)
@@ -482,6 +494,7 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 		IsWrittenAssessment: isWrittenAssessment,
 		IsTest:              isTest,
 		IsSubstitution:      isSubstitution,
+		IsCorrectionTest:    isCorrectionTest,
 		IsBeta:              originalmeeting.IsBeta,
 		Location:            r.FormValue("location"),
 	}

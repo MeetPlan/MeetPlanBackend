@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS meetings (
 	is_mandatory            BOOLEAN         NOT NULL,
 	is_grading              BOOLEAN         NOT NULL,
 	is_written_assessment   BOOLEAN,
+	is_correction_test      BOOLEAN         NOT NULL,
 	is_test                 BOOLEAN         NOT NULL,
 	is_substitution         BOOLEAN         NOT NULL,
 	is_beta                 BOOLEAN         NOT NULL,

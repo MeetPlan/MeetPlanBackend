@@ -15,11 +15,12 @@ type Meeting struct {
 	// Ocenjevanje
 	IsGrading           bool `db:"is_grading"`
 	IsWrittenAssessment bool `db:"is_written_assessment"`
+	IsCorrectionTest    bool `db:"is_correction_test"`
 	// Preverjanje znanja
 	IsTest bool `db:"is_test"`
-	// Beta srečanja so tista, ustvarjena z Proton layerjem. Proton bo prvo ustvaril nova beta, srečanja, katera so neodvisna od drugih in katerih učenci ne morejo videti.
+	// Beta srečanja so tista, ustvarjena s Proton layerjem. Proton bo prvo ustvaril nova beta srečanja, ki so neodvisna od drugih in katerih učenci ne morejo videti.
 	// Vsak učitelj bo lahko preveril svoje učne ure in svoj urnik s tem ustvarjenim urnikom.
-	// Če učitelji ne bodo zadovoljni, se z enim klikom izbriše ta srečanja in se ustvari nov urnik z Proton layerjem, drugače pa se jih z enim klikom spremeni v normalna srečanja,
+	// Če učitelji ne bodo zadovoljni, se z enim klikom izbriše ta srečanja in se ustvari nov urnik s Proton layerjem, drugače pa se jih z enim klikom spremeni v normalna srečanja,
 	// vidna tudi učencem
 	IsBeta bool `db:"is_beta"`
 
@@ -59,8 +60,8 @@ func (db *sqlImpl) GetMeetingsForSubject(subjectId string) (meetings []Meeting, 
 
 func (db *sqlImpl) InsertMeeting(meeting Meeting) (err error) {
 	i := `
-	INSERT INTO meetings (meeting_name, teacher_id, subject_id, hour, date, is_mandatory, url, details, is_grading, is_written_assessment, is_test, is_substitution, is_beta, location)
-		VALUES (:meeting_name, :teacher_id, :subject_id, :hour, :date, :is_mandatory, :url, :details, :is_grading, :is_written_assessment, :is_test, :is_substitution, :is_beta, :location)
+	INSERT INTO meetings (meeting_name, teacher_id, subject_id, hour, date, is_mandatory, url, details, is_grading, is_written_assessment, is_test, is_substitution, is_beta, location, is_correction_test)
+		VALUES (:meeting_name, :teacher_id, :subject_id, :hour, :date, :is_mandatory, :url, :details, :is_grading, :is_written_assessment, :is_test, :is_substitution, :is_beta, :location, :is_correction_test)
 	`
 	_, err = db.db.NamedExec(
 		i,
@@ -75,7 +76,7 @@ func (db *sqlImpl) UpdateMeeting(meeting Meeting) error {
 	                    is_mandatory=:is_mandatory, url=:url, details=:details,
 	                    is_grading=:is_grading, is_written_assessment=:is_written_assessment,
 	                    is_test=:is_test, is_substitution=:is_substitution, is_beta=:is_beta,
-	                    location=:location WHERE id=:id
+	                    location=:location, is_correction_test=:is_correction_test WHERE id=:id
 	`
 	_, err := db.db.NamedExec(
 		i,

@@ -35,8 +35,13 @@ func (server *httpImpl) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if user.IsLocked {
+		WriteJSON(w, Response{Data: "You are LOCKED. This can be from several different reasons, such as abuse of your account. You cannot log in until the school staff unlocks your account.", Success: false}, http.StatusForbidden)
+		return
+	}
+
 	if user.Role == UNVERIFIED {
-		WriteJSON(w, Response{Data: "You are unverified. You cannot login until the school administrator confirms you.", Success: false}, http.StatusForbidden)
+		WriteJSON(w, Response{Data: "You are unverified. You cannot log in until the school staff confirms you.", Success: false}, http.StatusForbidden)
 		return
 	}
 
@@ -115,7 +120,6 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := sql.User{
-
 		Email:                  email,
 		Password:               password,
 		Role:                   role,
@@ -126,6 +130,7 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 		CountryOfBirth:         "",
 		LoginToken:             "",
 		Users:                  "[]",
+		IsLocked:               false,
 	}
 
 	err = server.db.InsertUser(user)

@@ -56,6 +56,7 @@ type HTTP interface {
 	ChangeRole(w http.ResponseWriter, r *http.Request)
 	DeleteUser(w http.ResponseWriter, r *http.Request)
 	GetTeachers(w http.ResponseWriter, r *http.Request)
+	LockUnlockUser(w http.ResponseWriter, r *http.Request)
 
 	// meetings.go
 	GetTimetable(w http.ResponseWriter, r *http.Request)

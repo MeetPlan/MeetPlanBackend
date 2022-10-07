@@ -200,6 +200,7 @@ func main() {
 	r.HandleFunc("/meals/blocked", httphandler.MealsBlocked).Methods("GET")
 	r.HandleFunc("/teachers/get", httphandler.GetTeachers).Methods("GET")
 	r.HandleFunc("/students/get", httphandler.GetStudents).Methods("GET")
+	r.HandleFunc("/user/lock_unlock/{id}", httphandler.LockUnlockUser).Methods("PATCH")
 	r.HandleFunc("/user/role/update/{id}", httphandler.ChangeRole).Methods("PATCH")
 	r.HandleFunc("/user/delete/{id}", httphandler.DeleteUser).Methods("DELETE")
 

@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
 	login_token              VARCHAR(400),
 	users                    VARCHAR(200)   DEFAULT('[]'),
 	is_passing               BOOLEAN,
+	is_locked                BOOLEAN        NOT NULL,
 	
 	created_at               TIMESTAMP      NOT NULL DEFAULT now(),
 	updated_at               TIMESTAMP      NOT NULL DEFAULT now()

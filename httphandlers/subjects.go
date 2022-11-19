@@ -122,7 +122,7 @@ func (server *httpImpl) GetSubject(w http.ResponseWriter, r *http.Request) {
 	}
 	subject, err := server.db.GetSubject(subjectId)
 	if err != nil {
-		server.logger.Debug(err, subjectId)
+		server.logger.Debug(err, helpers.FmtSanitize(subjectId))
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}

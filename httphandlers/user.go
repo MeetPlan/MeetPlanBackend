@@ -428,7 +428,7 @@ func (server *httpImpl) GetAllClasses(w http.ResponseWriter, r *http.Request) {
 				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 				return
 			}
-			server.logger.Debug(students, userId)
+			server.logger.Debug(helpers.FmtSanitize(students), helpers.FmtSanitize(userId))
 			for n := 0; n < len(students); n++ {
 				for l := 0; l < len(userId); l++ {
 					if students[n] == userId[l] && !helpers.Contains(myClassesInt, students[n]) {

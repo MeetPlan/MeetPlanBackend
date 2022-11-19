@@ -98,7 +98,7 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 	}
 	err = server.db.InsertSubject(nSubject)
 	if err != nil {
-		server.logger.Debug(teacherId, classId, inheritsClass, studentsJson)
+		server.logger.Debug(helpers.FmtSanitize(teacherId), helpers.FmtSanitize(classId), helpers.FmtSanitize(inheritsClass), helpers.FmtSanitize(studentsJson))
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}

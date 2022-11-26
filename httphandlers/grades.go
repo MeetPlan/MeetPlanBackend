@@ -242,24 +242,25 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
-	isWritten := r.FormValue("is_written")
-	isWrittenBool := false
-	if isWritten == "true" {
-		isWrittenBool = true
+	isWritten, err := strconv.ParseBool(r.FormValue("is_written"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
 	}
 
-	isFinal := r.FormValue("is_final")
-	isFinalBool := false
-	if isFinal == "true" {
-		isFinalBool = true
+	isFinal, err := strconv.ParseBool(r.FormValue("is_final"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
 	}
 
 	canPatch, err := strconv.ParseBool(r.FormValue("can_patch"))
 	if err != nil {
+		WriteBadRequest(w)
 		return
 	}
 
-	if isFinalBool {
+	if isFinal {
 		grades, err := server.db.GetGradesForUserInSubject(userId, meeting.SubjectID)
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -279,10 +280,10 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 		SubjectID:   subject.ID,
 		Grade:       grade,
 		Date:        time.Now().String(),
-		IsWritten:   isWrittenBool,
+		IsWritten:   isWritten,
 		Period:      period,
-		Description: "",
-		IsFinal:     isFinalBool,
+		Description: r.FormValue("description"),
+		IsFinal:     isFinal,
 		CanPatch:    canPatch,
 	}
 
@@ -347,15 +348,17 @@ func (server *httpImpl) PatchGrade(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
-	isWritten := r.FormValue("is_written")
-	isWrittenBool := false
-	if isWritten == "true" {
-		isWrittenBool = true
+
+	isWritten, err := strconv.ParseBool(r.FormValue("is_written"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
 	}
 
+	grade.Description = r.FormValue("description")
 	grade.Grade = ngrade
 	grade.Period = period
-	grade.IsWritten = isWrittenBool
+	grade.IsWritten = isWritten
 	grade.TeacherID = user.ID
 
 	err = server.db.UpdateGrade(grade)

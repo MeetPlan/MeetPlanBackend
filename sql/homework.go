@@ -37,7 +37,7 @@ func (db *sqlImpl) GetHomeworkForTeacher(teacherId string) (homework []Homework,
 func (db *sqlImpl) InsertHomework(homework Homework) error {
 	i := `
 	INSERT INTO homework
-	    teacher_id, subject_id, name, description, from_date, to_date) VALUES
+	    (teacher_id, subject_id, name, description, from_date, to_date) VALUES
 	    (:teacher_id, :subject_id, :name, :description, :from_date, :to_date)
 	`
 	_, err := db.db.NamedExec(

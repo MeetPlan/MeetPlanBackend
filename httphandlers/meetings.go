@@ -432,22 +432,22 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 	url := r.FormValue("url")
 	details := r.FormValue("details")
 
-	isGradingString := r.FormValue("is_grading")
-	var isGrading = false
-	if isGradingString == "true" {
-		isGrading = true
+	isGrading, err := strconv.ParseBool(r.FormValue("is_grading"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
 	}
 
-	isWrittenAssessmentString := r.FormValue("is_written_assessment")
-	var isWrittenAssessment = false
-	if isWrittenAssessmentString == "true" {
-		isWrittenAssessment = true
+	isWrittenAssessment, err := strconv.ParseBool(r.FormValue("is_written_assessment"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
 	}
 
-	isTestString := r.FormValue("is_test")
-	var isTest = false
-	if isTestString == "true" {
-		isTest = true
+	isTest, err := strconv.ParseBool(r.FormValue("is_test"))
+	if err != nil {
+		WriteBadRequest(w)
+		return
 	}
 
 	isCorrectionTest, err := strconv.ParseBool(r.FormValue("is_correction_test"))

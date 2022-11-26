@@ -38,23 +38,26 @@ func (server *httpImpl) NewHomework(w http.ResponseWriter, r *http.Request) {
 	}
 	meetingId := mux.Vars(r)["meeting_id"]
 	if err != nil {
+		WriteJSON(w, Response{Data: "Error while parsing meeting_id", Error: err.Error(), Success: false}, http.StatusNotFound)
 		return
 	}
 	meeting, err := server.db.GetMeeting(meetingId)
 	if err != nil {
+		WriteJSON(w, Response{Data: "This meeting doesn't seem to exist", Error: err.Error(), Success: false}, http.StatusNotFound)
 		return
 	}
 	subject, err := server.db.GetSubject(meeting.SubjectID)
 	if err != nil {
+		WriteJSON(w, Response{Data: "The subject doesn't seem to exist", Error: err.Error(), Success: false}, http.StatusNotFound)
 		return
 	}
+
 	if user.Role == TEACHER && !(subject.TeacherID == user.ID || meeting.TeacherID == user.ID) {
 		WriteForbiddenJWT(w)
 		return
 	}
 	currentTime := time.Now()
 	homework := sql.Homework{
-
 		TeacherID:   user.ID,
 		SubjectID:   meeting.SubjectID,
 		Name:        r.FormValue("name"),
@@ -64,6 +67,7 @@ func (server *httpImpl) NewHomework(w http.ResponseWriter, r *http.Request) {
 	}
 	err = server.db.InsertHomework(homework)
 	if err != nil {
+		WriteJSON(w, Response{Data: "Error while inserting homework into database", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
 	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusCreated)

@@ -283,6 +283,8 @@ func main() {
 		AllowedMethods: []string{"POST", "GET", "DELETE", "PATCH", "PUT"},
 	})
 
+	sugared.Infof("Serving at %s", config.Host)
+
 	err = http.ListenAndServe(config.Host, c.Handler(r))
 	if err != nil {
 		sugared.Fatal(err.Error())

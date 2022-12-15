@@ -51,7 +51,7 @@ func (db *sqlImpl) GetUserByEmail(email string) (user User, err error) {
 
 func (db *sqlImpl) InsertUser(user User) (err error) {
 	_, err = db.db.NamedExec(
-		"INSERT INTO users (email, pass, role, name, birth_certificate_number, city_of_birth, country_of_birth, birthday, users, is_passing, login_token, is_locked) VALUES (:pass, :role, :name, :birth_certificate_number, :city_of_birth, :country_of_birth, :birthday, :users, :is_passing, :login_token, :is_locked)",
+		"INSERT INTO users (email, pass, role, name, birth_certificate_number, city_of_birth, country_of_birth, birthday, users, is_passing, login_token, is_locked) VALUES (:email, :pass, :role, :name, :birth_certificate_number, :city_of_birth, :country_of_birth, :birthday, :users, :is_passing, :login_token, :is_locked)",
 		user)
 	return err
 }

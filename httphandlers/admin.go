@@ -4,12 +4,11 @@ import (
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/gorilla/mux"
 	"net/http"
-	"strconv"
 )
 
 type UserJSON struct {
 	Name                   string
-	ID                     int
+	ID                     string
 	Email                  string
 	Role                   string
 	BirthCertificateNumber string
@@ -17,6 +16,7 @@ type UserJSON struct {
 	CityOfBirth            string
 	CountryOfBirth         string
 	IsPassing              bool
+	IsLocked               bool
 }
 
 const ADMIN = "admin"
@@ -53,7 +53,7 @@ func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, err := strconv.Atoi(mux.Vars(r)["id"])
+	userId := mux.Vars(r)["id"]
 	if err != nil {
 		return
 	}
@@ -104,6 +104,45 @@ func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, Response{Success: true}, http.StatusOK)
 }
 
+func (server *httpImpl) LockUnlockUser(w http.ResponseWriter, r *http.Request) {
+	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	if err != nil {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT) {
+		WriteForbiddenJWT(w)
+		return
+	}
+
+	userId := mux.Vars(r)["id"]
+	if err != nil {
+		return
+	}
+	selectedUser, err := server.db.GetUser(userId)
+	if err != nil {
+		return
+	}
+	if selectedUser.ID == user.ID {
+		WriteJSON(w, Response{Data: "Cannot lock yourself", Success: false}, http.StatusConflict)
+		return
+	}
+	if !((user.Role == PRINCIPAL_ASSISTANT && selectedUser.Role != ADMIN && selectedUser.Role != PRINCIPAL && selectedUser.Role != PRINCIPAL_ASSISTANT) ||
+		(user.Role == PRINCIPAL && selectedUser.Role != ADMIN && selectedUser.Role != PRINCIPAL) ||
+		(user.Role == ADMIN && selectedUser.Role != ADMIN)) {
+		WriteForbiddenJWT(w)
+		return
+	}
+	selectedUser.IsLocked = !selectedUser.IsLocked
+
+	err = server.db.UpdateUser(selectedUser)
+	if err != nil {
+		return
+	}
+	WriteJSON(w, Response{Success: true}, http.StatusOK)
+}
+
 func (server *httpImpl) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
 	if err != nil {
@@ -121,7 +160,7 @@ func (server *httpImpl) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		if !(user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST || user.Role == PRINCIPAL_ASSISTANT || user.Role == PRINCIPAL || user.Role == ADMIN || user.Role == FOOD_ORGANIZER) && (currentUser.Role == STUDENT || currentUser.Role == PARENT) {
 			continue
 		}
-		m := UserJSON{ID: currentUser.ID, Email: currentUser.Email, Role: currentUser.Role, Name: currentUser.Name}
+		m := UserJSON{ID: currentUser.ID, Email: currentUser.Email, Role: currentUser.Role, Name: currentUser.Name, IsLocked: currentUser.IsLocked}
 		usersjson = append(usersjson, m)
 	}
 	WriteJSON(w, Response{Data: usersjson, Success: true}, http.StatusOK)
@@ -163,7 +202,7 @@ func (server *httpImpl) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, err := strconv.Atoi(mux.Vars(r)["id"])
+	userId := mux.Vars(r)["id"]
 	if err != nil {
 		return
 	}

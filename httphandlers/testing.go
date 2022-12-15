@@ -12,7 +12,6 @@ import (
 	"github.com/johnfercher/maroto/pkg/props"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -27,7 +26,7 @@ func (server *httpImpl) GetSelfTestingTeacher(w http.ResponseWriter, r *http.Req
 		WriteForbiddenJWT(w)
 		return
 	}
-	classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
+	classId := mux.Vars(r)["class_id"]
 	if err != nil {
 		WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
 		return
@@ -52,7 +51,7 @@ func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 		WriteForbiddenJWT(w)
 		return
 	}
-	studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
+	studentId := mux.Vars(r)["student_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -69,7 +68,7 @@ func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
+	classId := mux.Vars(r)["class_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -89,8 +88,8 @@ func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 		server.logger.Debug(err)
 		if err.Error() == "sql: no rows in result set" {
 			results = sql.Testing{
-				Date:      date,
-				ID:        server.db.GetLastTestingID(),
+				Date: date,
+
 				UserID:    studentId,
 				TeacherID: user.ID,
 				ClassID:   class.ID,
@@ -136,7 +135,7 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 		WriteForbiddenJWT(w)
 		return
 	}
-	id, err := strconv.Atoi(mux.Vars(r)["test_id"])
+	id := mux.Vars(r)["test_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -153,7 +152,7 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 			return
 		}
 	} else if user.Role == PARENT {
-		var users []int
+		var users []string
 		json.Unmarshal([]byte(user.Users), &users)
 		if !helpers.Contains(users, test.UserID) {
 			WriteForbiddenJWT(w)
@@ -344,13 +343,10 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 		return
 	}
 
-	currentTime := time.Now().UnixMilli()
-
 	document := sql.Document{
 		ID:           UUID,
 		ExportedBy:   user.ID,
 		DocumentType: POTRDILO_O_SAMOTESTIRANJU,
-		Timestamp:    int(currentTime),
 		IsSigned:     true,
 	}
 

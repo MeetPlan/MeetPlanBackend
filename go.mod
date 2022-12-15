@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
-	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/go-git/go-git/v5 v5.4.2
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/jmoiron/sqlx v1.3.5
@@ -26,7 +26,6 @@ require (
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
-	github.com/go-git/go-git/v5 v5.4.2 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jung-kurt/gofpdf v1.16.2 // indirect

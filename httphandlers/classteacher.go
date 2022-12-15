@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
-	"strconv"
 )
 
 func (server *httpImpl) ExcuseAbsence(w http.ResponseWriter, r *http.Request) {
@@ -18,12 +17,12 @@ func (server *httpImpl) ExcuseAbsence(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	studentId, err := strconv.Atoi(mux.Vars(r)["student_id"])
+	studentId := mux.Vars(r)["student_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
 	}
-	absenceId, err := strconv.Atoi(mux.Vars(r)["absence_id"])
+	absenceId := mux.Vars(r)["absence_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -35,7 +34,7 @@ func (server *httpImpl) ExcuseAbsence(w http.ResponseWriter, r *http.Request) {
 	var valid = false
 	for i := 0; i < len(classes); i++ {
 		class := classes[i]
-		var users []int
+		var users []string
 		err := json.Unmarshal([]byte(class.Students), &users)
 		if err != nil {
 			return

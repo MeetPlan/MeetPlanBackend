@@ -33,7 +33,7 @@ type HTTP interface {
 	GetAbsencesUser(w http.ResponseWriter, r *http.Request)
 	CertificateOfSchooling(w http.ResponseWriter, r *http.Request)
 	ResetPassword(w http.ResponseWriter, r *http.Request)
-	GenerateNewUserCert(pdf *gopdf.GoPdf, userId int) (*gopdf.GoPdf, string, error)
+	GenerateNewUserCert(pdf *gopdf.GoPdf, userId string) (*gopdf.GoPdf, string, error)
 	ChangePassword(w http.ResponseWriter, r *http.Request)
 
 	// testing.go
@@ -56,6 +56,7 @@ type HTTP interface {
 	ChangeRole(w http.ResponseWriter, r *http.Request)
 	DeleteUser(w http.ResponseWriter, r *http.Request)
 	GetTeachers(w http.ResponseWriter, r *http.Request)
+	LockUnlockUser(w http.ResponseWriter, r *http.Request)
 
 	// meetings.go
 	GetTimetable(w http.ResponseWriter, r *http.Request)

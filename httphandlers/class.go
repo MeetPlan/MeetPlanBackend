@@ -2,7 +2,6 @@ package httphandlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
@@ -12,8 +11,8 @@ import (
 
 type ClassJSON struct {
 	Students       []UserJSON
-	ID             int
-	TeacherID      int
+	ID             string
+	TeacherID      string
 	TeacherName    string
 	ClassYear      string
 	SOK            int
@@ -34,15 +33,15 @@ func (server *httpImpl) NewClass(w http.ResponseWriter, r *http.Request) {
 	}
 
 	className := r.FormValue("name")
-	teacherIdStr := fmt.Sprint(r.FormValue("teacher_id"))
+	teacherId := r.FormValue("teacher_id")
 
-	teacherId, err := strconv.Atoi(teacherIdStr)
+	_, err = server.db.GetUser(teacherId)
 	if err != nil {
-		WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
+		WriteBadRequest(w)
 		return
 	}
 
-	class := sql.Class{ID: server.db.GetLastClassID(), Name: className, Teacher: teacherId, ClassYear: r.FormValue("class_year")}
+	class := sql.Class{Name: className, Teacher: teacherId, ClassYear: r.FormValue("class_year")}
 	server.logger.Debug(class)
 	err = server.db.InsertClass(class)
 	if err != nil {
@@ -84,7 +83,7 @@ func (server *httpImpl) PatchClass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	classId, err := strconv.Atoi(mux.Vars(r)["id"])
+	classId := mux.Vars(r)["id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -131,7 +130,7 @@ func (server *httpImpl) GetClass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	classId, err := strconv.Atoi(mux.Vars(r)["id"])
+	classId := mux.Vars(r)["id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -143,7 +142,7 @@ func (server *httpImpl) GetClass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var students []int
+	var students []string
 	err = json.Unmarshal([]byte(class.Students), &students)
 
 	var studentsJson = make([]UserJSON, 0)
@@ -190,12 +189,12 @@ func (server *httpImpl) AssignUserToClass(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
+	classId := mux.Vars(r)["class_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+	userId := mux.Vars(r)["user_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -214,7 +213,7 @@ func (server *httpImpl) AssignUserToClass(w http.ResponseWriter, r *http.Request
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
-	var m []int
+	var m []string
 	err = json.Unmarshal([]byte(class.Students), &m)
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -255,12 +254,12 @@ func (server *httpImpl) RemoveUserFromClass(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	classId, err := strconv.Atoi(mux.Vars(r)["class_id"])
+	classId := mux.Vars(r)["class_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+	userId := mux.Vars(r)["user_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -270,7 +269,7 @@ func (server *httpImpl) RemoveUserFromClass(w http.ResponseWriter, r *http.Reque
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
-	var m []int
+	var m []string
 	err = json.Unmarshal([]byte(class.Students), &m)
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -310,7 +309,7 @@ func (server *httpImpl) DeleteClass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	classId, err := strconv.Atoi(mux.Vars(r)["id"])
+	classId := mux.Vars(r)["id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return

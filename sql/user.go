@@ -1,7 +1,7 @@
 package sql
 
 type User struct {
-	ID                     int
+	ID                     string
 	Email                  string
 	Password               string `db:"pass"`
 	Role                   string
@@ -13,12 +13,13 @@ type User struct {
 	Users                  string
 	LoginToken             string `db:"login_token"`
 	IsPassing              bool   `db:"is_passing"`
+	IsLocked               bool   `db:"is_locked"`
 
 	CreatedAt string `db:"created_at"`
 	UpdatedAt string `db:"updated_at"`
 }
 
-func (db *sqlImpl) GetUser(id int) (user User, err error) {
+func (db *sqlImpl) GetUser(id string) (user User, err error) {
 	err = db.db.Get(&user, "SELECT * FROM users WHERE id=$1", id)
 	return user, err
 }
@@ -50,21 +51,9 @@ func (db *sqlImpl) GetUserByEmail(email string) (user User, err error) {
 
 func (db *sqlImpl) InsertUser(user User) (err error) {
 	_, err = db.db.NamedExec(
-		"INSERT INTO users (id, email, pass, role, name, birth_certificate_number, city_of_birth, country_of_birth, birthday, users, is_passing, login_token) VALUES (:id, :email, :pass, :role, :name, :birth_certificate_number, :city_of_birth, :country_of_birth, :birthday, :users, :is_passing, :login_token)",
+		"INSERT INTO users (email, pass, role, name, birth_certificate_number, city_of_birth, country_of_birth, birthday, users, is_passing, login_token, is_locked) VALUES (:pass, :role, :name, :birth_certificate_number, :city_of_birth, :country_of_birth, :birthday, :users, :is_passing, :login_token, :is_locked)",
 		user)
 	return err
-}
-
-func (db *sqlImpl) GetLastUserID() (id int) {
-	err := db.db.Get(&id, "SELECT id FROM users WHERE id = (SELECT MAX(id) FROM users)")
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return 0
-		}
-		db.logger.Info(err)
-		return -1
-	}
-	return id + 1
 }
 
 func (db *sqlImpl) CheckIfAdminIsCreated() bool {
@@ -84,12 +73,12 @@ func (db *sqlImpl) GetAllUsers() (users []User, err error) {
 
 func (db *sqlImpl) UpdateUser(user User) error {
 	_, err := db.db.NamedExec(
-		"UPDATE users SET pass=:pass, name=:name, role=:role, email=:email, birth_certificate_number=:birth_certificate_number, city_of_birth=:city_of_birth, country_of_birth=:country_of_birth, birthday=:birthday, users=:users, is_passing=:is_passing, login_token=:login_token WHERE id=:id",
+		"UPDATE users SET pass=:pass, name=:name, role=:role, email=:email, birth_certificate_number=:birth_certificate_number, city_of_birth=:city_of_birth, country_of_birth=:country_of_birth, birthday=:birthday, users=:users, is_passing=:is_passing, login_token=:login_token, is_locked=:is_locked WHERE id=:id",
 		user)
 	return err
 }
 
-func (db *sqlImpl) DeleteUser(ID int) error {
+func (db *sqlImpl) DeleteUser(ID string) error {
 	db.DeleteAllTeacherHomeworks(ID)
 	db.DeleteStudentHomeworkByStudentID(ID)
 	db.DeleteGradesByTeacherID(ID)

@@ -5,11 +5,11 @@ import (
 )
 
 type Testing struct {
-	ID        int
-	UserID    int `db:"user_id"`
+	ID        string
+	UserID    string `db:"user_id"`
 	Date      string
-	TeacherID int `db:"teacher_id"`
-	ClassID   int `db:"class_id"`
+	TeacherID string `db:"teacher_id"`
+	ClassID   string `db:"class_id"`
 	Result    string
 
 	CreatedAt string `db:"created_at"`
@@ -17,19 +17,19 @@ type Testing struct {
 }
 
 type TestingJSON struct {
-	ID          int
-	UserID      int `db:"user_id"`
+	ID          string
+	UserID      string `db:"user_id"`
 	Date        string
-	TeacherID   int `db:"teacher_id"`
+	TeacherID   string `db:"teacher_id"`
 	TeacherName string
-	ClassID     int `db:"class_id"`
+	ClassID     string `db:"class_id"`
 	ValidUntil  string
 	Result      string
 	IsDone      bool
 	UserName    string
 }
 
-func (db *sqlImpl) GetTestingResults(date string, classId int) ([]TestingJSON, error) {
+func (db *sqlImpl) GetTestingResults(date string, classId string) ([]TestingJSON, error) {
 	var testing = make([]TestingJSON, 0)
 
 	class, err := db.GetClass(classId)
@@ -37,7 +37,7 @@ func (db *sqlImpl) GetTestingResults(date string, classId int) ([]TestingJSON, e
 		db.logger.Debug(err)
 		return nil, err
 	}
-	var students []int
+	var students []string
 	err = json.Unmarshal([]byte(class.Students), &students)
 	if err != nil {
 		db.logger.Debug(err)
@@ -57,9 +57,9 @@ func (db *sqlImpl) GetTestingResults(date string, classId int) ([]TestingJSON, e
 		if err != nil || test.Result == "" || test.Result == "SE NE TESTIRA" {
 			db.logger.Debug(err)
 			if err != nil && err.Error() == "sql: no rows in result set" {
-				tjson = TestingJSON{IsDone: false, UserID: student, ClassID: classId, Date: date, TeacherID: -1, ID: -1, UserName: user.Name}
+				tjson = TestingJSON{IsDone: false, UserID: student, ClassID: classId, Date: date, UserName: user.Name}
 			} else if test.Result == "" || test.Result == "SE NE TESTIRA" {
-				tjson = TestingJSON{IsDone: false, UserID: student, ClassID: classId, Date: date, TeacherID: -1, ID: -1, UserName: user.Name, Result: test.Result}
+				tjson = TestingJSON{IsDone: false, UserID: student, ClassID: classId, Date: date, UserName: user.Name, Result: test.Result}
 			} else {
 				db.logger.Debug(err)
 				return nil, err
@@ -72,32 +72,19 @@ func (db *sqlImpl) GetTestingResults(date string, classId int) ([]TestingJSON, e
 	return testing, nil
 }
 
-func (db *sqlImpl) GetLastTestingID() int {
-	var id int
-	err := db.db.Get(&id, "SELECT id FROM testing WHERE id = (SELECT MAX(id) FROM testing)")
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return 0
-		}
-		db.logger.Info(err)
-		return -1
-	}
-	return id + 1
-}
-
-func (db *sqlImpl) GetTestingResult(date string, id int) (Testing, error) {
+func (db *sqlImpl) GetTestingResult(date string, id string) (Testing, error) {
 	var message Testing
 
 	err := db.db.Get(&message, "SELECT * FROM testing WHERE user_id=$1 AND date=$2", id, date)
 	return message, err
 }
 
-func (db *sqlImpl) GetAllTestingsForUser(id int) (testing []Testing, err error) {
+func (db *sqlImpl) GetAllTestingsForUser(id string) (testing []Testing, err error) {
 	err = db.db.Select(&testing, "SELECT * FROM testing WHERE user_id=$1 ORDER BY id ASC", id)
 	return testing, err
 }
 
-func (db *sqlImpl) GetTestingResultByID(id int) (Testing, error) {
+func (db *sqlImpl) GetTestingResultByID(id string) (Testing, error) {
 	var message Testing
 
 	err := db.db.Get(&message, "SELECT * FROM testing WHERE id=$1", id)
@@ -106,7 +93,7 @@ func (db *sqlImpl) GetTestingResultByID(id int) (Testing, error) {
 
 func (db *sqlImpl) InsertTestingResult(testing Testing) error {
 	_, err := db.db.NamedExec(
-		"INSERT INTO testing (id, user_id, date, teacher_id, class_id, result) VALUES (:id, :user_id, :date, :teacher_id, :class_id, :result)",
+		"INSERT INTO testing (user_id, date, teacher_id, class_id, result) VALUES (:user_id, :date, :teacher_id, :class_id, :result)",
 		testing)
 	return err
 }
@@ -118,12 +105,12 @@ func (db *sqlImpl) UpdateTestingResult(testing Testing) error {
 	return err
 }
 
-func (db *sqlImpl) DeleteTeacherSelfTesting(teacherId int) error {
+func (db *sqlImpl) DeleteTeacherSelfTesting(teacherId string) error {
 	_, err := db.db.Exec("DELETE FROM testing WHERE teacher_id=$1", teacherId)
 	return err
 }
 
-func (db *sqlImpl) DeleteUserSelfTesting(userId int) error {
+func (db *sqlImpl) DeleteUserSelfTesting(userId string) error {
 	_, err := db.db.Exec("DELETE FROM testing WHERE user_id=$1", userId)
 	return err
 }

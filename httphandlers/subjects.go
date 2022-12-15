@@ -17,7 +17,7 @@ type Subject struct {
 	TeacherName     string
 	User            []UserJSON
 	RealizationDone float32
-	TeacherID       int
+	TeacherID       string
 }
 
 func (server *httpImpl) GetSubjects(w http.ResponseWriter, r *http.Request) {
@@ -51,23 +51,25 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	teacherId, err := strconv.Atoi(r.FormValue("teacher_id"))
+	teacherId := r.FormValue("teacher_id")
 	if err != nil {
 		WriteBadRequest(w)
 		return
 	}
-	classId := r.FormValue("class_id")
-	var inheritsClass = false
-	var classIdInt = -1
-	if classId != "" {
-		inheritsClass = true
-		classIdInt, err = strconv.Atoi(classId)
-		if err != nil {
-			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
-			return
-		}
+
+	var classId *string
+	inheritsClass := r.FormValue("class_id") != ""
+	if inheritsClass {
+		cid := r.FormValue("class_id")
+		classId = &cid
 	}
 	realization, err := strconv.ParseFloat(r.FormValue("realization"), 32)
+	if err != nil {
+		WriteBadRequest(w)
+		return
+	}
+
+	isGraded, err := strconv.ParseBool(r.FormValue("is_graded"))
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -79,23 +81,24 @@ func (server *httpImpl) NewSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var students = make([]int, 0)
+	var students = make([]string, 0)
 	studentsJson, err := json.Marshal(students)
 	nSubject := sql.Subject{
-		ID:            server.db.GetLastSubjectID(),
 		TeacherID:     teacherId,
 		Name:          r.FormValue("name"),
 		LongName:      r.FormValue("long_name"),
 		InheritsClass: inheritsClass,
-		ClassID:       classIdInt,
+		ClassID:       classId,
 		Students:      string(studentsJson),
 		Realization:   float32(realization),
 		SelectedHours: 1.0,
 		Color:         fmt.Sprintf("#%s", hex.EncodeToString(bytes)),
 		Location:      r.FormValue("location"),
+		IsGraded:      isGraded,
 	}
 	err = server.db.InsertSubject(nSubject)
 	if err != nil {
+		server.logger.Debug(helpers.FmtSanitize(teacherId), helpers.FmtSanitize(classId), helpers.FmtSanitize(inheritsClass), helpers.FmtSanitize(studentsJson))
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
@@ -112,20 +115,20 @@ func (server *httpImpl) GetSubject(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
+	subjectId := mux.Vars(r)["subject_id"]
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
 	subject, err := server.db.GetSubject(subjectId)
 	if err != nil {
-		server.logger.Debug(err, subjectId)
+		server.logger.Debug(err, helpers.FmtSanitize(subjectId))
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
-	var students []int
+	var students []string
 	if subject.InheritsClass {
-		class, err := server.db.GetClass(subject.ClassID)
+		class, err := server.db.GetClass(*subject.ClassID)
 		if err != nil {
 			server.logger.Debug(err, subject)
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -190,12 +193,12 @@ func (server *httpImpl) AssignUserToSubject(w http.ResponseWriter, r *http.Reque
 		WriteForbiddenJWT(w)
 		return
 	}
-	subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
+	subjectId := mux.Vars(r)["subject_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+	userId := mux.Vars(r)["user_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -205,7 +208,7 @@ func (server *httpImpl) AssignUserToSubject(w http.ResponseWriter, r *http.Reque
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
-	var m []int
+	var m []string
 	err = json.Unmarshal([]byte(subject.Students), &m)
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -244,12 +247,12 @@ func (server *httpImpl) RemoveUserFromSubject(w http.ResponseWriter, r *http.Req
 		WriteForbiddenJWT(w)
 		return
 	}
-	subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
+	subjectId := mux.Vars(r)["subject_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)["user_id"])
+	userId := mux.Vars(r)["user_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -259,7 +262,7 @@ func (server *httpImpl) RemoveUserFromSubject(w http.ResponseWriter, r *http.Req
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
-	var m []int
+	var m []string
 	err = json.Unmarshal([]byte(subject.Students), &m)
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -297,7 +300,7 @@ func (server *httpImpl) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
+	subjectId := mux.Vars(r)["subject_id"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -324,7 +327,7 @@ func (server *httpImpl) PatchSubjectName(w http.ResponseWriter, r *http.Request)
 		WriteForbiddenJWT(w)
 		return
 	}
-	subjectId, err := strconv.Atoi(mux.Vars(r)["subject_id"])
+	subjectId := mux.Vars(r)["subject_id"]
 	if err != nil {
 		WriteJSON(w, Response{Data: "Failed to parse subjectId", Error: err.Error(), Success: false}, http.StatusBadRequest)
 		return
@@ -344,10 +347,16 @@ func (server *httpImpl) PatchSubjectName(w http.ResponseWriter, r *http.Request)
 		WriteJSON(w, Response{Data: "Failed to parse realization", Error: err.Error(), Success: false}, http.StatusBadRequest)
 		return
 	}
+	isGraded, err := strconv.ParseBool(r.FormValue("is_graded"))
+	if err != nil {
+		WriteJSON(w, Response{Data: "Failed to parse realization", Error: err.Error(), Success: false}, http.StatusBadRequest)
+		return
+	}
 	subject.LongName = r.FormValue("long_name")
 	subject.Realization = float32(realization)
 	subject.SelectedHours = float32(selectedHours)
 	subject.Location = r.FormValue("location")
+	subject.IsGraded = isGraded
 	err = server.db.UpdateSubject(subject)
 	if err != nil {
 		WriteJSON(w, Response{Data: "Failed to update subject", Error: err.Error(), Success: false}, http.StatusInternalServerError)

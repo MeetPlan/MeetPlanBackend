@@ -5,7 +5,6 @@ import (
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/gorilla/mux"
 	"net/http"
-	"strconv"
 )
 
 func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +17,7 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 		WriteForbiddenJWT(w)
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)["parent"])
+	userId := mux.Vars(r)["parent"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -31,7 +30,7 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 		WriteJSON(w, Response{Data: "User isn't a parent", Success: false}, http.StatusConflict)
 		return
 	}
-	studentId, err := strconv.Atoi(mux.Vars(r)["student"])
+	studentId := mux.Vars(r)["student"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -44,7 +43,7 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 		WriteJSON(w, Response{Data: "User isn't a student", Success: false}, http.StatusConflict)
 		return
 	}
-	var users []int
+	var users []string
 	err = json.Unmarshal([]byte(parent.Users), &users)
 	if err != nil {
 		return
@@ -77,9 +76,9 @@ func (server *httpImpl) GetMyChildren(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
-	var parentId int
+	var parentId string
 	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
-		parentId, err = strconv.Atoi(r.URL.Query().Get("parentId"))
+		parentId = r.URL.Query().Get("parentId")
 		if err != nil {
 			return
 		}
@@ -90,7 +89,7 @@ func (server *httpImpl) GetMyChildren(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	var children []int
+	var children []string
 	err = json.Unmarshal([]byte(parent.Users), &children)
 	if err != nil {
 		return
@@ -122,7 +121,7 @@ func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Requ
 		WriteForbiddenJWT(w)
 		return
 	}
-	userId, err := strconv.Atoi(mux.Vars(r)["parent"])
+	userId := mux.Vars(r)["parent"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
@@ -135,12 +134,12 @@ func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Requ
 		WriteJSON(w, Response{Data: "User isn't a parent", Success: false}, http.StatusConflict)
 		return
 	}
-	studentId, err := strconv.Atoi(mux.Vars(r)["student"])
+	studentId := mux.Vars(r)["student"]
 	if err != nil {
 		WriteBadRequest(w)
 		return
 	}
-	var users []int
+	var users []string
 	err = json.Unmarshal([]byte(parent.Users), &users)
 	if err != nil {
 		return

@@ -1,10 +1,10 @@
 package sql
 
 type Meeting struct {
-	ID             int    `db:"id"`
+	ID             string `db:"id"`
 	MeetingName    string `db:"meeting_name"`
-	TeacherID      int    `db:"teacher_id"`
-	SubjectID      int    `db:"subject_id"`
+	TeacherID      string `db:"teacher_id"`
+	SubjectID      string `db:"subject_id"`
 	Hour           int    `db:"hour"`
 	Date           string `db:"date"`
 	IsMandatory    bool   `db:"is_mandatory"`
@@ -15,11 +15,12 @@ type Meeting struct {
 	// Ocenjevanje
 	IsGrading           bool `db:"is_grading"`
 	IsWrittenAssessment bool `db:"is_written_assessment"`
+	IsCorrectionTest    bool `db:"is_correction_test"`
 	// Preverjanje znanja
 	IsTest bool `db:"is_test"`
-	// Beta srečanja so tista, ustvarjena z Proton layerjem. Proton bo prvo ustvaril nova beta, srečanja, katera so neodvisna od drugih in katerih učenci ne morejo videti.
+	// Beta srečanja so tista, ustvarjena s Proton layerjem. Proton bo prvo ustvaril nova beta srečanja, ki so neodvisna od drugih in katerih učenci ne morejo videti.
 	// Vsak učitelj bo lahko preveril svoje učne ure in svoj urnik s tem ustvarjenim urnikom.
-	// Če učitelji ne bodo zadovoljni, se z enim klikom izbriše ta srečanja in se ustvari nov urnik z Proton layerjem, drugače pa se jih z enim klikom spremeni v normalna srečanja,
+	// Če učitelji ne bodo zadovoljni, se z enim klikom izbriše ta srečanja in se ustvari nov urnik s Proton layerjem, drugače pa se jih z enim klikom spremeni v normalna srečanja,
 	// vidna tudi učencem
 	IsBeta bool `db:"is_beta"`
 
@@ -27,7 +28,7 @@ type Meeting struct {
 	UpdatedAt string `db:"updated_at"`
 }
 
-func (db *sqlImpl) GetMeeting(id int) (meeting Meeting, err error) {
+func (db *sqlImpl) GetMeeting(id string) (meeting Meeting, err error) {
 	err = db.db.Get(&meeting, "SELECT * FROM meetings WHERE id=$1", id)
 	return meeting, err
 }
@@ -47,20 +48,20 @@ func (db *sqlImpl) GetMeetingsOnSpecificDate(date string, includeBeta bool) (mee
 	return meetings, err
 }
 
-func (db *sqlImpl) GetMeetingsForTeacherOnSpecificDate(teacherId int, date string) (meetings []Meeting, err error) {
+func (db *sqlImpl) GetMeetingsForTeacherOnSpecificDate(teacherId string, date string) (meetings []Meeting, err error) {
 	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE date=$1 AND teacher_id=$2 ORDER BY id ASC", date, teacherId)
 	return meetings, err
 }
 
-func (db *sqlImpl) GetMeetingsForSubject(subjectId int) (meetings []Meeting, err error) {
+func (db *sqlImpl) GetMeetingsForSubject(subjectId string) (meetings []Meeting, err error) {
 	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE subject_id=$1 ORDER BY id ASC", subjectId)
 	return meetings, err
 }
 
 func (db *sqlImpl) InsertMeeting(meeting Meeting) (err error) {
 	i := `
-	INSERT INTO meetings (id, meeting_name, teacher_id, subject_id, hour, date, is_mandatory, url, details, is_grading, is_written_assessment, is_test, is_substitution, is_beta, location)
-		VALUES (:id, :meeting_name, :teacher_id, :subject_id, :hour, :date, :is_mandatory, :url, :details, :is_grading, :is_written_assessment, :is_test, :is_substitution, :is_beta, :location)
+	INSERT INTO meetings (meeting_name, teacher_id, subject_id, hour, date, is_mandatory, url, details, is_grading, is_written_assessment, is_test, is_substitution, is_beta, location, is_correction_test)
+		VALUES (:meeting_name, :teacher_id, :subject_id, :hour, :date, :is_mandatory, :url, :details, :is_grading, :is_written_assessment, :is_test, :is_substitution, :is_beta, :location, :is_correction_test)
 	`
 	_, err = db.db.NamedExec(
 		i,
@@ -75,7 +76,7 @@ func (db *sqlImpl) UpdateMeeting(meeting Meeting) error {
 	                    is_mandatory=:is_mandatory, url=:url, details=:details,
 	                    is_grading=:is_grading, is_written_assessment=:is_written_assessment,
 	                    is_test=:is_test, is_substitution=:is_substitution, is_beta=:is_beta,
-	                    location=:location WHERE id=:id
+	                    location=:location, is_correction_test=:is_correction_test WHERE id=:id
 	`
 	_, err := db.db.NamedExec(
 		i,
@@ -93,39 +94,28 @@ func (db *sqlImpl) DeleteBetaMeetings() error {
 	return err
 }
 
-func (db *sqlImpl) GetLastMeetingID() (id int) {
-	err := db.db.Get(&id, "SELECT id FROM meetings WHERE id = (SELECT MAX(id) FROM meetings)")
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return 0
-		}
-		db.logger.Info(err)
-		return -1
-	}
-	return id + 1
-}
-
 func (db *sqlImpl) GetMeetings() (meetings []Meeting, err error) {
 	err = db.db.Select(&meetings, "SELECT * FROM meetings ORDER BY id ASC")
 	return meetings, err
 }
 
-func (db *sqlImpl) GetMeetingsForSubjectWithIDLower(id int, subjectId int) (meetings []Meeting, err error) {
-	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE id<=$1 AND subject_id=$2", id, subjectId)
+func (db *sqlImpl) GetMeetingsForSubjectWithIDLower(createdAt string, subjectId string) (meetings []Meeting, err error) {
+	// Ok, ja, to je tut ful bad, ampak približno isto, kakor smo prej določevali z ID-ji.
+	err = db.db.Select(&meetings, "SELECT * FROM meetings WHERE created_at<=$1 AND subject_id=$2", createdAt, subjectId)
 	return meetings, err
 }
 
-func (db *sqlImpl) DeleteMeeting(ID int) error {
+func (db *sqlImpl) DeleteMeeting(ID string) error {
 	_, err := db.db.Exec("DELETE FROM meetings WHERE id=$1", ID)
 	return err
 }
 
-func (db *sqlImpl) DeleteMeetingsForTeacher(ID int) error {
+func (db *sqlImpl) DeleteMeetingsForTeacher(ID string) error {
 	_, err := db.db.Exec("DELETE FROM meetings WHERE teacher_id=$1", ID)
 	return err
 }
 
-func (db *sqlImpl) DeleteMeetingsForSubject(ID int) error {
+func (db *sqlImpl) DeleteMeetingsForSubject(ID string) error {
 	_, err := db.db.Exec("DELETE FROM meetings WHERE subject_id=$1", ID)
 	return err
 }

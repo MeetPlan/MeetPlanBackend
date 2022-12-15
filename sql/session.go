@@ -33,6 +33,9 @@ func (db *sqlImpl) CheckToken(loginToken string) (user User, err error) {
 		db.logger.Debug(err.Error())
 		return user, err
 	}
+	if user.IsLocked {
+		return user, errors.New("user is locked")
+	}
 	if user.Role == "unverified" {
 		db.logger.Debug("unverified")
 		return user, errors.New("user is unverified")

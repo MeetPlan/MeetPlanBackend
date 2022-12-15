@@ -4,7 +4,6 @@ import (
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -53,11 +52,12 @@ func (server *httpImpl) NewNotification(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	notification := sql.NotificationSQL{
-		ID:           server.db.GetLastNotificationID(),
+
 		Notification: r.FormValue("body"),
 	}
 	err = server.db.InsertNotification(notification)
 	if err != nil {
+		WriteJSON(w, Response{Data: "Failed while inserting notification", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
 	WriteJSON(w, Response{Data: "OK", Success: true}, http.StatusOK)
@@ -73,7 +73,7 @@ func (server *httpImpl) DeleteNotification(w http.ResponseWriter, r *http.Reques
 		WriteForbiddenJWT(w)
 		return
 	}
-	atoi, err := strconv.Atoi(mux.Vars(r)["notification_id"])
+	atoi := mux.Vars(r)["notification_id"]
 	if err != nil {
 		return
 	}

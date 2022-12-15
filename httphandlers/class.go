@@ -48,7 +48,7 @@ func (server *httpImpl) NewClass(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Success: false, Error: err.Error()}, http.StatusInternalServerError)
 		return
 	}
-	WriteJSON(w, Response{Success: true, Data: class.ID}, http.StatusOK)
+	WriteJSON(w, Response{Success: true, Data: class.ID}, http.StatusCreated)
 }
 
 func (server *httpImpl) GetClasses(w http.ResponseWriter, r *http.Request) {

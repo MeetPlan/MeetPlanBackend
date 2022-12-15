@@ -11,6 +11,11 @@ URL = "http://localhost:8000/"
 EMAIL_END = "meetplan.si"
 SCHOOL_YEAR = "2022/2023"
 
+ENABLE_USER_CREATION = True
+ENABLE_USER_ROLE_MAPPING = True
+ENABLE_CLASS_CREATION = True
+ENABLE_SUBJECT_CREATION = True
+
 class User:
     def __init__(self, name, password, email):
         self.name = name
@@ -36,7 +41,7 @@ users = [
     User("Ravnatelj", "principal", f"principal@{EMAIL_END}"),
     User("Pomočnik ravnatelja", "principal assistant", f"principalassistant@{EMAIL_END}"),
     User("Šolski psiholog", "school psychologist", f"schoolpsychologist@{EMAIL_END}"),
-    User("Organizator šolske prehrane", "food", f"food@{EMAIL_END}"),
+    User("Organizator šolske prehrane", "food organizer", f"food@{EMAIL_END}"),
     User("Učitelj jezikov 1", "teacher", f"lang1@{EMAIL_END}"),
     User("Učitelj jezikov 2", "teacher", f"lang2@{EMAIL_END}"),
     User("Učitelj jezikov 3", "teacher", f"lang3@{EMAIL_END}"),
@@ -145,99 +150,136 @@ subjects = [
 ]
 
 async def main():
+    totals = time.time()
+
     client = httpx.AsyncClient()
-    tstart = time.time()
 
-    for user in users:
-        r = await client.post(f"{URL}user/new", data={"email": user.email, "pass": user.password, "name": user.name})
-        if r.status_code == 201:
-            print(f"[SUCCESS] User {user.name} has been created successfully")
-        else:
-            print(f"[FAIL] User {user.name} creation failed {r.text}")
+    if ENABLE_USER_CREATION:
+        tstart = time.time()
 
-    print(f"[DONE] User creation has completed in {time.time()-tstart} seconds.")
+        for user in users:
+            r = await client.post(f"{URL}user/new", data={"email": user.email, "pass": user.password, "name": user.name})
+            if r.status_code == 201:
+                print(f"[SUCCESS] User {user.name} has been created successfully")
+            else:
+                print(f"[FAIL] User {user.name} creation failed {r.text}")
 
+        print(f"[DONE] User creation has completed in {time.time()-tstart} seconds.")
+
+
+    # REQUIRED!!!!
     # From now on, we manage all our users as administrators
     r = await client.post(f"{URL}user/login", data={"email": users[0].email, "pass": users[0].password})
-    headers = {"Authorization": f"Bearer {await r.json()['data']['token']}"}
+    headers = {"Authorization": f"Bearer {r.json()['data']['token']}"}
     client.headers = headers
+    print(f"[SUCCESS] Successfully logged in with headers {headers}")
 
     # Map all User IDs to our users
     users_sys = await client.get(f"{URL}users/get")
-    for i in (await users_sys.json())["data"]:
+    for i in users_sys.json()["data"]:
         for n in range(len(users)):
             if users[n].email == i["Email"]:
                 users[n].id = i["ID"]
 
-    ts = time.time()
-    for user in users:
-        r = await client.post(f"{URL}user/role/update/{user.id}", data={"role": user.password}) # Conveniently, our passwords are same as roles
-        if r.status_code == 200:
-            print(f"[SUCCESS] User {user.name}'s role has been successfully changed to {user.password}")
-        else:
-            print(f"[FAIL] User {user.name}'s role hasn't been successfully changed to {user.password}")
-    print(f"[DONE] User role changing has completed in {time.time()-ts} seconds.")
 
-    ts = time.time()
-    for i, class_ in enumerate(classes):
-        teacher_id = ""
+    if ENABLE_USER_ROLE_MAPPING:
+        ts = time.time()
         for user in users:
-            if user.password == "teacher" and user.email == class_.teacher:
-                teacher_id = user.id
-                break
-        if teacher_id == "":
-            print(f"[FAIL] Teacher {class_.teacher} couldn't be assigned to the class")
-        await client.post(f"{URL}class/new", data={"teacher_id": teacher_id, "name": class_.name})
+            r = await client.patch(f"{URL}user/role/update/{user.id}", data={"role": user.password}) # Conveniently, our passwords are same as roles
+            if r.status_code == 200:
+                print(f"[SUCCESS] User {user.name}'s role has been successfully changed to {user.password}")
+            else:
+                print(f"[FAIL] User {user.name}'s role hasn't been successfully changed to {user.password} - {r.text}")
+        print(f"[DONE] User role changing has completed in {time.time()-ts} seconds.")
 
-    class_sys = await client.get(f"{URL}classes/get")
-    for i in (await class_sys.json())["data"]:
-        for n in range(len(classes)):
-            if classes[n].name == i["Name"]:
-                classes[n].id = i["ID"]
 
-    for i, class_ in enumerate(classes):
-        print(f"[INFO] Adding users to class {class_.id} ({class_.name})")
-        for class_user in class_.students:
+    if ENABLE_CLASS_CREATION:
+        ts = time.time()
+        for i, class_ in enumerate(classes):
+            teacher_id = ""
             for user in users:
-                if user.email != class_user:
-                    continue
-                await client.post(f"{URL}class/get/{class_.id}/add_user/{user.id}")
-    print(f"[DONE] Class creation has completed in {time.time()-ts} seconds.")
+                if user.password == "teacher" and user.email == class_.teacher:
+                    teacher_id = user.id
+                    break
+            if teacher_id == "":
+                print(f"[FAIL] Teacher {class_.teacher} couldn't be assigned to the class")
+            r = await client.post(f"{URL}class/new", data={"teacher_id": teacher_id, "name": class_.name})
+            if r.status_code == 201:
+                print(f"[SUCCESS] Class {class_.name} has been successfully created")
+            else:
+                print(f"[FAIL] Class {class_.name} hasn't been successfully created - {r.text}")
 
-    ts = time.time()
-    for i, subject in enumerate(subjects):
-        teacher_id = ""
-        for user in users:
-            if user.password == "teacher" and user.email == subject.teacher:
-                teacher_id = user.id
-                break
-        if teacher_id == "":
-            print(f"[FAIL] Teacher {subject.teacher} couldn't be assigned to the class")
-        r = await client.post(f"{URL}subject/new", data={
-            "teacher_id": teacher_id,
-            "name": subject.name,
-            "long_name": subject.long,
-            "class_id": subject.students if type(subject.students) is str else "",
-            "realization": 160,
-            "is_graded": subject.is_graded,
-            "location": 50,
-        })
+        class_sys = await client.get(f"{URL}classes/get")
+        for i in class_sys.json()["data"]:
+            for n in range(len(classes)):
+                if classes[n].name == i["Name"]:
+                    classes[n].id = i["ID"]
 
-    subjects_sys = await client.get(f"{URL}subjects/get")
-    for i in (await subjects_sys.json())["data"]:
-        for n in range(len(subjects)):
-            if subjects[n].name == i["Name"]:
-                subjects[n].id = i["ID"]
+        for i, class_ in enumerate(classes):
+            print(f"[INFO] Adding users to class {class_.id} ({class_.name})")
+            for class_user in class_.students:
+                for user in users:
+                    if user.email != class_user:
+                        continue
+                    r = await client.post(f"{URL}class/get/{class_.id}/add_user/{user.id}")
+                    if r.status_code == 200:
+                        print(f"[SUCCESS] User {user.name} has been successfully added to a class")
+                    else:
+                        print(f"[FAIL] User {user.name} hasn't been successfully added to a class - {r.text}")
+        print(f"[DONE] Class creation has completed in {time.time()-ts} seconds.")
 
-    for i, subject in enumerate(subjects):
-        if type(subject.students) is str:
-            continue
-        print(f"[INFO] Adding users to subject {subject.id} ({subject.name})")
-        for subject_user in subject.students:
+
+    if ENABLE_SUBJECT_CREATION:
+        ts = time.time()
+        for i, subject in enumerate(subjects):
+            teacher_id = ""
             for user in users:
-                if user.email != subject_user:
-                    continue
-                await client.post(f"{URL}subject/get/{subject.id}/add_user/{user.id}")
-    print(f"[DONE] Subject creation has completed in {time.time()-ts} seconds.")
+                if user.password == "teacher" and user.email == subject.teacher:
+                    teacher_id = user.id
+                    break
+            if teacher_id == "":
+                print(f"[FAIL] Teacher {subject.teacher} couldn't be assigned to the class")
+            class_ = ""
+            if type(subject.students) is str:
+                for clas in classes:
+                    if clas.name == subject.students:
+                        class_ = clas.id
+            r = await client.post(f"{URL}subjects/new", data={
+                "teacher_id": teacher_id,
+                "name": subject.name,
+                "long_name": subject.long,
+                "class_id": class_,
+                "realization": 160,
+                "is_graded": subject.is_graded,
+                "location": 50,
+            })
+            if r.status_code == 201:
+                print(f"[SUCCESS] Subject {subject.name} has been successfully created")
+            else:
+                print(f"[FAIL] Subject {subject.name} hasn't been successfully created - {r.text}")
+
+        subjects_sys = await client.get(f"{URL}subjects/get")
+        for i in subjects_sys.json()["data"]:
+            for n in range(len(subjects)):
+                #print(i, subjects[n].name)
+                if subjects[n].name == i["Name"]:
+                    subjects[n].id = i["ID"]
+
+        for i, subject in enumerate(subjects):
+            if type(subject.students) is str:
+                continue
+            print(f"[INFO] Adding users to subject {subject.id} ({subject.name})")
+            for subject_user in subject.students:
+                for user in users:
+                    if user.email != subject_user:
+                        continue
+                    r = await client.patch(f"{URL}subject/get/{subject.id}/add_user/{user.id}")
+                    if r.status_code == 200:
+                        print(f"[SUCCESS] User {user.name} has been successfully added to a subject")
+                    else:
+                        print(f"[FAIL] User {user.name} hasn't been successfully added to a subject - {r.text}")
+        print(f"[DONE] Subject creation has completed in {time.time()-ts} seconds.")
+
+    print(f"[DONE] Done! Took {time.time()-totals} seconds.")
 
 asyncio.run(main())

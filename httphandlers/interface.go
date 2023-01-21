@@ -2,6 +2,7 @@ package httphandlers
 
 import (
 	"github.com/MeetPlan/MeetPlanBackend/proton"
+	"github.com/MeetPlan/MeetPlanBackend/proton/genetic"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/signintech/gopdf"
 	"go.uber.org/zap"
@@ -18,7 +19,7 @@ type httpImpl struct {
 	logger *zap.SugaredLogger
 	db     sql.SQL
 	config sql.Config
-	proton proton.Proton
+	proton genetic.Proton
 }
 
 type HTTP interface {
@@ -153,7 +154,7 @@ type HTTP interface {
 	DeleteDocument(w http.ResponseWriter, r *http.Request)
 }
 
-func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL, config sql.Config, proton proton.Proton) HTTP {
+func NewHTTPInterface(logger *zap.SugaredLogger, db sql.SQL, config sql.Config, proton genetic.Proton) HTTP {
 	return &httpImpl{
 		logger: logger,
 		db:     db,

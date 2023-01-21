@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/httphandlers"
-	"github.com/MeetPlan/MeetPlanBackend/proton"
+	"github.com/MeetPlan/MeetPlanBackend/proton/genetic"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"go.uber.org/zap"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"regexp"
@@ -121,7 +121,7 @@ func main() {
 				continue
 			}
 
-			read, err := ioutil.ReadAll(reader)
+			read, err := io.ReadAll(reader)
 			if err != nil {
 				sugared.Errorf("Failed while reading a blob object %s with an error of %s", after.Path(), err.Error())
 				continue
@@ -149,7 +149,7 @@ func main() {
 		return
 	}
 
-	protonState, err := proton.NewProton(db, sugared)
+	protonState, err := genetic.NewGeneticProton(db, sugared)
 	if err != nil {
 		sugared.Fatal("Error while initializing Proton: ", err.Error())
 		return

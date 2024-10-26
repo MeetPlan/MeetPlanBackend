@@ -1,6 +1,10 @@
 package sql
 
-import "encoding/json"
+import (
+	sql2 "database/sql"
+	"encoding/json"
+	"errors"
+)
 
 type StudentHomework struct {
 	ID         string
@@ -75,11 +79,11 @@ func (db *sqlImpl) GetStudentsHomeworkByHomeworkID(id string, meetingId string) 
 		}
 		homeworkUser, err := db.GetStudentHomeworkForUser(baseHomework.ID, students[i])
 		if err != nil {
-			if err.Error() == "sql: no rows in result set" {
+			if errors.Is(err, sql2.ErrNoRows) {
 				var status = " "
 				absence, err := db.GetAbsenceForUserMeeting(meetingId, students[i])
 				if err != nil {
-					if err.Error() != "sql: no rows in result set" {
+					if !errors.Is(err, sql2.ErrNoRows) {
 						return make([]StudentHomeworkJSON, 0), err
 					} else {
 						status = ""

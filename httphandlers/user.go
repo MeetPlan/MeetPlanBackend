@@ -1,7 +1,9 @@
 package httphandlers
 
 import (
+	sql2 "database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
@@ -109,7 +111,7 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 	var userCreated = true
 	_, err := server.db.GetUserByEmail(email)
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, sql2.ErrNoRows) {
 			userCreated = false
 		} else {
 			WriteJSON(w, Response{Error: err.Error(), Data: "Could not retrieve user from database", Success: false}, http.StatusInternalServerError)
@@ -355,7 +357,7 @@ func (server *httpImpl) GetAbsencesUser(w http.ResponseWriter, r *http.Request) 
 	var absenceJson = make([]Absence, 0)
 	absences, err := server.db.GetAbsencesForUser(studentId)
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, sql2.ErrNoRows) {
 			WriteJSON(w, Response{Data: absenceJson, Error: err.Error(), Success: true}, http.StatusOK)
 			return
 		}

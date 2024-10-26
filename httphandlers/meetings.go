@@ -1,7 +1,9 @@
 package httphandlers
 
 import (
+	sql2 "database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
@@ -697,7 +699,7 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 		}
 		absence, err := server.db.GetAbsenceForUserMeeting(meetingId, userId)
 		if err != nil {
-			if err.Error() == "sql: no rows in result set" {
+			if errors.Is(err, sql2.ErrNoRows) {
 				absence := sql.Absence{
 
 					UserID:      userId,

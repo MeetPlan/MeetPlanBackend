@@ -1,7 +1,9 @@
 package httphandlers
 
 import (
+	sql2 "database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
@@ -86,7 +88,7 @@ func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 	results, err := server.db.GetTestingResult(date, studentId)
 	if err != nil {
 		server.logger.Debug(err)
-		if err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, sql2.ErrNoRows) {
 			results = sql.Testing{
 				Date: date,
 

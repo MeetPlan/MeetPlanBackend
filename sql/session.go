@@ -2,6 +2,7 @@ package sql
 
 import (
 	"crypto/rand"
+	sql2 "database/sql"
 	"encoding/base64"
 	"errors"
 )
@@ -14,7 +15,7 @@ func (db *sqlImpl) GetRandomToken(currentUser User) (string, error) {
 	}
 	token := base64.StdEncoding.EncodeToString(randomBytes)
 	user, err := db.GetUserByLoginToken(token)
-	if err == nil || (err != nil && err.Error() != "sql: no rows in result set") {
+	if err == nil || !errors.Is(err, sql2.ErrNoRows) {
 		return "", err
 	}
 	db.logger.Info(currentUser, user, token)

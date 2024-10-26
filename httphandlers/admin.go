@@ -1,6 +1,8 @@
 package httphandlers
 
 import (
+	sql2 "database/sql"
+	"errors"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -86,7 +88,7 @@ func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {
 	if user.Role == ADMIN && nrole == PRINCIPAL {
 		_, err := server.db.GetPrincipal()
 		if err != nil {
-			if err.Error() == "sql: no rows in result set" {
+			if errors.Is(err, sql2.ErrNoRows) {
 				selectedUser.Role = nrole
 			}
 		} else {

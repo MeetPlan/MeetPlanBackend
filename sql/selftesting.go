@@ -1,7 +1,9 @@
 package sql
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 )
 
 type Testing struct {
@@ -55,8 +57,7 @@ func (db *sqlImpl) GetTestingResults(date string, classId string) ([]TestingJSON
 		}
 		err = db.db.Get(&test, "SELECT * FROM testing WHERE date=$1 AND class_id=$2 AND user_id=$3", date, classId, student)
 		if err != nil || test.Result == "" || test.Result == "SE NE TESTIRA" {
-			db.logger.Debug(err)
-			if err != nil && err.Error() == "sql: no rows in result set" {
+			if err != nil && errors.Is(err, sql.ErrNoRows) {
 				tjson = TestingJSON{IsDone: false, UserID: student, ClassID: classId, Date: date, UserName: user.Name}
 			} else if test.Result == "" || test.Result == "SE NE TESTIRA" {
 				tjson = TestingJSON{IsDone: false, UserID: student, ClassID: classId, Date: date, UserName: user.Name, Result: test.Result}

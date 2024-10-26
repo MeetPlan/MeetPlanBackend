@@ -1,7 +1,9 @@
 package httphandlers
 
 import (
+	sql2 "database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
 	"github.com/gorilla/mux"
@@ -190,7 +192,7 @@ func (server *httpImpl) PatchHomeworkForStudent(w http.ResponseWriter, r *http.R
 	}
 	h, err := server.db.GetStudentHomeworkForUser(homeworkId, userId)
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, sql2.ErrNoRows) {
 			h = sql.StudentHomework{
 
 				UserID:     userId,
@@ -314,7 +316,7 @@ func (server *httpImpl) GetUserHomework(w http.ResponseWriter, r *http.Request) 
 			var status = ""
 			homeworkStatus, err := server.db.GetStudentHomeworkForUser(homework.ID, studentId)
 			if err != nil {
-				if err.Error() != "sql: no rows in result set" {
+				if !errors.Is(err, sql2.ErrNoRows) {
 					WriteJSON(w, Response{Data: "Could not fetch homework status", Error: err.Error(), Success: false}, http.StatusInternalServerError)
 					return
 				} else {

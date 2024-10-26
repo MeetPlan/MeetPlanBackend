@@ -1,7 +1,9 @@
 package httphandlers
 
 import (
+	sql2 "database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/MeetPlan/MeetPlanBackend/sql"
@@ -221,7 +223,7 @@ func (server *httpImpl) NewGrade(w http.ResponseWriter, r *http.Request) {
 	var hasFinal = true
 	_, err = server.db.CheckIfFinal(userId, meeting.SubjectID)
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, sql2.ErrNoRows) {
 			hasFinal = false
 		} else {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -318,7 +320,7 @@ func (server *httpImpl) PatchGrade(w http.ResponseWriter, r *http.Request) {
 	var hasFinal = true
 	_, err = server.db.CheckIfFinal(grade.UserID, grade.SubjectID)
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, sql2.ErrNoRows) {
 			hasFinal = false
 		} else {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -392,7 +394,7 @@ func (server *httpImpl) DeleteGrade(w http.ResponseWriter, r *http.Request) {
 	var hasFinal = true
 	_, err = server.db.CheckIfFinal(grade.UserID, grade.SubjectID)
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, sql2.ErrNoRows) {
 			hasFinal = false
 		} else {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)

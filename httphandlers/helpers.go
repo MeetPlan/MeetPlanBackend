@@ -3,7 +3,6 @@ package httphandlers
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 )
 
 func DumpJSON(jsonstruct interface{}) []byte {
@@ -23,16 +22,12 @@ func WriteForbiddenJWT(w http.ResponseWriter) {
 	w.Write(DumpJSON(Response{Success: false, Data: "Forbidden"}))
 }
 
-func GetAuthorizationJWT(r *http.Request) string {
-	h := r.Header.Get("Authorization")
-	if h == "" {
+func GetAuthorizationToken(r *http.Request) string {
+	cookie, err := r.Cookie("Authorization")
+	if err != nil {
 		return ""
 	}
-	split := strings.Split(h, " ")
-	if len(split) != 2 {
-		return ""
-	}
-	return split[1]
+	return cookie.Value
 }
 
 func WriteBadRequest(w http.ResponseWriter) {

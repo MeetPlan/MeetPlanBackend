@@ -8,7 +8,7 @@ import (
 )
 
 func (server *httpImpl) GetSystemNotifications(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -42,7 +42,7 @@ func (server *httpImpl) GetSystemNotifications(w http.ResponseWriter, r *http.Re
 }
 
 func (server *httpImpl) NewNotification(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -64,7 +64,7 @@ func (server *httpImpl) NewNotification(w http.ResponseWriter, r *http.Request) 
 }
 
 func (server *httpImpl) DeleteNotification(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

@@ -17,7 +17,7 @@ import (
 )
 
 func (server *httpImpl) GetSelfTestingTeacher(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -42,7 +42,7 @@ func (server *httpImpl) GetSelfTestingTeacher(w http.ResponseWriter, r *http.Req
 }
 
 func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -125,7 +125,7 @@ func (server *httpImpl) PatchSelfTesting(w http.ResponseWriter, r *http.Request)
 }
 
 func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -366,7 +366,7 @@ func (server *httpImpl) GetPDFSelfTestingReportStudent(w http.ResponseWriter, r 
 }
 
 func (server *httpImpl) GetTestingResults(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

@@ -15,7 +15,7 @@ type Improvement struct {
 }
 
 func (server *httpImpl) NewImprovement(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -58,7 +58,7 @@ func (server *httpImpl) NewImprovement(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetImprovementsForUser(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

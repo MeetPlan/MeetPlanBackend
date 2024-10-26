@@ -277,11 +277,19 @@ func main() {
 	r.HandleFunc("/documents/get", httphandler.FetchAllDocuments).Methods("GET")
 	r.HandleFunc("/documents/get", httphandler.DeleteDocument).Methods("DELETE")
 
-	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"}, // All origins
-		AllowedHeaders: []string{"Authorization"},
-		AllowedMethods: []string{"POST", "GET", "DELETE", "PATCH", "PUT"},
-	})
+	o := cors.Options{
+		AllowedMethods:   []string{"POST", "GET", "DELETE", "PATCH", "PUT"},
+		AllowCredentials: true,
+	}
+
+	if config.Debug {
+		o.AllowedOrigins = []string{"http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8080", "http://127.0.0.1:8080"}
+	} else {
+		// TODO!!!!!
+		o.AllowedOrigins = []string{"https://demo.meetplan.si"}
+	}
+
+	c := cors.New(o)
 
 	sugared.Infof("Serving at %s", config.Host)
 

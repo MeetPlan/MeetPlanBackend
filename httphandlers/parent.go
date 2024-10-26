@@ -8,7 +8,7 @@ import (
 )
 
 func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -67,7 +67,7 @@ func (server *httpImpl) AssignUserToParent(w http.ResponseWriter, r *http.Reques
 }
 
 func (server *httpImpl) GetMyChildren(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -112,7 +112,7 @@ func (server *httpImpl) GetMyChildren(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) RemoveUserFromParent(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

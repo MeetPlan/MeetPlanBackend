@@ -21,7 +21,7 @@ type CommunicationJson struct {
 }
 
 func (server *httpImpl) GetCommunications(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -49,7 +49,7 @@ func (server *httpImpl) GetCommunications(w http.ResponseWriter, r *http.Request
 }
 
 func (server *httpImpl) GetCommunication(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -118,7 +118,7 @@ func (server *httpImpl) GetCommunication(w http.ResponseWriter, r *http.Request)
 }
 
 func (server *httpImpl) NewMessage(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -159,7 +159,7 @@ func (server *httpImpl) NewMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) NewCommunication(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -191,7 +191,7 @@ func (server *httpImpl) NewCommunication(w http.ResponseWriter, r *http.Request)
 }
 
 func (server *httpImpl) GetUnreadMessages(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -205,7 +205,7 @@ func (server *httpImpl) GetUnreadMessages(w http.ResponseWriter, r *http.Request
 }
 
 func (server *httpImpl) DeleteMessage(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -233,7 +233,7 @@ func (server *httpImpl) DeleteMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) EditMessage(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

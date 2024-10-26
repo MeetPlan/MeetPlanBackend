@@ -31,7 +31,7 @@ type Absence struct {
 }
 
 func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -284,7 +284,7 @@ func (server *httpImpl) GetTimetable(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -400,7 +400,7 @@ func (server *httpImpl) NewMeeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -508,7 +508,7 @@ func (server *httpImpl) PatchMeeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) DeleteMeeting(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -538,7 +538,7 @@ func (server *httpImpl) DeleteMeeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -646,7 +646,7 @@ func (server *httpImpl) GetMeeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -729,7 +729,7 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 }
 
 func (server *httpImpl) PatchAbsence(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -769,7 +769,7 @@ func (server *httpImpl) PatchAbsence(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetUsersForMeeting(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -827,7 +827,7 @@ func (server *httpImpl) GetUsersForMeeting(w http.ResponseWriter, r *http.Reques
 }
 
 func (server *httpImpl) MigrateBetaMeetings(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -845,7 +845,7 @@ func (server *httpImpl) MigrateBetaMeetings(w http.ResponseWriter, r *http.Reque
 }
 
 func (server *httpImpl) DeleteBetaMeetings(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

@@ -13,7 +13,7 @@ type GradingDate struct {
 }
 
 func (server *httpImpl) GetMyGradings(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

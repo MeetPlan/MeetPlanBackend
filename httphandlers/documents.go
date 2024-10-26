@@ -18,7 +18,7 @@ type Document struct {
 }
 
 func (server *httpImpl) FetchAllDocuments(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -47,7 +47,7 @@ func (server *httpImpl) FetchAllDocuments(w http.ResponseWriter, r *http.Request
 }
 
 func (server *httpImpl) DeleteDocument(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

@@ -26,7 +26,7 @@ func (server *httpImpl) GetMeals(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -100,7 +100,7 @@ func (server *httpImpl) NewMeal(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -166,7 +166,7 @@ func (server *httpImpl) NewOrder(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -215,7 +215,7 @@ func (server *httpImpl) EditMeal(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -278,7 +278,7 @@ func (server *httpImpl) DeleteMeal(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -304,7 +304,7 @@ func (server *httpImpl) BlockUnblockOrder(w http.ResponseWriter, r *http.Request
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -335,7 +335,7 @@ func (server *httpImpl) RemoveOrder(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -380,7 +380,7 @@ func (server *httpImpl) RemoveSpecificOrder(w http.ResponseWriter, r *http.Reque
 		WriteJSON(w, Response{Data: "Admin has disabled meals", Success: false}, http.StatusForbidden)
 		return
 	}
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -430,7 +430,7 @@ func (server *httpImpl) RemoveSpecificOrder(w http.ResponseWriter, r *http.Reque
 }
 
 func (server *httpImpl) MealsBlocked(w http.ResponseWriter, r *http.Request) {
-	_, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	_, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return

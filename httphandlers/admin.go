@@ -42,7 +42,7 @@ var roles = []string{
 }
 
 func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -105,7 +105,7 @@ func (server *httpImpl) ChangeRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) LockUnlockUser(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -144,7 +144,7 @@ func (server *httpImpl) LockUnlockUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		return
 	}
@@ -168,7 +168,7 @@ func (server *httpImpl) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) GetTeachers(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		WriteForbiddenJWT(w)
 		return
@@ -193,7 +193,7 @@ func (server *httpImpl) GetTeachers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *httpImpl) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	user, err := server.db.CheckToken(GetAuthorizationJWT(r))
+	user, err := server.db.CheckToken(GetAuthorizationToken(r))
 	if err != nil {
 		return
 	}

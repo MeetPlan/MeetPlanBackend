@@ -701,7 +701,6 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 		if err != nil {
 			if errors.Is(err, sql2.ErrNoRows) {
 				absence := sql.Absence{
-
 					UserID:      userId,
 					TeacherID:   user.ID,
 					MeetingID:   meetingId,
@@ -711,21 +710,21 @@ func (server *httpImpl) GetAbsencesTeacher(w http.ResponseWriter, r *http.Reques
 				if err != nil {
 					return
 				}
-				absences = append(absences, Absence{
-					Absence:     absence,
-					TeacherName: user.Name,
-					UserName:    currentUser.Name,
-				})
+				// da pridobimo ID novoustvarjene odsotnosti
+				absence, err = server.db.GetAbsenceForUserMeeting(meetingId, userId)
+				if err != nil {
+					return
+				}
 			} else {
 				return
 			}
-		} else {
-			absences = append(absences, Absence{
-				Absence:     absence,
-				TeacherName: user.Name,
-				UserName:    currentUser.Name,
-			})
 		}
+
+		absences = append(absences, Absence{
+			Absence:     absence,
+			TeacherName: user.Name,
+			UserName:    currentUser.Name,
+		})
 	}
 	WriteJSON(w, Response{Success: true, Data: absences}, http.StatusOK)
 }

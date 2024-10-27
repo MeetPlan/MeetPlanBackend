@@ -62,6 +62,8 @@ func (server *httpImpl) GetMeals(w http.ResponseWriter, r *http.Request) {
 					Role:  user.Role,
 				})
 			}
+		} else {
+			meal.Orders = "[]"
 		}
 		for n := 0; n < len(mealJson); n++ {
 			if mealJson[n].Date == meal.Date {

@@ -75,7 +75,6 @@ func (server *httpImpl) Login(w http.ResponseWriter, r *http.Request) {
 
 	if server.config.Debug {
 		c.SameSite = http.SameSiteNoneMode
-		c.Domain = "http://127.0.0.1:8000"
 	}
 
 	http.SetCookie(w, c)

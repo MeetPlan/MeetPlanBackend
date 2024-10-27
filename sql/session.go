@@ -18,7 +18,6 @@ func (db *sqlImpl) GetRandomToken(currentUser User) (string, error) {
 	if err == nil || !errors.Is(err, sql2.ErrNoRows) {
 		return "", err
 	}
-	db.logger.Info(currentUser, user, token)
 	currentUser.LoginToken = token
 	err = db.UpdateUser(currentUser)
 	return token, err

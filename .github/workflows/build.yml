@@ -7,10 +7,10 @@ jobs:
     name: Linux build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: '^1.18'
+          go-version: '^1.21'
       - name: Get current Go version
         run: go version
       - name: Get Go dependencies
@@ -23,7 +23,7 @@ jobs:
         run: go get .
       - name: Build app
         run: go build -v -o MeetPlanBackend main.go
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: MeetPlanBackend-linux
           path: MeetPlanBackend
@@ -31,8 +31,8 @@ jobs:
     name: Windows build
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: '^1.18'
       - name: Get current Go version
@@ -48,7 +48,7 @@ jobs:
         run: go get .
       - name: Build app
         run: go build -v -o MeetPlanBackend.exe main.go
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: MeetPlanBackend-windows
           path: MeetPlanBackend.exe
@@ -58,11 +58,11 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Get Docker version
         run: docker --version
       - name: Docker Login
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{github.actor}}
           password: ${{secrets.GITHUB_TOKEN}}
@@ -73,7 +73,7 @@ jobs:
       - name: Change commit name in the code
         run: sed -i 's/const COMMIT_HASH = ""/const COMMIT_HASH = "${{ github.sha }}"/g' sql/config.go
       - name: Build Docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           context: "."
           file: "./Dockerfile"

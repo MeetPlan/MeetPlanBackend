@@ -270,7 +270,7 @@ func (server *httpImpl) GetUserData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var birthCertNum = ""
-	if currentUser.Role == ADMIN {
+	if user.Role == ADMIN {
 		birthCertNum = currentUser.BirthCertificateNumber
 	}
 

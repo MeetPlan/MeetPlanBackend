@@ -14,7 +14,7 @@ func (db *sqlImpl) GetRandomToken(currentUser User) (string, error) {
 		return "", err
 	}
 	token := base64.StdEncoding.EncodeToString(randomBytes)
-	user, err := db.GetUserByLoginToken(token)
+	_, err = db.GetUserByLoginToken(token) // preverimo, da uporabnik s takim tokenom ne obstaja
 	if err == nil || !errors.Is(err, sql2.ErrNoRows) {
 		return "", err
 	}

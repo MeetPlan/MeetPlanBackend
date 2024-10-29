@@ -136,17 +136,26 @@ func (server *httpImpl) NewUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := sql.User{
-		Email:                  email,
-		Password:               password,
-		Role:                   role,
-		Name:                   name,
-		BirthCertificateNumber: "",
-		Birthday:               "",
-		CityOfBirth:            "",
-		CountryOfBirth:         "",
-		LoginToken:             "",
-		Users:                  "[]",
-		IsLocked:               false,
+		Email:                   email,
+		Password:                password,
+		Role:                    role,
+		Name:                    name,
+		Surname:                 "",
+		Gender:                  "",
+		EMSO:                    "",
+		PhoneNumber:             "",
+		TaxNumber:               "",
+		Citizenship:             "",
+		PermanentAddress:        "",
+		TemporaryAddress:        "",
+		BeforeAchievedEducation: "",
+		BirthCertificateNumber:  "",
+		Birthday:                "",
+		CityOfBirth:             "",
+		CountryOfBirth:          "",
+		LoginToken:              "",
+		Users:                   "[]",
+		IsLocked:                false,
 	}
 
 	err = server.db.InsertUser(user)
@@ -179,32 +188,79 @@ func (server *httpImpl) PatchUser(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Error: err.Error(), Data: "Failed to retrieve used from database", Success: false}, http.StatusInternalServerError)
 		return
 	}
-	if r.FormValue("birthday") != "" {
-		selectedUser.Birthday = r.FormValue("birthday")
+
+	// TODO: preveri kontrolno števko davčne številke in EMŠO
+
+	// samo za dijake
+	if selectedUser.Role == STUDENT {
+		if r.FormValue("birthday") != "" {
+			selectedUser.Birthday = r.FormValue("birthday")
+		}
+		if r.FormValue("country_of_birth") != "" {
+			selectedUser.CountryOfBirth = r.FormValue("country_of_birth")
+		}
+		if r.FormValue("city_of_birth") != "" {
+			selectedUser.CityOfBirth = r.FormValue("city_of_birth")
+		}
+		if r.FormValue("birth_certificate_number") != "" {
+			selectedUser.BirthCertificateNumber = r.FormValue("birth_certificate_number")
+		}
+		if r.FormValue("emso") != "" {
+			selectedUser.EMSO = r.FormValue("emso")
+		}
+		if r.FormValue("citizenship") != "" {
+			selectedUser.Citizenship = r.FormValue("citizenship")
+		}
+		if r.FormValue("before_achieved_education") != "" {
+			selectedUser.BeforeAchievedEducation = r.FormValue("before_achieved_education")
+		}
+		if r.FormValue("is_passing") != "" {
+			isPassing, err := strconv.ParseBool(r.FormValue("is_passing"))
+			if err != nil {
+				WriteBadRequest(w)
+				return
+			}
+			selectedUser.IsPassing = isPassing
+		}
 	}
-	if r.FormValue("country_of_birth") != "" {
-		selectedUser.CountryOfBirth = r.FormValue("country_of_birth")
+
+	// tudi za starše
+	if selectedUser.Role == PARENT || selectedUser.Role == STUDENT {
+		if r.FormValue("permanent_address") != "" {
+			selectedUser.PermanentAddress = r.FormValue("permanent_address")
+		}
+		if r.FormValue("temporary_address") != "" {
+			selectedUser.TemporaryAddress = r.FormValue("temporary_address")
+		}
+		// TODO: v OŠ davčna številka staršev (ne učencev), v SŠ davčna številka učencev (ne staršev)???!?!?!??!?!?!?!
+		// preveri to informacijo
+		if r.FormValue("tax_number") != "" {
+			selectedUser.TaxNumber = r.FormValue("tax_number")
+		}
 	}
-	if r.FormValue("city_of_birth") != "" {
-		selectedUser.CityOfBirth = r.FormValue("city_of_birth")
+
+	// za vse
+	if r.FormValue("phone_number") != "" {
+		selectedUser.PhoneNumber = r.FormValue("phone_number")
+	}
+	gender := r.FormValue("gender")
+	if gender != "" {
+		if gender != "male" && gender != "female" {
+			WriteBadRequest(w)
+			return
+		}
+		selectedUser.Gender = gender
 	}
 	if r.FormValue("email") != "" {
 		selectedUser.Email = r.FormValue("email")
 	}
-	if r.FormValue("birth_certificate_number") != "" {
-		selectedUser.BirthCertificateNumber = r.FormValue("birth_certificate_number")
-	}
 	if r.FormValue("name") != "" {
 		selectedUser.Name = r.FormValue("name")
 	}
-	if r.FormValue("is_passing") != "" {
-		isPassing, err := strconv.ParseBool(r.FormValue("is_passing"))
-		if err != nil {
-			WriteBadRequest(w)
-			return
-		}
-		selectedUser.IsPassing = isPassing
+	if r.FormValue("surname") != "" {
+		selectedUser.Surname = r.FormValue("surname")
 	}
+
 	err = server.db.UpdateUser(selectedUser)
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Data: "Failed to update user", Success: false}, http.StatusInternalServerError)
@@ -270,20 +326,50 @@ func (server *httpImpl) GetUserData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var birthCertNum = ""
-	if user.Role == ADMIN {
+	if user.Role == ADMIN || user.Role == PRINCIPAL {
 		birthCertNum = currentUser.BirthCertificateNumber
+	}
+	var beforeAchievedEducation = ""
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT {
+		beforeAchievedEducation = currentUser.BeforeAchievedEducation
+	}
+	var emso = ""
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == STUDENT {
+		emso = currentUser.EMSO
+	}
+	var taxNumber = ""
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == STUDENT {
+		taxNumber = currentUser.TaxNumber
+	}
+	// TODO: razrednik
+	var permanentAddress = ""
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == PARENT || user.Role == STUDENT {
+		permanentAddress = currentUser.PermanentAddress
+	}
+	var temporaryAddress = ""
+	if user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == PARENT || user.Role == STUDENT {
+		temporaryAddress = currentUser.TemporaryAddress
 	}
 
 	ujson := UserJSON{
-		Name:                   currentUser.Name,
-		ID:                     currentUser.ID,
-		Email:                  currentUser.Email,
-		Role:                   currentUser.Role,
-		BirthCertificateNumber: birthCertNum,
-		Birthday:               currentUser.Birthday,
-		CityOfBirth:            currentUser.CityOfBirth,
-		CountryOfBirth:         currentUser.CountryOfBirth,
-		IsPassing:              currentUser.IsPassing,
+		ID:                      currentUser.ID,
+		Email:                   currentUser.Email,
+		Name:                    currentUser.Name,
+		Surname:                 currentUser.Surname,
+		Role:                    currentUser.Role,
+		BirthCertificateNumber:  birthCertNum,
+		Birthday:                currentUser.Birthday,
+		CityOfBirth:             currentUser.CityOfBirth,
+		CountryOfBirth:          currentUser.CountryOfBirth,
+		IsPassing:               currentUser.IsPassing,
+		EMSO:                    emso,
+		Citizenship:             currentUser.Citizenship,
+		BeforeAchievedEducation: beforeAchievedEducation,
+		PermanentAddress:        permanentAddress,
+		TemporaryAddress:        temporaryAddress,
+		TaxNumber:               taxNumber,
+		PhoneNumber:             currentUser.PhoneNumber,
+		Gender:                  currentUser.Gender,
 	}
 	WriteJSON(w, Response{Data: ujson, Success: true}, http.StatusOK)
 }

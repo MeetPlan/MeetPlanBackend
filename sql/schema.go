@@ -10,22 +10,31 @@ END;
 $$ language 'plpgsql';
 
 CREATE TABLE IF NOT EXISTS users (
-	id                       UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
-	email                    VARCHAR(250)   NOT NULL,
-	pass                     VARCHAR(250)   NOT NULL,
-	name                     VARCHAR(250)   NOT NULL,
-	role                     VARCHAR(50)    NOT NULL,
-	birth_certificate_number VARCHAR(200),
-	birthday                 VARCHAR(200),
-	country_of_birth         VARCHAR(200),
-	city_of_birth            VARCHAR(200),
-	login_token              VARCHAR(400),
-	users                    VARCHAR(200)   DEFAULT('[]'),
-	is_passing               BOOLEAN,
-	is_locked                BOOLEAN        NOT NULL,
+	id								UUID			PRIMARY KEY     DEFAULT gen_random_uuid(),
+	email							VARCHAR(250)	NOT NULL,
+	pass							VARCHAR(250)	NOT NULL,
+	name							VARCHAR(250)	NOT NULL,
+	surname							VARCHAR(250)	NOT NULL,
+	gender							VARCHAR(30)		NOT NULL,
+	emso							VARCHAR(13)		NOT NULL,
+	phone_number					VARCHAR(25)		NOT NULL,
+	tax_number						VARCHAR(15)		NOT NULL,
+	citizenship						VARCHAR(100)	NOT NULL,
+	permanent_address				VARCHAR			NOT NULL,
+	temporary_address				VARCHAR			NOT NULL,
+	before_achieved_education		VARCHAR			NOT NULL,
+	role							VARCHAR(50)		NOT NULL,
+	birth_certificate_number		VARCHAR(200),
+	birthday						VARCHAR(200),
+	country_of_birth				VARCHAR(200),
+	city_of_birth					VARCHAR(200),
+	login_token						VARCHAR(400),
+	users							VARCHAR(200)	DEFAULT('[]'),
+	is_passing						BOOLEAN,
+	is_locked						BOOLEAN			NOT NULL,
 	
-	created_at               TIMESTAMP      NOT NULL DEFAULT now(),
-	updated_at               TIMESTAMP      NOT NULL DEFAULT now()
+	created_at						TIMESTAMP		NOT NULL DEFAULT now(),
+	updated_at						TIMESTAMP		NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS classes (
 	id                       UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),

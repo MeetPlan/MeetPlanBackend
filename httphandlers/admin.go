@@ -9,16 +9,25 @@ import (
 )
 
 type UserJSON struct {
-	Name                   string
-	ID                     string
-	Email                  string
-	Role                   string
-	BirthCertificateNumber string
-	Birthday               string
-	CityOfBirth            string
-	CountryOfBirth         string
-	IsPassing              bool
-	IsLocked               bool
+	ID                      string
+	Email                   string
+	Role                    string
+	Name                    string
+	Surname                 string
+	EMSO                    string
+	Citizenship             string
+	BeforeAchievedEducation string
+	PermanentAddress        string
+	TemporaryAddress        string
+	TaxNumber               string
+	PhoneNumber             string
+	Gender                  string
+	BirthCertificateNumber  string
+	Birthday                string
+	CityOfBirth             string
+	CountryOfBirth          string
+	IsPassing               bool
+	IsLocked                bool
 }
 
 const ADMIN = "admin"

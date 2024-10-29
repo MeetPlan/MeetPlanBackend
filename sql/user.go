@@ -1,19 +1,28 @@
 package sql
 
 type User struct {
-	ID                     string
-	Email                  string
-	Password               string `db:"pass"`
-	Role                   string
-	Name                   string
-	BirthCertificateNumber string `db:"birth_certificate_number"`
-	Birthday               string
-	CityOfBirth            string `db:"city_of_birth"`
-	CountryOfBirth         string `db:"country_of_birth"`
-	Users                  string
-	LoginToken             string `db:"login_token"`
-	IsPassing              bool   `db:"is_passing"`
-	IsLocked               bool   `db:"is_locked"`
+	ID                      string
+	Email                   string
+	Password                string `db:"pass"`
+	Role                    string
+	Name                    string // ime
+	Surname                 string // priimek
+	Gender                  string // spol
+	EMSO                    string // enotna matična številka občana (EMŠO)
+	PhoneNumber             string `db:"phone_number"` // telefonska številka
+	TaxNumber               string `db:"tax_number"`   // davčna številka
+	Citizenship             string // državljanstvo
+	PermanentAddress        string `db:"permanent_address"`         // stalno prebivališče
+	TemporaryAddress        string `db:"temporary_address"`         // začasno prebivališče
+	BeforeAchievedEducation string `db:"before_achieved_education"` // predhodno pridobljena izobrazba; kratek opis/poljubna vrednost, npr. OŠ Primer (SOK 1, EOK 1)
+	BirthCertificateNumber  string `db:"birth_certificate_number"`  // številka matičnega lista (šolska dokumentacija o dijaku, zgenerirano interno), malo unfortunately poimenovano
+	Birthday                string // datum rojstva
+	CityOfBirth             string `db:"city_of_birth"`    // kraj rojstva
+	CountryOfBirth          string `db:"country_of_birth"` // država rojstva
+	Users                   string
+	LoginToken              string `db:"login_token"`
+	IsPassing               bool   `db:"is_passing"`
+	IsLocked                bool   `db:"is_locked"`
 
 	CreatedAt string `db:"created_at"`
 	UpdatedAt string `db:"updated_at"`
@@ -51,7 +60,48 @@ func (db *sqlImpl) GetUserByEmail(email string) (user User, err error) {
 
 func (db *sqlImpl) InsertUser(user User) (err error) {
 	_, err = db.db.NamedExec(
-		"INSERT INTO users (email, pass, role, name, birth_certificate_number, city_of_birth, country_of_birth, birthday, users, is_passing, login_token, is_locked) VALUES (:email, :pass, :role, :name, :birth_certificate_number, :city_of_birth, :country_of_birth, :birthday, :users, :is_passing, :login_token, :is_locked)",
+		`INSERT INTO users (email,
+                   pass,
+                   role,
+                   name,
+                   surname,
+                   gender,
+                   emso,
+                   phone_number,
+                   tax_number,
+                   citizenship,
+                   permanent_address,
+                   temporary_address,
+                   before_achieved_education,
+                   birth_certificate_number,
+                   city_of_birth,
+                   country_of_birth,
+                   birthday,
+                   users,
+                   is_passing,
+                   login_token,
+                   is_locked)
+VALUES (:email,
+        :pass,
+        :role,
+        :name,
+        :surname,
+        :gender,
+        :emso,
+        :phone_number,
+        :tax_number,
+        :citizenship,
+        :permanent_address,
+        :temporary_address,
+        :before_achieved_education,
+        :birth_certificate_number,
+        :city_of_birth,
+        :country_of_birth,
+        :birthday,
+        :users,
+        :is_passing,
+        :login_token,
+        :is_locked)`,
 		user)
 	return err
 }
@@ -73,7 +123,29 @@ func (db *sqlImpl) GetAllUsers() (users []User, err error) {
 
 func (db *sqlImpl) UpdateUser(user User) error {
 	_, err := db.db.NamedExec(
-		"UPDATE users SET pass=:pass, name=:name, role=:role, email=:email, birth_certificate_number=:birth_certificate_number, city_of_birth=:city_of_birth, country_of_birth=:country_of_birth, birthday=:birthday, users=:users, is_passing=:is_passing, login_token=:login_token, is_locked=:is_locked WHERE id=:id",
+		`UPDATE users SET 
+                 pass=:pass,
+                 name=:name,
+                 surname=:surname,
+                 gender=:gender,
+                 emso=:emso,
+                 phone_number=:phone_number,
+                 tax_number=:tax_number,
+                 citizenship=:citizenship,
+                 permanent_address=:permanent_address,
+                 temporary_address=:temporary_address,
+                 before_achieved_education=:before_achieved_education,
+                 role=:role,
+                 email=:email,
+                 birth_certificate_number=:birth_certificate_number,
+                 city_of_birth=:city_of_birth,
+                 country_of_birth=:country_of_birth,
+                 birthday=:birthday,
+                 users=:users,
+                 is_passing=:is_passing,
+                 login_token=:login_token,
+                 is_locked=:is_locked
+             WHERE id=:id`,
 		user)
 	return err
 }

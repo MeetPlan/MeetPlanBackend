@@ -234,6 +234,8 @@ func main() {
 	r.HandleFunc("/message/get/{message_id}", httphandler.EditMessage).Methods("PATCH")
 
 	r.HandleFunc("/meeting/get/{meeting_id}", httphandler.GetMeeting).Methods("GET")
+	r.HandleFunc("/meeting/get/{meeting_id}/gradings", httphandler.GetGradingsTeacher).Methods("GET")
+	r.HandleFunc("/meeting/get/{meeting_id}/gradings", httphandler.NewGrading).Methods("POST")
 	r.HandleFunc("/meeting/get/{meeting_id}/absences", httphandler.GetAbsencesTeacher).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/users", httphandler.GetUsersForMeeting).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/grades", httphandler.GetGradesForMeeting).Methods("GET")
@@ -242,6 +244,13 @@ func main() {
 	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.NewHomework).Methods("POST")
 	r.HandleFunc("/meeting/get/{meeting_id}/homework", httphandler.GetAllHomeworksForSpecificSubject).Methods("GET")
 	r.HandleFunc("/meeting/get/{meeting_id}/substitutions/proton", httphandler.ManageTeacherAbsences).Methods("GET")
+
+	r.HandleFunc("/grading/{grading_id}/terms", httphandler.NewGradingTerm).Methods("POST")
+	r.HandleFunc("/grading/{grading_id}", httphandler.PatchGrading).Methods("PATCH")
+	r.HandleFunc("/grading/{grading_id}", httphandler.DeleteGrading).Methods("DELETE")
+
+	r.HandleFunc("/grading_term/{grading_term_id}", httphandler.PatchGradingTerm).Methods("PATCH")
+	r.HandleFunc("/grading_term/{grading_term_id}", httphandler.DeleteGradingTerm).Methods("DELETE")
 
 	r.HandleFunc("/meeting/absence/{absence_id}", httphandler.PatchAbsence).Methods("PATCH")
 

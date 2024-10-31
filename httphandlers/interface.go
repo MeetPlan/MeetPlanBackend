@@ -132,6 +132,13 @@ type HTTP interface {
 	DeleteNotification(w http.ResponseWriter, r *http.Request)
 
 	// gradings.go
+	NewGrading(w http.ResponseWriter, r *http.Request)
+	GetGradingsTeacher(w http.ResponseWriter, r *http.Request)
+	NewGradingTerm(w http.ResponseWriter, r *http.Request)
+	PatchGrading(w http.ResponseWriter, r *http.Request)
+	DeleteGrading(w http.ResponseWriter, r *http.Request)
+	PatchGradingTerm(w http.ResponseWriter, r *http.Request)
+	DeleteGradingTerm(w http.ResponseWriter, r *http.Request)
 	GetMyGradings(w http.ResponseWriter, r *http.Request)
 
 	// proton.go

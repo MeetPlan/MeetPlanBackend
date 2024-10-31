@@ -3,6 +3,7 @@ package helpers
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 func Contains[T comparable](s []T, e T) bool {
@@ -32,4 +33,14 @@ func FmtSanitize[T any](toSanitize T) string {
 	escaped := strings.Replace(fmt.Sprint(toSanitize), "\n", "", -1)
 	escaped = strings.Replace(escaped, "\r", "", -1)
 	return escaped
+}
+
+func GetCurrentSchoolYear() string {
+	d := time.Now()
+	year := d.Year()
+	if d.Month() < time.August || (d.Month() == time.August && d.Day() < 23) {
+		year--
+	}
+	year2 := year + 1
+	return fmt.Sprintf("%d/%d", year, year2)
 }

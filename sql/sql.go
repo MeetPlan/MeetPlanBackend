@@ -92,13 +92,32 @@ type SQL interface {
 
 	GetGrade(id string) (grade Grade, err error)
 	GetGradesForUser(userId string) (grades []Grade, err error)
+	GetGradesForTerm(termId string) (grades []Grade, err error)
+	GetGradeForTermAndUser(termId string, userId string) (grade Grade, err error)
 	GetGradesForUserInSubject(userId string, subjectId string) (grades []Grade, err error)
 	CheckIfFinal(userId string, subjectId string) (grade Grade, err error)
 	InsertGrade(grade Grade) error
 	UpdateGrade(grade Grade) error
 	DeleteGrade(ID string) error
+	DeleteGradeByTermAndUser(termId string, userId string) error
 	DeleteGradesByTeacherID(ID string) error
+	DeleteGradesByTermID(ID string) error
 	DeleteGradesByUserID(ID string) error
+
+	GetGrading(id string) (grading Grading, err error)
+	GetGradingsForSubject(subjectId string) (gradings []Grading, err error)
+	InsertGrading(grading Grading) error
+	UpdateGrading(grading Grading) error
+	DeleteGrading(ID string) error
+
+	GetGradingTerm(id string) (gradingTerm GradingTerm, err error)
+	GetGradingTermsForGrading(gradingId string) (gradingTerms []GradingTerm, err error)
+	InsertGradingTerm(gradingTerm GradingTerm) error
+	UpdateGradingTerm(gradingTerm GradingTerm) error
+	DeleteGradingTermsByGrading(ID string) error
+	DeleteGradingTerm(ID string) error
+
+	GetStudentsFromSubject(subject *Subject) []string
 
 	GetHomework(id string) (homework Homework, err error)
 	GetHomeworkForSubject(id string) (homework []Homework, err error)

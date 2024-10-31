@@ -1,0 +1,1 @@
+ALTER TABLE grades ADD COLUMN term_id UUID DEFAULT null;

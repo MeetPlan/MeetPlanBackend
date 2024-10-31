@@ -125,10 +125,44 @@ CREATE TABLE IF NOT EXISTS absence (
 	CONSTRAINT FK_AbsenceMeeting FOREIGN KEY (meeting_id) REFERENCES meetings(id),
 	CONSTRAINT FK_AbsenceTeacher FOREIGN KEY (teacher_id) REFERENCES users(id)
 );
+CREATE TABLE IF NOT EXISTS gradings (
+	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
+	subject_id              UUID,
+	teacher_id              UUID,
+	name                    VARCHAR(50),
+	description             VARCHAR,
+	grading_type            INTEGER,
+	school_year             VARCHAR(11),
+	period                  INTEGER,
+	
+	created_at              TIMESTAMP      NOT NULL DEFAULT now(),
+	updated_at              TIMESTAMP      NOT NULL DEFAULT now(),
+
+	CONSTRAINT FK_GradingsTeacher  FOREIGN KEY (teacher_id) REFERENCES users(id),
+	CONSTRAINT FK_GradingsSubject  FOREIGN KEY (subject_id) REFERENCES subject(id)
+);
+CREATE TABLE IF NOT EXISTS grading_terms (
+	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
+	teacher_id              UUID,
+	grading_id              UUID,
+    date					VARCHAR(15),
+	hour					INTEGER,
+	name                    VARCHAR(50),
+	description             VARCHAR,
+	term                    INTEGER,
+	grade_autoselect_type   INTEGER,
+	
+	created_at              TIMESTAMP      NOT NULL DEFAULT now(),
+	updated_at              TIMESTAMP      NOT NULL DEFAULT now(),
+
+	CONSTRAINT FK_GradingTermsTeacher  FOREIGN KEY (teacher_id) REFERENCES users(id),
+	CONSTRAINT FK_GradingTermsGrading  FOREIGN KEY (grading_id) REFERENCES gradings(id)
+);
 CREATE TABLE IF NOT EXISTS grades (
 	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
 	user_id                 UUID,
 	teacher_id              UUID,
+	term_id					UUID,
 	subject_id              UUID,
 	date                    VARCHAR(200),
 	is_written              BOOLEAN,
@@ -141,9 +175,10 @@ CREATE TABLE IF NOT EXISTS grades (
 	created_at              TIMESTAMP      NOT NULL DEFAULT now(),
 	updated_at              TIMESTAMP      NOT NULL DEFAULT now(),
 
-	CONSTRAINT FK_GradesUser    FOREIGN KEY (user_id)    REFERENCES users(id),
-	CONSTRAINT FK_GradesTeacher FOREIGN KEY (teacher_id) REFERENCES users(id),
-	CONSTRAINT FK_GradesSubject FOREIGN KEY (subject_id) REFERENCES subject(id)
+	CONSTRAINT FK_GradesUser         FOREIGN KEY (user_id)    REFERENCES users(id),
+	CONSTRAINT FK_GradesTeacher      FOREIGN KEY (teacher_id) REFERENCES users(id),
+	CONSTRAINT FK_GradesGradingTerm  FOREIGN KEY (term_id)    REFERENCES grading_terms(id),
+	CONSTRAINT FK_GradesSubject      FOREIGN KEY (subject_id) REFERENCES subject(id)
 );
 CREATE TABLE IF NOT EXISTS homework (
 	id                      UUID           PRIMARY KEY     DEFAULT gen_random_uuid(),
@@ -262,5 +297,7 @@ CREATE OR REPLACE TRIGGER update_meals_updated_at BEFORE UPDATE ON meals FOR EAC
 CREATE OR REPLACE TRIGGER update_notifications_updated_at BEFORE UPDATE ON notifications FOR EACH ROW EXECUTE PROCEDURE update_changetimestamp_column();
 CREATE OR REPLACE TRIGGER update_improvements_updated_at BEFORE UPDATE ON improvements FOR EACH ROW EXECUTE PROCEDURE update_changetimestamp_column();
 CREATE OR REPLACE TRIGGER update_documents_updated_at BEFORE UPDATE ON documents FOR EACH ROW EXECUTE PROCEDURE update_changetimestamp_column();
+CREATE OR REPLACE TRIGGER update_gradings_updated_at BEFORE UPDATE ON gradings FOR EACH ROW EXECUTE PROCEDURE update_changetimestamp_column();
+CREATE OR REPLACE TRIGGER update_grading_terms_updated_at BEFORE UPDATE ON grading_terms FOR EACH ROW EXECUTE PROCEDURE update_changetimestamp_column();
 
 `

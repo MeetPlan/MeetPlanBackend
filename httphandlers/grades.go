@@ -16,9 +16,27 @@ import (
 	"time"
 )
 
+type Grade struct {
+	ID          string
+	UserID      string
+	TeacherID   string
+	TermID      *string
+	Counts      bool
+	SubjectID   string
+	Grade       int
+	Date        string
+	IsWritten   bool
+	IsFinal     bool
+	Period      int
+	Description string
+	CanPatch    bool
+	CreatedAt   string
+	UpdatedAt   string
+}
+
 type PeriodGrades struct {
 	Period  int
-	Grades  []sql.Grade
+	Grades  []Grade
 	Total   int
 	Average float64
 }
@@ -26,6 +44,7 @@ type PeriodGrades struct {
 type UserGradeTable struct {
 	ID       string
 	Name     string
+	Surname  string
 	Average  float64
 	Final    int
 	IsGraded bool
@@ -47,6 +66,91 @@ type SubjectGradesResponse struct {
 type GradeTableResponse struct {
 	Users       []UserGradeTable
 	TeacherName string
+}
+
+func MakeGradeFromSQLGrade(grade *sql.Grade) Grade {
+	return Grade{
+		ID:          grade.ID,
+		UserID:      grade.UserID,
+		TeacherID:   grade.TeacherID,
+		TermID:      grade.TermID,
+		SubjectID:   grade.SubjectID,
+		Grade:       grade.Grade,
+		Date:        grade.Date,
+		IsWritten:   grade.IsWritten,
+		IsFinal:     grade.IsFinal,
+		Period:      grade.Period,
+		Description: grade.Description,
+		CanPatch:    grade.CanPatch,
+		CreatedAt:   grade.CreatedAt,
+		UpdatedAt:   grade.UpdatedAt,
+		Counts:      true,
+	}
+}
+
+func (server *httpImpl) TransformGradesCountable(grades []sql.Grade) []Grade {
+	if len(grades) == 0 {
+		return make([]Grade, 0)
+	}
+	if len(grades) == 1 {
+		return []Grade{MakeGradeFromSQLGrade(&(grades)[0])}
+	}
+	terms := make([]sql.GradingTerm, len(grades))
+	firstGrade := -1
+	for i, v := range grades {
+		if v.TermID == nil {
+			continue
+		}
+		term, err := server.db.GetGradingTerm(*v.TermID)
+		if err != nil {
+			continue
+		}
+		terms[i] = term
+		if term.Term != 1 {
+			continue
+		}
+		firstGrade = i
+		continue
+	}
+
+	g := make([]Grade, len(grades))
+	for i, v := range grades {
+		g[i] = MakeGradeFromSQLGrade(&v)
+	}
+
+	if firstGrade == -1 {
+		return g
+	}
+
+	for i, v := range grades {
+		if i == firstGrade {
+			continue
+		}
+		if terms[i].GradeAutoselectType == 0 {
+			// obdrži obe
+			// po defaultu je firstGradeGrade.Counts == true
+			// če se to kdaj spremeni, se to spremeni, če imamo dve konfliktni pravili (npr. 0 in 1)
+			// takrat pa še sam ne vem, kaj narediti, tako da ja ...
+			continue
+		}
+		if terms[i].GradeAutoselectType == 1 {
+			// štej boljšo
+			if g[firstGrade].Grade > v.Grade {
+				// prva je bila boljša od trenutne, obdrži prvo
+				g[firstGrade].Counts = true
+				g[i].Counts = false
+			} else {
+				// zadnja je bila boljša ali enaka prvi, obdrži zadnjo
+				g[firstGrade].Counts = false
+			}
+		}
+		if terms[i].GradeAutoselectType == 2 {
+			// štej zadnjo
+			g[firstGrade].Counts = false
+		}
+	}
+
+	return g
 }
 
 func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Request) {
@@ -99,23 +203,55 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 	}
 	var usergrades = make([]UserGradeTable, 0)
 	for i := 0; i < len(users); i++ {
-		var period1 = make([]sql.Grade, 0)
-		var period2 = make([]sql.Grade, 0)
+		var period1 = make([]Grade, 0)
+		var period2 = make([]Grade, 0)
 		var final = 0
 		grades, err := server.db.GetGradesForUser(users[i])
 		if err != nil {
 			WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 			return
 		}
-		for n := 0; n < len(grades); n++ {
-			grade := grades[n]
-			if grade.SubjectID == subject.ID {
-				if grade.IsFinal {
-					final = grade.Grade
-				} else if grade.Period == 1 {
-					period1 = append(period1, grade)
-				} else if grade.Period == 2 {
-					period2 = append(period2, grade)
+
+		gm := make(map[string][]sql.Grade)
+		for _, v := range grades {
+			gradingId := ""
+			if v.TermID != nil {
+				termId := *v.TermID
+				term, err := server.db.GetGradingTerm(termId)
+				if err != nil {
+					WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+					return
+				}
+				gradingId = term.GradingID
+			}
+			_, exists := gm[gradingId]
+			if !exists {
+				gm[gradingId] = make([]sql.Grade, 0)
+			}
+			gm[gradingId] = append(gm[gradingId], v)
+		}
+
+		for gradingId, g := range gm {
+			var grades []Grade
+			if gradingId == "" {
+				grades = make([]Grade, 0)
+				for _, v := range g {
+					grades = append(grades, MakeGradeFromSQLGrade(&v))
+				}
+			} else {
+				grades = server.TransformGradesCountable(g)
+			}
+			for n := 0; n < len(grades); n++ {
+				grade := grades[n]
+
+				if grade.SubjectID == subject.ID {
+					if grade.IsFinal {
+						final = grade.Grade
+					} else if grade.Period == 1 {
+						period1 = append(period1, grade)
+					} else if grade.Period == 2 {
+						period2 = append(period2, grade)
+					}
 				}
 			}
 		}
@@ -126,28 +262,38 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 		}
 
 		var firstPeriodTotal = 0
+		var firstPeriodNumber = 0
 		for n := 0; n < len(period1); n++ {
+			if !period1[n].Counts {
+				continue
+			}
 			firstPeriodTotal += period1[n].Grade
+			firstPeriodNumber++
 		}
 
 		var secondPeriodTotal = 0
+		var secondPeriodNumber = 0
 		for n := 0; n < len(period2); n++ {
+			if !period2[n].Counts {
+				continue
+			}
 			secondPeriodTotal += period2[n].Grade
+			secondPeriodNumber++
 		}
 
 		var firstAverage = 0.0
 		if len(period1) != 0 {
-			firstAverage = float64(firstPeriodTotal) / float64(len(period1))
+			firstAverage = float64(firstPeriodTotal) / float64(firstPeriodNumber)
 		}
 
 		var secondAverage = 0.0
 		if len(period2) != 0 {
-			secondAverage = float64(secondPeriodTotal) / float64(len(period2))
+			secondAverage = float64(secondPeriodTotal) / float64(secondPeriodNumber)
 		}
 
 		var avg = 0.0
 		if !(len(period1) == 0 && len(period2) == 0) {
-			avg = float64(secondPeriodTotal+firstPeriodTotal) / float64(len(period1)+len(period2))
+			avg = float64(secondPeriodTotal+firstPeriodTotal) / float64(firstPeriodNumber+secondPeriodNumber)
 		}
 
 		var periods = make([]PeriodGrades, 0)
@@ -166,6 +312,7 @@ func (server *httpImpl) GetGradesForMeeting(w http.ResponseWriter, r *http.Reque
 		usergrades = append(usergrades, UserGradeTable{
 			ID:       user.ID,
 			Name:     user.Name,
+			Surname:  user.Surname,
 			Periods:  periods,
 			IsGraded: subject.IsGraded,
 			Average:  avg,
@@ -488,6 +635,37 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
 		return
 	}
+
+	gm := make(map[string][]sql.Grade)
+	for _, v := range userGrades {
+		gradingId := ""
+		if v.TermID != nil {
+			term, err := server.db.GetGradingTerm(*v.TermID)
+			if err != nil {
+				WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
+				return
+			}
+			gradingId = term.GradingID
+		}
+		_, exists := gm[gradingId]
+		if !exists {
+			gm[gradingId] = make([]sql.Grade, 0)
+		}
+		gm[gradingId] = append(gm[gradingId], v)
+	}
+
+	allGrades := make([]Grade, 0)
+	for gradingId, grades := range gm {
+		if gradingId == "" {
+			for _, v := range grades {
+				allGrades = append(allGrades, MakeGradeFromSQLGrade(&v))
+			}
+			continue
+		}
+
+		allGrades = append(allGrades, server.TransformGradesCountable(grades)...)
+	}
+
 	subjects, err := server.db.GetAllSubjectsForUser(studentId)
 	if err != nil {
 		WriteJSON(w, Response{Error: err.Error(), Success: false}, http.StatusInternalServerError)
@@ -501,20 +679,21 @@ func (server *httpImpl) GetMyGrades(w http.ResponseWriter, r *http.Request) {
 		var gradesCount = 0
 		var final = 0
 		for n := 1; n <= 2; n++ {
-			var gradesPeriod = make([]sql.Grade, 0)
+			var gradesPeriod = make([]Grade, 0)
 			var iGradeCount = 0
 			var iTotal = 0
-			for x := 0; x < len(userGrades); x++ {
-				grade := userGrades[x]
+			for _, grade := range allGrades {
 				if grade.SubjectID == subject.ID && grade.IsFinal {
 					final = grade.Grade
 				} else if grade.SubjectID == subject.ID && grade.Period == n {
 					gradesPeriod = append(gradesPeriod, grade)
-					gradesCount++
-					total += grade.Grade
-					// No, I don't mean you - Apple. i => internal
-					iGradeCount++
-					iTotal += grade.Grade
+					if grade.Counts {
+						gradesCount++
+						total += grade.Grade
+						// No, I don't mean you - Apple. i => internal
+						iGradeCount++
+						iTotal += grade.Grade
+					}
 				}
 			}
 			var avg = 0.0

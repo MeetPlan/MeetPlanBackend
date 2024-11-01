@@ -524,7 +524,7 @@ func (server *httpImpl) PatchGradingTerm(w http.ResponseWriter, r *http.Request)
 				IsWritten:   grading.GradingType == 1,
 				IsFinal:     false,
 				Period:      period,
-				Description: fmt.Sprintf("%s; %s", grading.Name, grading.Description),
+				Description: fmt.Sprintf("%d. rok; %s; %s", gradingTerm.Term, grading.Name, grading.Description),
 				CanPatch:    true,
 			}
 			server.db.InsertGrade(g)

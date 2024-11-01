@@ -26,6 +26,7 @@ func (server *httpImpl) GetSubjects(w http.ResponseWriter, r *http.Request) {
 		WriteForbiddenJWT(w)
 		return
 	}
+	// TODO: Zaščiti ta endpoint, učitelji ne bi smeli dostopati do tega
 	if !(user.Role == ADMIN || user.Role == PRINCIPAL || user.Role == PRINCIPAL_ASSISTANT || user.Role == SCHOOL_PSYCHOLOGIST || user.Role == TEACHER) {
 		WriteForbiddenJWT(w)
 		return

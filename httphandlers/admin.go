@@ -6,6 +6,7 @@ import (
 	"github.com/MeetPlan/MeetPlanBackend/helpers"
 	"github.com/gorilla/mux"
 	"net/http"
+	"strings"
 )
 
 type UserJSON struct {
@@ -28,6 +29,7 @@ type UserJSON struct {
 	CountryOfBirth          string
 	IsPassing               bool
 	IsLocked                bool
+	IsMissingInfo           bool
 }
 
 const ADMIN = "admin"
@@ -171,7 +173,36 @@ func (server *httpImpl) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		if !(user.Role == TEACHER || user.Role == SCHOOL_PSYCHOLOGIST || user.Role == PRINCIPAL_ASSISTANT || user.Role == PRINCIPAL || user.Role == ADMIN || user.Role == FOOD_ORGANIZER) && (currentUser.Role == STUDENT || currentUser.Role == PARENT) {
 			continue
 		}
-		m := UserJSON{ID: currentUser.ID, Email: currentUser.Email, Role: currentUser.Role, Name: currentUser.Name, IsLocked: currentUser.IsLocked}
+		taxNumber := strings.TrimSpace(currentUser.TaxNumber)
+		phoneNumber := strings.TrimSpace(currentUser.PhoneNumber)
+		gender := strings.TrimSpace(currentUser.Gender)
+		permanent := strings.TrimSpace(currentUser.PermanentAddress)
+		emso := helpers.VerifyEMSO(currentUser.EMSO, currentUser.Gender)
+		beforeAchievedEducation := strings.TrimSpace(currentUser.BeforeAchievedEducation)
+		citizenship := strings.TrimSpace(currentUser.Citizenship)
+		cityOfBirth := strings.TrimSpace(currentUser.CityOfBirth)
+		countryOfBirth := strings.TrimSpace(currentUser.CountryOfBirth)
+
+		allOkay := true
+		if currentUser.Role == STUDENT {
+			allOkay = taxNumber != "" && phoneNumber != "" && (gender == "male" || gender == "female") && permanent != "" && emso && beforeAchievedEducation != "" && citizenship != "" && cityOfBirth != "" && countryOfBirth != ""
+		} else if currentUser.Role == PARENT {
+			allOkay = phoneNumber != "" && permanent != "" && taxNumber != ""
+		}
+
+		if currentUser.Name == "" || currentUser.Surname == "" {
+			allOkay = false
+		}
+
+		m := UserJSON{
+			ID:            currentUser.ID,
+			Email:         currentUser.Email,
+			Role:          currentUser.Role,
+			Name:          currentUser.Name,
+			Surname:       currentUser.Surname,
+			IsLocked:      currentUser.IsLocked,
+			IsMissingInfo: !allOkay,
+		}
 		usersjson = append(usersjson, m)
 	}
 	WriteJSON(w, Response{Data: usersjson, Success: true}, http.StatusOK)

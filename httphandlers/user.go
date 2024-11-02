@@ -205,7 +205,8 @@ func (server *httpImpl) PatchUser(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("birth_certificate_number") != "" {
 			selectedUser.BirthCertificateNumber = r.FormValue("birth_certificate_number")
 		}
-		if r.FormValue("emso") != "" {
+		emso := r.FormValue("emso")
+		if emso != "" && helpers.VerifyEMSO(emso, selectedUser.Gender) {
 			selectedUser.EMSO = r.FormValue("emso")
 		}
 		if r.FormValue("citizenship") != "" {

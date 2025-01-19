@@ -1,2 +1,0 @@
-(.*?), err := strconv.Atoi\(mux.Vars\((.*?)\)(.*?)\)
-$1 := mux.Vars($2)$3
